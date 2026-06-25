@@ -8551,607 +8551,795 @@ const DrawingTool = () => {
   // ══════════════════════════════════════════════════════════
   // SCHÉMA FORAGE — style technique normalisé
   // ══════════════════════════════════════════════════════════
+
+  // ══════════════════════════════════════════════════════════
+  // DEFS COMMUNES P&ID — symboles normalisés ISO 10628 / ISA 5.1
+  // ══════════════════════════════════════════════════════════
+  const PID_DEFS = () => (
+    <defs>
+      {/* Flèches */}
+      <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+        <polygon points="0,0 8,4 0,8" fill="#1e293b"/>
+      </marker>
+      <marker id="arrB" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+        <polygon points="0,0 8,4 0,8" fill="#2563eb"/>
+      </marker>
+      <marker id="arrR" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto">
+        <polygon points="0,0 8,4 0,8" fill="#dc2626"/>
+      </marker>
+      <marker id="arrRev" viewBox="0 0 8 8" refX="1" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+        <polygon points="8,0 0,4 8,8" fill="#1e293b"/>
+      </marker>
+      {/* Hachures sol */}
+      <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="8" stroke="#94a3b8" strokeWidth="1" opacity="0.5"/>
+      </pattern>
+      {/* Hachures béton */}
+      <pattern id="beton" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="10" stroke="#64748b" strokeWidth="1.5" opacity="0.35"/>
+        <line x1="5" y1="0" x2="5" y2="10" stroke="#64748b" strokeWidth="0.6" opacity="0.2"/>
+      </pattern>
+      {/* Eau */}
+      <linearGradient id="eau" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#bfdbfe" stopOpacity="0.7"/>
+        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.25"/>
+      </linearGradient>
+      {/* Terrain */}
+      <pattern id="terrain" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="12" stroke="#92400e" strokeWidth="1" opacity="0.3"/>
+      </pattern>
+    </defs>
+  );
+
+  // ── Pompe centrifuge P&ID (cercle + triangle) ──
+  const PIDPompe = ({cx,cy,r=14,label,stb=false,color='#1e293b'}) => {
+    const c = stb ? '#94a3b8' : color;
+    return <g>
+      <circle cx={cx} cy={cy} r={r} fill="white" stroke={c} strokeWidth="1.5"/>
+      <polygon points={`${cx},${cy-r+3} ${cx+r-3},${cy+r-3} ${cx-r+3},${cy+r-3}`} fill={c} opacity={stb?0.35:0.7}/>
+      <text x={cx} y={cy+4} textAnchor="middle" fontSize="7" fontWeight="700" fill={stb?'#94a3b8':c}>{label}</text>
+    </g>;
+  };
+  // ── Moteur P&ID ──
+  const PIDMoteur = ({cx,cy,r=11,stb=false}) => {
+    const c = stb ? '#94a3b8' : '#1e293b';
+    return <g>
+      <circle cx={cx} cy={cy} r={r} fill={stb?'#f1f5f9':'white'} stroke={c} strokeWidth="1.5"/>
+      <text x={cx} y={cy+4} textAnchor="middle" fontSize="9" fontWeight="700" fill={c}>M</text>
+    </g>;
+  };
+  // ── Vanne papillon / passage direct ──
+  const PIDVanne = ({cx,cy,h=9,horiz=true,color='#1e293b'}) => horiz ? (
+    <g>
+      <polygon points={`${cx-h},${cy-h/2} ${cx},${cy} ${cx-h},${cy+h/2}`} fill="white" stroke={color} strokeWidth="1.2"/>
+      <polygon points={`${cx+h},${cy-h/2} ${cx},${cy} ${cx+h},${cy+h/2}`} fill="white" stroke={color} strokeWidth="1.2"/>
+      <line x1={cx} y1={cy-h} x2={cx} y2={cy-h*1.7} stroke={color} strokeWidth="1"/>
+      <line x1={cx-h*0.6} y1={cy-h*1.7} x2={cx+h*0.6} y2={cy-h*1.7} stroke={color} strokeWidth="1.2"/>
+    </g>
+  ) : (
+    <g>
+      <polygon points={`${cx-h/2},${cy-h} ${cx},${cy} ${cx+h/2},${cy-h}`} fill="white" stroke={color} strokeWidth="1.2"/>
+      <polygon points={`${cx-h/2},${cy+h} ${cx},${cy} ${cx+h/2},${cy+h}`} fill="white" stroke={color} strokeWidth="1.2"/>
+      <line x1={cx-h} y1={cy} x2={cx-h*1.7} y2={cy} stroke={color} strokeWidth="1"/>
+      <line x1={cx-h*1.7} y1={cy-h*0.6} x2={cx-h*1.7} y2={cy+h*0.6} stroke={color} strokeWidth="1.2"/>
+    </g>
+  );
+  // ── Clapet anti-retour ──
+  const PIDClapet = ({cx,cy,h=9,horiz=true}) => horiz ? (
+    <g>
+      <line x1={cx-h} y1={cy} x2={cx+h} y2={cy} stroke="#1e293b" strokeWidth="1.2"/>
+      <polygon points={`${cx-h/2},${cy-h/1.5} ${cx+h/2},${cy} ${cx-h/2},${cy+h/1.5}`} fill="#1e293b" opacity="0.75"/>
+      <line x1={cx+h/2} y1={cy-h} x2={cx+h/2} y2={cy+h} stroke="#1e293b" strokeWidth="1.8"/>
+    </g>
+  ) : (
+    <g>
+      <line x1={cx} y1={cy-h} x2={cx} y2={cy+h} stroke="#1e293b" strokeWidth="1.2"/>
+      <polygon points={`${cx-h/1.5},${cy-h/2} ${cx},${cy+h/2} ${cx+h/1.5},${cy-h/2}`} fill="#1e293b" opacity="0.75"/>
+      <line x1={cx-h} y1={cy-h/2} x2={cx+h} y2={cy-h/2} stroke="#1e293b" strokeWidth="1.8"/>
+    </g>
+  );
+  // ── Manomètre (cercle avec aiguille) ──
+  const PIDMano = ({cx,cy,r=9,label='PI'}) => (
+    <g>
+      <circle cx={cx} cy={cy} r={r} fill="white" stroke="#1e293b" strokeWidth="1.2"/>
+      <path d={`M${cx-r*0.65},${cy+r*0.2} A${r*0.7},${r*0.7} 0 0,1 ${cx+r*0.65},${cy+r*0.2}`} fill="none" stroke="#1e293b" strokeWidth="0.7"/>
+      <line x1={cx} y1={cy} x2={cx+r*0.5} y2={cy-r*0.45} stroke="#dc2626" strokeWidth="1"/>
+      <text x={cx} y={cy+r+9} textAnchor="middle" fontSize="7" fill="#1e293b" fontWeight="600">{label}</text>
+    </g>
+  );
+  // ── Débitmètre ──
+  const PIDDebit = ({cx,cy,label='FI'}) => (
+    <g>
+      <rect x={cx-12} y={cy-10} width="24" height="20" fill="white" stroke="#1e293b" strokeWidth="1.2"/>
+      <text x={cx} y={cy+4} textAnchor="middle" fontSize="9" fontWeight="700" fill="#1e293b">{label}</text>
+      <text x={cx} y={cy+20} textAnchor="middle" fontSize="6" fill="#64748b">FT</text>
+    </g>
+  );
+  // ── Crépine ──
+  const PIDCrepine = ({cx,cy,h=10}) => (
+    <g>
+      <rect x={cx-h/2} y={cy} width={h} height={h*0.8} fill="none" stroke="#64748b" strokeWidth="1.2"/>
+      {[-3,0,3].map(i=><line key={i} x1={cx+i} y1={cy} x2={cx+i} y2={cy+h*0.8} stroke="#64748b" strokeWidth="0.8"/>)}
+      <text x={cx} y={cy+h*0.8+9} textAnchor="middle" fontSize="6" fill="#64748b">STR</text>
+    </g>
+  );
+  // ── Soupape sécurité ──
+  const PIDSoupape = ({cx,cy}) => (
+    <g>
+      <polygon points={`${cx},${cy-9} ${cx+7},${cy+5} ${cx-7},${cy+5}`} fill="white" stroke="#dc2626" strokeWidth="1.2"/>
+      <line x1={cx} y1={cy+5} x2={cx} y2={cy+14} stroke="#dc2626" strokeWidth="1.2"/>
+      <line x1={cx-5} y1={cy+14} x2={cx+5} y2={cy+14} stroke="#dc2626" strokeWidth="1.5"/>
+      <text x={cx} y={cy-13} textAnchor="middle" fontSize="6" fill="#dc2626" fontWeight="600">PSV</text>
+    </g>
+  );
+  // ── Réservoir à vessie ──
+  const PIDVessie = ({cx,cy}) => (
+    <g>
+      <ellipse cx={cx} cy={cy} rx={14} ry={20} fill="white" stroke="#1e293b" strokeWidth="1.2"/>
+      <ellipse cx={cx} cy={cy+5} rx={8} ry={10} fill="#dbeafe" stroke="#2563eb" strokeWidth="0.8"/>
+      <text x={cx} y={cy-24} textAnchor="middle" fontSize="6" fill="#1e293b" fontWeight="600">VBE</text>
+      <text x={cx} y={cy+28} textAnchor="middle" fontSize="6" fill="#64748b">réservoir</text>
+    </g>
+  );
+  // ── Tag instrument (cercle ISA) ──
+  const PIDTag = ({cx,cy,tag,r=9}) => (
+    <g>
+      <circle cx={cx} cy={cy} r={r} fill="white" stroke="#1e293b" strokeWidth="1"/>
+      <text x={cx} y={cy+3} textAnchor="middle" fontSize="6.5" fill="#1e293b" fontWeight="700">{tag}</text>
+    </g>
+  );
+  // ── Cartouche technique bas de page ──
+  const CartouchePID = ({Q,HMT,titre,sousTitre}) => (
+    <g>
+      {/* Bande titre */}
+      <rect x={0} y={530} width={1100} height={20} fill="#1e293b"/>
+      <text x={550} y={544} textAnchor="middle" fontSize="9" fontWeight="700" fill="white" letterSpacing="0.5">{titre}</text>
+      {/* Cartouche infos */}
+      <rect x={0} y={550} width={1100} height={50} fill="#f8fafc" stroke="#cbd5e1" strokeWidth="0.5"/>
+      {/* Colonnes */}
+      {[220,440,660,880].map(x=><line key={x} x1={x} y1={550} x2={x} y2={600} stroke="#cbd5e1" strokeWidth="0.5"/>)}
+      <text x={10} y={562} fontSize="7" fontWeight="700" fill="#64748b">PROJET</text>
+      <text x={10} y={573} fontSize="8" fill="#1e293b">{sousTitre}</text>
+      <text x={10} y={585} fontSize="7" fill="#64748b">ECO-PUMP AFRIK</text>
+      <text x={230} y={562} fontSize="7" fontWeight="700" fill="#64748b">HYDRAULIQUE</text>
+      <text x={230} y={573} fontSize="8" fill="#059669" fontWeight="700">HMT = {HMT} m</text>
+      <text x={230} y={585} fontSize="8" fill="#7c3aed" fontWeight="700">Q = {Q} m³/h</text>
+      <text x={450} y={562} fontSize="7" fontWeight="700" fill="#64748b">NORMES</text>
+      <text x={450} y={573} fontSize="7" fill="#1e293b">ISO 10628 | ISA 5.1</text>
+      <text x={450} y={585} fontSize="7" fill="#1e293b">EN 806 | NF DTU 60.11</text>
+      <text x={670} y={562} fontSize="7" fontWeight="700" fill="#64748b">LÉGENDE</text>
+      <line x1={670} y1={572} x2={690} y2={572} stroke="#1e293b" strokeWidth="2"/>
+      <text x={695} y={575} fontSize="6.5" fill="#1e293b">Process</text>
+      <line x1={670} y1={582} x2={690} y2={582} stroke="#1e293b" strokeWidth="1" strokeDasharray="4 2"/>
+      <text x={695} y={585} fontSize="6.5" fill="#1e293b">Signal / câble</text>
+      <text x={890} y={562} fontSize="7" fontWeight="700" fill="#64748b">DATE / VERSION</text>
+      <text x={890} y={573} fontSize="7" fill="#1e293b">{new Date().toLocaleDateString('fr-FR')}</text>
+      <text x={890} y={585} fontSize="8" fill="#0ea5e9" fontWeight="700">v4.0 PRO</text>
+    </g>
+  );
+
+  // ══════════════════════════════════════════════════════════
+  // SCHÉMA FORAGE — style P&ID technique
+  // ══════════════════════════════════════════════════════════
   const SchemaForage = () => {
     const a=acc, c=cfg;
-    const ndY = Math.min(120 + c.nd*2.5, 300);
-    const pumpY = Math.min(ndY + 60, 360);
+    // Layout horizontal : forage gauche, surface droite
+    // Coordonnées : viewBox 1100×600
+    const foX=160, foW=100; // forage colonne x et largeur
+    const ndY=240; // niveau dynamique Y
+    const pmpY=380; // pompe Y
+    const surY=130; // ligne de surface (NGF 0)
+    const pipeY=100; // tuyau principal horizontal
+    const chateauX=820, chateauY=60, chateauH=90, chateauW=80;
     return (
-    <svg width="100%" viewBox="0 0 900 575" id="hydraulic-schema" style={{display:'block',background:'#f8fafc',fontFamily:'Arial,sans-serif'}}>
-      <defs>
-        <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M1 1L9 5L1 9" fill="none" stroke="#059669" strokeWidth="1.5" strokeLinecap="round"/>
-        </marker>
-        <marker id="arrC" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M1 1L9 5L1 9" fill="none" stroke="#ef4444" strokeWidth="1.5"/>
-        </marker>
-        <linearGradient id="terrainGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fef9c3"/>
-          <stop offset="100%" stopColor="#fef3c7"/>
-        </linearGradient>
-        <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#93c5fd" stopOpacity="0.6"/>
-          <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.35"/>
-        </linearGradient>
-        <filter id="shadow">
-          <feDropShadow dx="2" dy="2" stdDeviation="3" floodOpacity="0.12"/>
-        </filter>
-        <pattern id="sol" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="10" stroke="#94a3b8" strokeWidth="1.5" opacity="0.4"/>
-        </pattern>
-        <pattern id="rock" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(30)">
-          <line x1="0" y1="0" x2="0" y2="12" stroke="#d97706" strokeWidth="1" opacity="0.3"/>
-        </pattern>
-      </defs>
-      {/* Fond */}
-      <rect width="900" height="575" fill="#f8fafc"/>
-      {/* Bandeau titre */}
-      <rect x="0" y="0" width="900" height="44" fill="#1e293b"/>
-      <text x="450" y="27" textAnchor="middle" fontSize="14" fontWeight="700" fill="white" letterSpacing="1">SCHÉMA DE PRINCIPE — POMPAGE EN FORAGE</text>
-      <text x="450" y="40" textAnchor="middle" fontSize="9" fill="#94a3b8">{c.proj} | {c.volt} | Q={c.Q_f} m³/h | HMT={H.HMT} m</text>
-      {/* Sol */}
-      <rect x="0" y="55" width="900" height="16" fill="url(#sol)" opacity="0.8"/>
-      <line x1="0" y1="55" x2="900" y2="55" stroke="#78716c" strokeWidth="2.5"/>
-      <text x="12" y="50" fontSize="9" fontWeight="700" fill="#78716c">NGF ± 0.00</text>
-      {/* Terrain (roche) */}
-      <rect x="120" y="71" width="200" height={pumpY+70} fill="url(#terrainGrad)" opacity="0.4"/>
-      <text x="220" y="88" textAnchor="middle" fontSize="9" fill="#92400e" opacity="0.7">terrain naturel</text>
-      {/* ═══ FORAGE ═══ */}
-      {/* Paroi forage */}
-      <rect x="200" y="55" width="120" height={pumpY+65} rx="4" fill="white" stroke="#1d4ed8" strokeWidth="2" strokeDasharray="10 4"/>
-      <rect x="206" y="57" width="108" height={pumpY+60} fill="#eff6ff" opacity="0.4"/>
-      <text x="260" y="48" textAnchor="middle" fontSize="10" fontWeight="700" fill="#1d4ed8">FORAGE Ø{parseInt(c.dn_f)+60}mm</text>
-      {/* Eau souterraine */}
-      <rect x="202" y={ndY} width="116" height={pumpY+40-ndY} rx="2" fill="url(#waterGrad)"/>
-      {/* Reflets eau */}
-      {[0,1,2].map(i=><line key={i} x1={215+i*25} y1={ndY+8} x2={230+i*25} y2={ndY+8} stroke="white" strokeWidth="1.5" opacity="0.6"/>)}
-      {/* Niveau dynamique */}
-      <line x1="188" y1={ndY} x2="330" y2={ndY} stroke="#2563eb" strokeWidth="1.5" strokeDasharray="7 3"/>
-      <text x="337" y={ndY+4} fontSize="9" fill="#2563eb" fontWeight="600">Niveau dynamique</text>
-      {/* Cote Nd */}
-      <line x1="178" y1="55" x2="178" y2={ndY} stroke="#ef4444" strokeWidth="1.2" markerEnd="url(#arrC)" markerStart="url(#arrC)"/>
-      <text x="165" y={(55+ndY)/2+4} textAnchor="middle" fontSize="9" fill="#ef4444" fontWeight="700" transform={`rotate(-90,165,${(55+ndY)/2})`}>Nd = {c.nd} m</text>
-      {/* Cote Hch */}
-      <line x1="590" y1="55" x2="590" y2="26" stroke="#ef4444" strokeWidth="1.2" markerEnd="url(#arrC)" markerStart="url(#arrC)"/>
-      <text x="606" y="44" fontSize="9" fill="#ef4444" fontWeight="700">Hch={c.hch}m</text>
-      {/* ═══ COLONNE MONTANTE ═══ */}
-      <rect x="254" y="55" width="12" height={pumpY-20} rx="2" fill="#334155"/>
-      <line x1="248" y1="55" x2="248" y2={pumpY-20} stroke="#64748b" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
-      <line x1="272" y1="55" x2="272" y2={pumpY-20} stroke="#64748b" strokeWidth="1" strokeDasharray="3 2" opacity="0.6"/>
-      <text x="286" y={(55+pumpY)/2} fontSize="8" fill="#64748b">DN{c.dn_f} {c.mat_f}</text>
-      {/* ═══ POMPE IMMERGÉE ═══ */}
-      <circle cx={260} cy={pumpY} r={26} fill="#eff6ff" stroke="#1e3a8a" strokeWidth="2.5" filter="url(#shadow)"/>
-      <polygon points={`260,${pumpY-17} 276,${pumpY+12} 244,${pumpY+12}`} fill="#1e40af" opacity="0.85"/>
-      <text x={260} y={pumpY+5} textAnchor="middle" fontSize="10" fontWeight="700" fill="white">P1</text>
-      {/* Moteur submersible */}
-      <circle cx={260} cy={pumpY+38} r={18} fill="#1e3a8a" stroke="#1e3a8a" strokeWidth="1.5" filter="url(#shadow)"/>
-      <text x={260} y={pumpY+43} textAnchor="middle" fontSize="11" fontWeight="700" fill="white">M</text>
-      <text x={300} y={pumpY+4} fontSize="9" fill="#1e293b" fontWeight="600">POMPE IMMERGÉE</text>
-      <text x={300} y={pumpY+18} fontSize="8" fill="#64748b">{c.volt} | {c.prot}</text>
-      {/* Crépine */}
+    <svg width="100%" viewBox="0 0 1100 600" id="hydraulic-schema"
+      style={{display:'block',background:'white',fontFamily:'Arial,sans-serif',border:'1px solid #e2e8f0'}}>
+      <PID_DEFS/>
+
+      {/* ── Titre bandeau ── */}
+      <rect x={0} y={0} width={1100} height={28} fill="#1e293b"/>
+      <text x={550} y={18} textAnchor="middle" fontSize="11" fontWeight="700" fill="white" letterSpacing="1">
+        SCHÉMA DE PRINCIPE — POMPAGE EN FORAGE / PUITS
+      </text>
+      <text x={550} y={26} textAnchor="middle" fontSize="7" fill="#94a3b8">
+        {c.proj} | {c.volt} | Q={c.Q_f} m³/h | HMT={H.HMT} m | DN{c.dn_f} {c.mat_f}
+      </text>
+
+      {/* ── Sol NGF 0 ── */}
+      <line x1={0} y1={surY} x2={1100} y2={surY} stroke="#78716c" strokeWidth="1.5"/>
+      <rect x={0} y={surY} width={1100} height={8} fill="url(#hatch)" opacity="0.6"/>
+      <text x={8} y={surY-4} fontSize="7" fontWeight="700" fill="#78716c">NGF ± 0.00</text>
+
+      {/* ── Terrain (coupe géologique) ── */}
+      <rect x={foX-60} y={surY+8} width={220} height={pmpY+80-surY} fill="url(#terrain)" opacity="0.25"/>
+      <text x={foX+30} y={surY+22} fontSize="7" fill="#92400e" opacity="0.7">terrain naturel</text>
+
+      {/* ── Tubage forage ── */}
+      <line x1={foX} y1={surY} x2={foX} y2={pmpY+60} stroke="#1d4ed8" strokeWidth="1.5" strokeDasharray="6 3"/>
+      <line x1={foX+foW} y1={surY} x2={foX+foW} y2={pmpY+60} stroke="#1d4ed8" strokeWidth="1.5" strokeDasharray="6 3"/>
+      <text x={foX+foW/2} y={surY-8} textAnchor="middle" fontSize="8" fontWeight="700" fill="#1d4ed8">
+        FORAGE Ø{parseInt(c.dn_f)+60}mm
+      </text>
+
+      {/* ── Eau souterraine dans forage ── */}
+      <rect x={foX+2} y={ndY} width={foW-4} height={pmpY+55-ndY} fill="url(#eau)"/>
+      {[0,1,2].map(i=><line key={i} x1={foX+10+i*22} y1={ndY+6} x2={foX+24+i*22} y2={ndY+6}
+        stroke="white" strokeWidth="1" opacity="0.8"/>)}
+
+      {/* ── Niveau dynamique ── */}
+      <line x1={foX-20} y1={ndY} x2={foX+foW+60} y2={ndY} stroke="#2563eb" strokeWidth="1" strokeDasharray="5 3"/>
+      <text x={foX+foW+65} y={ndY+4} fontSize="7" fill="#2563eb">ND</text>
+
+      {/* ── Cote Nd ── */}
+      <line x1={foX-30} y1={surY} x2={foX-30} y2={ndY}
+        stroke="#dc2626" strokeWidth="0.8" markerStart="url(#arrR)" markerEnd="url(#arrR)"/>
+      <text x={foX-44} y={(surY+ndY)/2+3} textAnchor="middle" fontSize="7" fill="#dc2626" fontWeight="700"
+        transform={`rotate(-90,${foX-44},${(surY+ndY)/2})`}>Nd={c.nd}m</text>
+
+      {/* ── Colonne montante (tuyau dans forage) ── */}
+      <rect x={foX+foW/2-5} y={surY+5} width={10} height={pmpY-24-surY} fill="#334155"/>
+
+      {/* ── DN label colonne ── */}
+      <text x={foX+foW+10} y={(surY+pmpY)/2} fontSize="7" fill="#475569">
+        DN{c.dn_f}
+      </text>
+      <text x={foX+foW+10} y={(surY+pmpY)/2+10} fontSize="7" fill="#475569">
+        {c.mat_f}
+      </text>
+
+      {/* ── Pompe immergée P&ID ── */}
+      <PIDPompe cx={foX+foW/2} cy={pmpY} r={16} label="P1" color="#1e40af"/>
+      {/* Moteur submersible en dessous */}
+      <line x1={foX+foW/2} y1={pmpY+16} x2={foX+foW/2} y2={pmpY+30} stroke="#1e293b" strokeWidth="1"/>
+      <PIDMoteur cx={foX+foW/2} cy={pmpY+42} r={12}/>
+      <text x={foX+foW/2} y={pmpY+60} textAnchor="middle" fontSize="7" fill="#1e293b" fontWeight="600">
+        ELECTROPOMPE
+      </text>
+      <text x={foX+foW/2} y={pmpY+70} textAnchor="middle" fontSize="7" fill="#64748b">{c.volt}</text>
+
+      {/* ── Crépine ── */}
       {a.crepine&&<>
-        <rect x={245} y={pumpY+58} width="30" height="14" rx="2" fill="#fef3c7" stroke="#d97706" strokeWidth="1.5"/>
-        {[-8,-4,0,4,8].map(i=><line key={i} x1={260+i} y1={pumpY+58} x2={260+i} y2={pumpY+72} stroke="#d97706" strokeWidth="1"/>)}
-        <text x={260} y={pumpY+84} textAnchor="middle" fontSize="8" fill="#92400e" fontWeight="600">CRÉPINE</text>
+        <line x1={foX+foW/2} y1={pmpY+54} x2={foX+foW/2} y2={pmpY+63} stroke="#1e293b" strokeWidth="1"/>
+        <PIDCrepine cx={foX+foW/2} cy={pmpY+63} h={12}/>
       </>}
-      {/* Câble électrique */}
-      <path d={`M286 ${pumpY+20} Q330 ${pumpY} 345 ${pumpY-60} Q360 140 380 100`} fill="none" stroke="#f59e0b" strokeWidth="1.8" strokeDasharray="5 3"/>
-      <text x={368} y={pumpY-40} fontSize="8" fill="#d97706" fontWeight="600">câble élec.</text>
-      {/* ═══ TUYAUTERIE SURFACE ═══ */}
-      <line x1={260} y1="55" x2={260} y2="44" stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
-      <line x1={260} y1="44" x2={530} y2="44" stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
-      {/* Clapet anti-retour */}
+
+      {/* ── Câble électrique ── */}
+      <path d={`M${foX+foW/2+16} ${pmpY+30} Q${foX+foW+25} ${pmpY} ${foX+foW+30} ${surY+20}`}
+        fill="none" stroke="#f59e0b" strokeWidth="0.9" strokeDasharray="4 2"/>
+      <text x={foX+foW+52} y={surY+50} fontSize="7" fill="#d97706">câble élec.</text>
+      <text x={foX+foW+52} y={surY+60} fontSize="7" fill="#d97706">{c.prot}</text>
+
+      {/* ── Tuyauterie surface (horizontal) ── */}
+      {/* Montée forage → pipeY */}
+      <line x1={foX+foW/2} y1={surY+5} x2={foX+foW/2} y2={pipeY}
+        stroke="#1e293b" strokeWidth="2.5"/>
+      {/* Horizontal vers château */}
+      <line x1={foX+foW/2} y1={pipeY} x2={chateauX} y2={pipeY}
+        stroke="#1e293b" strokeWidth="2.5"/>
+      {/* Label conduite principale */}
+      <text x={(foX+foW/2+chateauX)/2} y={pipeY-6} textAnchor="middle" fontSize="7.5" fill="#1e293b" fontWeight="600">
+        DN{c.dn_f} — {c.mat_f}
+      </text>
+
+      {/* ── Clapet anti-retour ── */}
       {a.clapet&&<>
-        <g transform="translate(290,44)">
-          <line x1={-12} y1={0} x2={12} y2={0} stroke="white" strokeWidth="4"/>
-          <polygon points="-9,-9 9,0 -9,9" fill="#1a1a2e"/>
-          <line x1={9} y1={-10} x2={9} y2={10} stroke="#1a1a2e" strokeWidth="2.5"/>
-        </g>
-        <text x={290} y={34} textAnchor="middle" fontSize="8" fill="#475569" fontWeight="600">CAR</text>
+        <PIDClapet cx={foX+foW/2+80} cy={pipeY} h={10} horiz={true}/>
+        <text x={foX+foW/2+80} y={pipeY-14} textAnchor="middle" fontSize="7" fill="#475569">CAR</text>
       </>}
-      {/* Vanne isolement */}
+
+      {/* ── Vanne isolement ── */}
       {a.v_ref&&<>
-        <g transform="translate(360,44)">
-          <polygon points="-11,-9 0,0 -11,9" fill="white" stroke="#1a1a2e" strokeWidth="1.8"/>
-          <polygon points="11,-9 0,0 11,9" fill="white" stroke="#1a1a2e" strokeWidth="1.8"/>
-          <line x1={0} y1={-11} x2={0} y2={-18} stroke="#1a1a2e" strokeWidth="1.5"/>
-          <rect x={-6} y={-26} width="12" height="8" fill="white" stroke="#1a1a2e" strokeWidth="1.2"/>
-        </g>
-        <text x={360} y={28} textAnchor="middle" fontSize="8" fill="#1a1a2e" fontWeight="600">VIA</text>
+        <PIDVanne cx={foX+foW/2+160} cy={pipeY} h={10} horiz={true}/>
+        <text x={foX+foW/2+160} y={pipeY-18} textAnchor="middle" fontSize="7" fill="#1e293b">VIA</text>
       </>}
-      {/* Manomètre */}
+
+      {/* ── Manomètre ── */}
       {a.mano_ref&&<>
-        <circle cx={430} cy={28} r={11} fill="white" stroke="#1a1a2e" strokeWidth="1.5" filter="url(#shadow)"/>
-        <path d={`M421,31 A8,8 0 0,1 439,31`} fill="none" stroke="#1a1a2e" strokeWidth="0.8"/>
-        <line x1={430} y1={28} x2={435} y2={23} stroke="#ef4444" strokeWidth="1.2"/>
-        <line x1={430} y1={39} x2={430} y2={44} stroke="#1a1a2e" strokeWidth="1"/>
-        <text x={430} y={52} textAnchor="middle" fontSize="8" fill="#1a1a2e" fontWeight="600">PI</text>
+        <line x1={foX+foW/2+240} y1={pipeY} x2={foX+foW/2+240} y2={pipeY-22} stroke="#1e293b" strokeWidth="0.8"/>
+        <PIDMano cx={foX+foW/2+240} cy={pipeY-31}/>
       </>}
-      {/* Débitmètre */}
+
+      {/* ── Débitmètre ── */}
       {a.debit&&<>
-        <rect x={458} y={30} width="34" height="28" rx="4" fill="white" stroke="#1a1a2e" strokeWidth="1.5" filter="url(#shadow)"/>
-        <text x={475} y={47} textAnchor="middle" fontSize="10" fontWeight="700" fill="#1a1a2e">FI</text>
-        <line x1={475} y1={58} x2={475} y2={44} stroke="#1a1a2e" strokeWidth="1"/>
-        <text x={475} y={24} textAnchor="middle" fontSize="8" fill="#475569">débitmètre</text>
+        <PIDDebit cx={foX+foW/2+320} cy={pipeY}/>
+        <text x={foX+foW/2+320} y={pipeY-16} textAnchor="middle" fontSize="7" fill="#475569">FT-01</text>
       </>}
-      {/* ═══ CHÂTEAU D'EAU ═══ */}
-      <rect x={548} y={14} width="88" height="20" rx="4" fill="#dbeafe" stroke="#1d4ed8" strokeWidth="2"/>
-      <rect x={558} y={34} width="68" height="72" rx="3" fill="#dbeafe" stroke="#1d4ed8" strokeWidth="2"/>
-      <line x1={530} y1={44} x2={558} y2={44} stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
-      <line x1={558} y1={44} x2={558} y2={24} stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
-      <line x1={558} y1={24} x2={548} y2={24} stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
-      <text x={592} y={10} textAnchor="middle" fontSize="11" fontWeight="700" fill="#1d4ed8">CHÂTEAU D'EAU</text>
-      {/* Niveau eau château */}
-      <line x1={560} y1={52} x2={624} y2={52} stroke="#3b82f6" strokeWidth="1.2" strokeDasharray="5 2"/>
-      <text x={630} y={56} fontSize="8" fill="#2563eb">niv. eau</text>
-      {[0,1,2].map(i=><line key={i} x1={567+i*16} y1={56} x2={577+i*16} y2={56} stroke="white" strokeWidth="1.5" opacity="0.7"/>)}
-      <text x={592} y={90} textAnchor="middle" fontSize="9" fill="#1d4ed8">H = {c.hch} m</text>
-      {/* Flèche Q */}
-      <line x1={490} y1={44} x2={545} y2={44} stroke="#059669" strokeWidth="2" markerEnd="url(#arrG)"/>
-      <text x={517} y={36} textAnchor="middle" fontSize="8" fill="#059669" fontWeight="600">Q={c.Q_f} m³/h</text>
-      {/* ═══ COFFRET ═══ */}
+
+      {/* ── Coffret électrique ── */}
       {a.coffret&&<>
-        <rect x={688} y={130} width="120" height="80" rx="6" fill="#1e1b4b" stroke="#4338ca" strokeWidth="2" filter="url(#shadow)"/>
-        <rect x={692} y={134} width="112" height="72" rx="4" fill="none" stroke="#6366f1" strokeWidth="0.8"/>
-        <text x={748} y={162} textAnchor="middle" fontSize="12" fontWeight="700" fill="white">COFFRET</text>
-        <text x={748} y={178} textAnchor="middle" fontSize="9" fill="#a5b4fc">commande</text>
-        <text x={748} y={198} textAnchor="middle" fontSize="8" fill="#6366f1">{c.volt}</text>
-        <path d={`M688 165 Q560 165 380 105`} fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5 3"/>
-        <text x={540} y={178} fontSize="8" fill="#d97706">alimentation pompe</text>
+        <rect x={foX+foW/2+180} y={surY+20} width={90} height={56} fill="#f0f4ff" stroke="#4338ca" strokeWidth="1.2"/>
+        <rect x={foX+foW/2+184} y={surY+24} width={82} height={48} fill="none" stroke="#6366f1" strokeWidth="0.6" strokeDasharray="3 2"/>
+        <text x={foX+foW/2+225} y={surY+44} textAnchor="middle" fontSize="7.5" fontWeight="700" fill="#3730a3">COFFRET</text>
+        <text x={foX+foW/2+225} y={surY+55} textAnchor="middle" fontSize="6.5" fill="#4f46e5">COMMANDE</text>
+        <text x={foX+foW/2+225} y={surY+66} textAnchor="middle" fontSize="6" fill="#6366f1">{c.volt}</text>
+        {/* Câble coffret → coffret électrique */}
+        <line x1={foX+foW/2+225} y1={surY+76} x2={foX+foW/2+225} y2={pipeY-5}
+          stroke="#f59e0b" strokeWidth="0.8" strokeDasharray="3 2"/>
       </>}
-      {/* ═══ BILAN HYDRAULIQUE ═══ */}
-      <rect x="668" y={a.coffret?250:130} width="210" height="148" rx="6" fill="white" stroke="#e2e8f0" strokeWidth="1.5" filter="url(#shadow)"/>
-      <rect x="668" y={a.coffret?250:130} width="210" height="26" rx="6" fill="#1e293b"/>
-      <text x="773" y={a.coffret?267:147} textAnchor="middle" fontSize="10" fontWeight="700" fill="white">BILAN HYDRAULIQUE</text>
+
+      {/* ── Château d'eau ── */}
+      {/* Montée vers château */}
+      <line x1={chateauX} y1={pipeY} x2={chateauX} y2={chateauY+chateauH} stroke="#1e293b" strokeWidth="2.5"/>
+      {/* Corps château */}
+      <rect x={chateauX-chateauW/2+10} y={chateauY} width={chateauW-20} height={10} fill="#dbeafe" stroke="#1d4ed8" strokeWidth="1.2"/>
+      <rect x={chateauX-chateauW/2+16} y={chateauY+10} width={chateauW-32} height={chateauH} fill="#dbeafe" stroke="#1d4ed8" strokeWidth="1.2"/>
+      {/* Niveau eau château */}
+      <line x1={chateauX-chateauW/2+18} y1={chateauY+30} x2={chateauX+chateauW/2-18} y2={chateauY+30}
+        stroke="#2563eb" strokeWidth="1" strokeDasharray="4 2"/>
+      {/* Reflets */}
+      {[0,1].map(i=><line key={i} x1={chateauX-14+i*14} y1={chateauY+35} x2={chateauX-6+i*14} y2={chateauY+35}
+        stroke="white" strokeWidth="1" opacity="0.7"/>)}
+      <text x={chateauX} y={chateauY-6} textAnchor="middle" fontSize="8" fontWeight="700" fill="#1d4ed8">
+        CHÂTEAU D'EAU
+      </text>
+      <text x={chateauX} y={chateauY+chateauH+16} textAnchor="middle" fontSize="7" fill="#1d4ed8">
+        H={c.hch}m
+      </text>
+      {/* Cote château */}
+      <line x1={chateauX+chateauW/2} y1={surY} x2={chateauX+chateauW/2} y2={chateauY}
+        stroke="#dc2626" strokeWidth="0.8" markerStart="url(#arrR)" markerEnd="url(#arrR)"/>
+      <text x={chateauX+chateauW/2+14} y={(surY+chateauY)/2+3} fontSize="7" fill="#dc2626" fontWeight="700">
+        Hch={c.hch}m
+      </text>
+      {/* Flèche Q vers château */}
+      <text x={(foX+foW/2+chateauX)/2} y={pipeY+14} textAnchor="middle" fontSize="8" fill="#059669" fontWeight="700">
+        → Q={c.Q_f} m³/h
+      </text>
+
+      {/* ── Bilan hydraulique ── */}
+      <rect x={680} y={surY+20} width={185} height={140} fill="#f8fafc" stroke="#1e293b" strokeWidth="1.2"/>
+      <rect x={680} y={surY+20} width={185} height={20} fill="#1e293b"/>
+      <text x={772} y={surY+34} textAnchor="middle" fontSize="8" fontWeight="700" fill="white">BILAN HYDRAULIQUE</text>
       {[
-        {l:`Q = ${c.Q_f} m³/h`, c:'#475569'},
-        {l:`Nd = ${c.nd} m | Hch = ${c.hch} m`, c:'#475569'},
-        {l:`Hgéo = ${H.Hg} m | J.ref = ${H.Jr} m`, c:'#475569'},
+        {l:`Q = ${c.Q_f} m³/h`, c:'#1e293b', b:false},
+        {l:`Nd = ${c.nd} m | Hch = ${c.hch} m`, c:'#1e293b', b:false},
+        {l:`Hgéo = ${H.Hg} m`, c:'#1e293b', b:false},
+        {l:`J.ref = ${H.Jr} m`, c:'#1e293b', b:false},
         {l:`HMT = ${H.HMT} m`, c:'#059669', b:true},
         {l:`Pa ≈ ${H.Pa} kW`, c:'#7c3aed', b:true},
-        {l:`V = ${H.V} m/s | DN${c.dn_f} ${c.mat_f}`, c:'#475569'},
-        {l:`Pression résiduelle : ${c.res_f} bar`, c:'#64748b'},
+        {l:`V = ${H.V} m/s | DN${c.dn_f}`, c:'#1e293b', b:false},
       ].map((r,i)=>(
-        <text key={i} x="678" y={(a.coffret?280:160)+i*16} fontSize="9" fill={r.c} fontWeight={r.b?700:400}>{r.l}</text>
+        <text key={i} x={688} y={surY+55+i*14} fontSize="8" fill={r.c} fontWeight={r.b?700:400}>{r.l}</text>
       ))}
-      {Cartouche({Q:c.Q_f, HMT:H.HMT})}
+
+      {CartouchePID({Q:c.Q_f, HMT:H.HMT, titre:'SCHÉMA DE PRINCIPE — FORAGE / PUITS', sousTitre:c.proj})}
     </svg>);
   };
 
+  // ══════════════════════════════════════════════════════════
+  // SCHÉMA RELEVAGE — style P&ID technique
+  // ══════════════════════════════════════════════════════════
   const SchemaRelevage = () => {
     const a=acc, c=cfg;
     const np=c.np, ns=c.ns, tot=np+ns;
-    const pSp=tot<=2?100:tot===3?82:70;
-    const bachW=Math.max(220,tot*pSp+80);
-    const bachX=30, bachY=170, bachH=230;
-    const pumpY=bachY+bachH-55;
-    const firstPX=bachX+bachW/(tot+1);
-    const colY=90;
-    const outX=bachX+bachW/2;
+    // Layout : bâche à gauche, pompes au centre en colonne, collecteur horizontal, réseau à droite
+    const pipeY=110; // collecteur horizontal Y
+    const surY=420;  // sol Y
+    const bachX=30, bachY=210, bachW=180, bachH=210;
     const waterY=bachY+60;
+    const pSp=tot<=2?85:tot===3?72:62; // espacement pompes
+    const pX0=270; // X première pompe
+    const pY=295;  // Y pompes (horizontal, axe au centre)
+    const outX=pX0+(tot-1)*pSp/2; // sortie collecteur
     return (
-    <svg width="100%" viewBox="0 0 900 575" id="hydraulic-schema" style={{display:'block',background:'#f8fafc',fontFamily:'Arial,sans-serif'}}>
-      <defs>
-        <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M1 1L9 5L1 9" fill="none" stroke="#059669" strokeWidth="1.5" strokeLinecap="round"/>
-        </marker>
-        <marker id="arrC" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M1 1L9 5L1 9" fill="none" stroke="#ef4444" strokeWidth="1.5"/>
-        </marker>
-        <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#93c5fd" stopOpacity="0.5"/>
-          <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.3"/>
-        </linearGradient>
-        <linearGradient id="bachGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#eff6ff"/>
-          <stop offset="100%" stopColor="#dbeafe"/>
-        </linearGradient>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="2" dy="2" stdDeviation="3" floodOpacity="0.12"/>
-        </filter>
-        <pattern id="sol" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="10" stroke="#94a3b8" strokeWidth="1.5" opacity="0.4"/>
-        </pattern>
-      </defs>
-      {/* Fond page */}
-      <rect width="900" height="575" fill="#f8fafc"/>
-      {/* Titre avec bandeau */}
-      <rect x="0" y="0" width="900" height="44" fill="#1e293b"/>
-      <text x="450" y="27" textAnchor="middle" fontSize="14" fontWeight="700" fill="white" letterSpacing="1">SCHÉMA DE PRINCIPE — POMPAGE DE RELEVAGE</text>
-      <text x="450" y="40" textAnchor="middle" fontSize="9" fill="#94a3b8">{c.proj} | {c.volt} | {c.fluid} — {c.temp}°C</text>
-      {/* Sol */}
-      <rect x="0" y="440" width="900" height="18" fill="url(#sol)"/>
-      <line x1="0" y1="440" x2="900" y2="440" stroke="#78716c" strokeWidth="2"/>
-      <text x="14" y="436" fontSize="9" fill="#78716c" fontWeight="700">NGF ± 0.00</text>
-      {/* ═══ BÂCHE DE RELEVAGE avec fond esthétique ═══ */}
-      {/* Ombre bâche */}
-      <rect x={bachX+4} y={bachY+4} width={bachW} height={bachH} rx="6" fill="#cbd5e1" opacity="0.5"/>
-      {/* Corps bâche */}
-      <rect x={bachX} y={bachY} width={bachW} height={bachH} rx="5" fill="url(#bachGrad)" stroke="#1d4ed8" strokeWidth="2.5"/>
-      {/* Eau dans la bâche */}
-      <rect x={bachX+3} y={waterY} width={bachW-6} height={bachY+bachH-waterY-3} rx="3" fill="url(#waterGrad)"/>
-      {/* Reflets eau */}
-      {[0,1,2].map(i=><line key={i} x1={bachX+20+i*50} y1={waterY+8} x2={bachX+50+i*50} y2={waterY+8} stroke="white" strokeWidth="1.5" opacity="0.5"/>)}
-      {/* Label bâche */}
-      <text x={bachX+bachW/2} y={bachY-8} textAnchor="middle" fontSize="11" fontWeight="700" fill="#1e40af" filter="url(#shadow)">BÂCHE DE RELEVAGE</text>
-      {/* Niveau NHE */}
-      <line x1={bachX} y1={waterY} x2={bachX+bachW} y2={waterY} stroke="#2563eb" strokeWidth="1.5" strokeDasharray="6 3"/>
-      <text x={bachX+bachW+5} y={waterY+4} fontSize="9" fill="#2563eb" fontWeight="600">NHE</text>
-      {/* Niveau NBE */}
-      <line x1={bachX} y1={bachY+bachH-70} x2={bachX+bachW} y2={bachY+bachH-70} stroke="#7c3aed" strokeWidth="1" strokeDasharray="4 2"/>
-      <text x={bachX+bachW+5} y={bachY+bachH-66} fontSize="9" fill="#7c3aed">NBE</text>
+    <svg width="100%" viewBox="0 0 1100 600" id="hydraulic-schema"
+      style={{display:'block',background:'white',fontFamily:'Arial,sans-serif',border:'1px solid #e2e8f0'}}>
+      <PID_DEFS/>
+
+      {/* ── Titre ── */}
+      <rect x={0} y={0} width={1100} height={28} fill="#1e293b"/>
+      <text x={550} y={18} textAnchor="middle" fontSize="11" fontWeight="700" fill="white" letterSpacing="1">
+        SCHÉMA DE PRINCIPE — STATION DE RELEVAGE
+      </text>
+      <text x={550} y={26} textAnchor="middle" fontSize="7" fill="#94a3b8">
+        {c.proj} | {c.volt} | Q={c.Q_r} m³/h | HMT={H.HMT} m | {tot} pompe{tot>1?'s':''} ({np} serv.+{ns} sec.)
+      </text>
+
+      {/* ── Sol ── */}
+      <line x1={0} y1={surY} x2={1100} y2={surY} stroke="#78716c" strokeWidth="1.2"/>
+      <rect x={0} y={surY} width={1100} height={8} fill="url(#hatch)" opacity="0.5"/>
+      <text x={8} y={surY-4} fontSize="7" fontWeight="700" fill="#78716c">NGF ± 0.00</text>
+
+      {/* ── Bâche de relevage ── */}
+      {/* Parois béton */}
+      <rect x={bachX} y={bachY} width={bachW} height={bachH} fill="url(#beton)" opacity="0.4" stroke="#475569" strokeWidth="1.5"/>
+      <rect x={bachX+6} y={bachY+6} width={bachW-12} height={bachH-12} fill="white" stroke="none"/>
+      {/* Eau */}
+      <rect x={bachX+6} y={waterY} width={bachW-12} height={bachY+bachH-waterY-6} fill="url(#eau)"/>
+      {[0,1,2].map(i=><line key={i} x1={bachX+16+i*40} y1={waterY+6} x2={bachX+30+i*40} y2={waterY+6}
+        stroke="white" strokeWidth="1" opacity="0.7"/>)}
+      <text x={bachX+bachW/2} y={bachY-5} textAnchor="middle" fontSize="8" fontWeight="700" fill="#475569">
+        BÂCHE DE RELEVAGE
+      </text>
+      {/* NHE */}
+      <line x1={bachX} y1={waterY} x2={bachX+bachW} y2={waterY} stroke="#2563eb" strokeWidth="0.8" strokeDasharray="5 2"/>
+      <text x={bachX+bachW+5} y={waterY+4} fontSize="7" fill="#2563eb">NHE</text>
+      {/* NBE */}
+      <line x1={bachX} y1={bachY+bachH-65} x2={bachX+bachW} y2={bachY+bachH-65}
+        stroke="#7c3aed" strokeWidth="0.8" strokeDasharray="3 2"/>
+      <text x={bachX+bachW+5} y={bachY+bachH-61} fontSize="7" fill="#7c3aed">NBE</text>
       {/* Flotteurs */}
       {a.fl_h&&<>
-        <circle cx={bachX+18} cy={waterY+2} r="9" fill="#22c55e" stroke="#15803d" strokeWidth="1.5"/>
-        <text x={bachX+18} y={waterY+6} textAnchor="middle" fontSize="7" fontWeight="700" fill="white">H</text>
-        <line x1={bachX+18} y1={waterY+11} x2={bachX+18} y2={pumpY-5} stroke="#15803d" strokeWidth="1" strokeDasharray="3 2" opacity="0.7"/>
+        <line x1={bachX+20} y1={waterY} x2={bachX+20} y2={waterY+16} stroke="#059669" strokeWidth="0.8"/>
+        <circle cx={bachX+20} cy={waterY+23} r={6} fill="white" stroke="#059669" strokeWidth="1.2"/>
+        <text x={bachX+20} y={waterY+27} textAnchor="middle" fontSize="5.5" fill="#059669" fontWeight="700">NH</text>
       </>}
       {a.fl_b&&<>
-        <circle cx={bachX+38} cy={bachY+bachH-70} r="9" fill="#ef4444" stroke="#dc2626" strokeWidth="1.5"/>
-        <text x={bachX+38} y={bachY+bachH-66} textAnchor="middle" fontSize="7" fontWeight="700" fill="white">B</text>
-        <line x1={bachX+38} y1={bachY+bachH-61} x2={bachX+38} y2={pumpY-5} stroke="#dc2626" strokeWidth="1" strokeDasharray="3 2" opacity="0.7"/>
+        <line x1={bachX+36} y1={bachY+bachH-65} x2={bachX+36} y2={bachY+bachH-52} stroke="#7c3aed" strokeWidth="0.8"/>
+        <circle cx={bachX+36} cy={bachY+bachH-45} r={6} fill="white" stroke="#7c3aed" strokeWidth="1.2"/>
+        <text x={bachX+36} y={bachY+bachH-41} textAnchor="middle" fontSize="5.5" fill="#7c3aed" fontWeight="700">NB</text>
       </>}
-      {/* ═══ POMPES IMMERGÉES dans la bâche ═══ */}
+
+      {/* ── Tuyauterie aspiration commune (bâche → pompes) ── */}
+      {/* Ligne aspiration horizontale */}
+      <line x1={bachX+bachW} y1={pY} x2={pX0-16} y2={pY} stroke="#1e293b" strokeWidth="2.5"/>
+      <text x={(bachX+bachW+pX0-16)/2} y={pY+12} textAnchor="middle" fontSize="7" fill="#475569">
+        DN{c.dn_r} ASP.
+      </text>
+      {/* Crépine aspiration */}
+      {a.crepine&&<>
+        <PIDCrepine cx={bachX+bachW+20} cy={pY-8} h={10}/>
+        <line x1={bachX+bachW+20} y1={pY-8} x2={bachX+bachW+20} y2={pY} stroke="#64748b" strokeWidth="0.8"/>
+      </>}
+      {/* Vanne isolement aspiration */}
+      {a.v_asp&&<>
+        <PIDVanne cx={bachX+bachW+55} cy={pY} h={9} horiz={true}/>
+        <text x={bachX+bachW+55} y={pY+20} textAnchor="middle" fontSize="7" fill="#1e293b">VIA</text>
+      </>}
+      {/* Mano aspiration */}
+      {a.mano_asp&&<>
+        <line x1={bachX+bachW+90} y1={pY} x2={bachX+bachW+90} y2={pY-20} stroke="#1e293b" strokeWidth="0.8"/>
+        <PIDMano cx={bachX+bachW+90} cy={pY-29}/>
+      </>}
+
+      {/* ── POMPES ── */}
       {[...Array(tot)].map((_,i)=>{
-        const px=bachX+firstPX+i*pSp;
+        const px=pX0+i*pSp;
         const stb=i>=np;
-        const pumpColor=stb?'#64748b':'#1e40af';
+        const pc=stb?'#94a3b8':'#1e293b';
         return <g key={i}>
-          {/* Corps pompe immergée (cercle + triangle normalisé) */}
-          <circle cx={px} cy={pumpY} r={22} fill={stb?'#f1f5f9':'#eff6ff'} stroke={pumpColor} strokeWidth="2" filter="url(#shadow)"/>
-          <polygon points={`${px},${pumpY-14} ${px+14},${pumpY+10} ${px-14},${pumpY+10}`} fill={pumpColor} opacity={stb?0.4:0.8}/>
-          <text x={px} y={pumpY+4} textAnchor="middle" fontSize="9" fontWeight="700" fill={stb?'#64748b':'white'}>{stb?`P${i+1}S`:`P${i+1}`}</text>
-          {/* Moteur submersible en dessous */}
-          <circle cx={px} cy={pumpY+32} r={14} fill={stb?'#e2e8f0':'#1e3a8a'} stroke={pumpColor} strokeWidth="1.5"/>
-          <text x={px} y={pumpY+36} textAnchor="middle" fontSize="9" fontWeight="700" fill={stb?'#64748b':'white'}>M</text>
-          {/* Label */}
-          <text x={px} y={pumpY-28} textAnchor="middle" fontSize="8" fill={pumpColor} fontWeight="600">{stb?'SECOURS':'SERVICE'}</text>
-          {/* Câble élec pompe depuis dessus bâche */}
-          <line x1={px+22} y1={pumpY+5} x2={px+35} y2={pumpY-15} stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="4 2" opacity="0.8"/>
-          {/* Colonne refoulement montante */}
-          <line x1={px} y1={pumpY-22} x2={px} y2={bachY-5} stroke={pumpColor} strokeWidth={stb?3:4} strokeLinecap="round"/>
+          {/* Piquage aspiration individuel */}
+          <line x1={px} y1={pY} x2={px} y2={pY+14} stroke={pc} strokeWidth="1.5"/>
+          {/* Pompe */}
+          <PIDPompe cx={px} cy={pY+30} r={16} label={stb?`P${i+1}S`:`P${i+1}`} stb={stb} color="#1e293b"/>
+          {/* Connexion pompe → moteur */}
+          <line x1={px} y1={pY+46} x2={px} y2={pY+56} stroke={pc} strokeWidth="1"/>
+          {/* Moteur */}
+          <PIDMoteur cx={px} cy={pY+68} r={11} stb={stb}/>
+          <text x={px} y={pY+84} textAnchor="middle" fontSize="6.5" fill={pc} fontWeight={stb?400:600}>
+            {stb?'SECOURS':'SERVICE'}
+          </text>
+          {/* Puissance estimée */}
+          <text x={px} y={pY+96} textAnchor="middle" fontSize="6" fill="#64748b">
+            ≈{(parseFloat(H.Pa||0)/Math.max(np,1)).toFixed(1)}kW
+          </text>
+          {/* Refoulement individuel */}
+          <line x1={px} y1={pY+14} x2={px} y2={pipeY+8} stroke={pc} strokeWidth="1.5"/>
           {/* Clapet anti-retour */}
           {a.clapet&&<>
-            <g transform={`translate(${px},${bachY+20})`}>
-              <line x1={-12} y1={0} x2={12} y2={0} stroke="#1a1a2e" strokeWidth="1.5"/>
-              <polygon points="-8,-8 8,0 -8,8" fill="#1a1a2e" opacity="0.8"/>
-              <line x1={8} y1={-9} x2={8} y2={9} stroke="#1a1a2e" strokeWidth="2"/>
-            </g>
-            <text x={px+16} y={bachY+24} fontSize="8" fill="#475569">CAR</text>
+            <PIDClapet cx={px} cy={pipeY+40} h={9} horiz={false}/>
+            <text x={px+14} y={pipeY+43} fontSize="7" fill="#475569">CAR</text>
           </>}
-          {/* Vanne isolement sortie bâche */}
+          {/* Vanne refoulement */}
           {a.v_ref&&<>
-            <g transform={`translate(${px},${bachY-12})`}>
-              <polygon points={"-10,-8 0,0 -10,8"} fill="white" stroke="#1a1a2e" strokeWidth="1.5"/>
-              <polygon points={"10,-8 0,0 10,8"} fill="white" stroke="#1a1a2e" strokeWidth="1.5"/>
-              <line x1={0} y1={-10} x2={0} y2={-16} stroke="#1a1a2e" strokeWidth="1.2"/>
-              <rect x={-5} y={-22} width="10" height="7" fill="white" stroke="#1a1a2e" strokeWidth="1"/>
-            </g>
-            <text x={px+14} y={bachY-10} fontSize="8" fill="#1a1a2e">VIA</text>
+            <PIDVanne cx={px} cy={pipeY+70} h={9} horiz={false}/>
+            <text x={px+14} y={pipeY+73} fontSize="7" fill="#1e293b">VIR</text>
           </>}
-          {/* Mano refoulement */}
+          {/* Mano refoulement individuel */}
           {a.mano_ref&&<>
-            <circle cx={px+28} cy={bachY+40} r="9" fill="white" stroke="#1a1a2e" strokeWidth="1.2"/>
-            <path d={`M${px+22},${bachY+43} A6,6 0 0,1 ${px+34},${bachY+43}`} fill="none" stroke="#1a1a2e" strokeWidth="0.8"/>
-            <line x1={px+28} y1={bachY+40} x2={px+32} y2={bachY+37} stroke="#ef4444" strokeWidth="1"/>
-            <text x={px+28} y={bachY+54} textAnchor="middle" fontSize="7" fill="#1a1a2e">PI</text>
-            <line x1={px+19} y1={bachY+40} x2={px} y2={bachY+38} stroke="#1a1a2e" strokeWidth="0.8" opacity="0.5"/>
+            <line x1={px+16} y1={pY+30} x2={px+28} y2={pY+30} stroke="#1e293b" strokeWidth="0.8"/>
+            <PIDMano cx={px+37} cy={pY+30} r={8}/>
           </>}
         </g>;
       })}
-      {/* ═══ COLLECTEUR REFOULEMENT au-dessus de la bâche ═══ */}
-      {(() => {
-        const cx1=bachX+firstPX, cx2=bachX+firstPX+(tot-1)*pSp;
-        return <>
-          <rect x={cx1-15} y={colY-8} width={cx2-cx1+30} height="16" rx="4" fill="#1e293b" opacity="0.9"/>
-          <text x={(cx1+cx2)/2} y={colY-14} textAnchor="middle" fontSize="8" fill="#475569" fontWeight="600">
-            COLLECTEUR DN{c.dn_r} — {c.mat_ref||'Acier'}
-          </text>
-          {/* Tuyaux individuels vers collecteur */}
-          {[...Array(tot)].map((_,i)=>{
-            const px=bachX+firstPX+i*pSp;
-            return <line key={i} x1={px} y1={bachY-20} x2={px} y2={colY} stroke="#1e293b" strokeWidth={i>=np?3:4.5} strokeLinecap="round"/>;
-          })}
-        </>;
-      })()}
-      {/* ═══ SORTIE PRINCIPALE ═══ */}
-      <line x1={outX} y1={colY-8} x2={outX} y2={55} stroke="#1e293b" strokeWidth="5" strokeLinecap="round"/>
+
+      {/* ── Collecteur refoulement horizontal ── */}
+      {tot>1&&<>
+        <line x1={pX0} y1={pipeY+8} x2={pX0+(tot-1)*pSp} y2={pipeY+8} stroke="#1e293b" strokeWidth="3"/>
+        <text x={(pX0+pX0+(tot-1)*pSp)/2} y={pipeY-2} textAnchor="middle" fontSize="7.5" fill="#1e293b" fontWeight="600">
+          COLLECTEUR DN{c.dn_r} — {c.mat_ref||'Acier'}
+        </text>
+      </>}
+
+      {/* ── Tuyauterie sortie vers réseau ── */}
+      <line x1={outX} y1={pipeY+8} x2={850} y2={pipeY+8} stroke="#1e293b" strokeWidth="2.5"/>
+      {/* Débitmètre */}
       {a.debit&&<>
-        <rect x={outX-18} y={68} width="36" height="26" rx="4" fill="white" stroke="#1a1a2e" strokeWidth="1.5" filter="url(#shadow)"/>
-        <text x={outX} y={84} textAnchor="middle" fontSize="10" fontWeight="700" fill="#1a1a2e">FI</text>
-        <text x={outX+23} y={82} fontSize="8" fill="#475569">débitmètre</text>
+        <PIDDebit cx={outX+80} cy={pipeY+8}/>
+        <text x={outX+80} y={pipeY-8} textAnchor="middle" fontSize="7" fill="#475569">FT-01</text>
       </>}
-      {a.mano_ref&&<>
-        <circle cx={outX-22} cy={70} r="10" fill="white" stroke="#1a1a2e" strokeWidth="1.2" filter="url(#shadow)"/>
-        <text x={outX-22} y={74} textAnchor="middle" fontSize="8" fontWeight="700" fill="#1a1a2e">PI</text>
-        <line x1={outX-22} y1={80} x2={outX} y2={colY-8} stroke="#1a1a2e" strokeWidth="0.8" opacity="0.4"/>
+      {/* Vanne réseau */}
+      {a.v_ref&&tot===1&&<>
+        <PIDVanne cx={outX+150} cy={pipeY+8} h={9} horiz={true}/>
+        <text x={outX+150} y={pipeY+26} textAnchor="middle" fontSize="7" fill="#1e293b">VIR</text>
       </>}
-      {/* Flèche sortie */}
-      <line x1={outX} y1={70} x2={outX} y2={52} stroke="#059669" strokeWidth="2" markerEnd="url(#arrG)"/>
-      {/* Badge réseau */}
-      <rect x={outX-50} y={44} width="100" height="20" rx="10" fill="#059669" filter="url(#shadow)"/>
-      <text x={outX} y={58} textAnchor="middle" fontSize="10" fontWeight="700" fill="white">→ RÉSEAU</text>
-      <text x={outX} y={40} textAnchor="middle" fontSize="8" fill="#475569">Q={c.Q_r} m³/h | HMT={H.HMT} m</text>
-      {/* ═══ COFFRET ═══ */}
+      {/* Label conduite */}
+      <text x={(outX+850)/2} y={pipeY+22} textAnchor="middle" fontSize="7" fill="#475569">
+        DN{c.dn_r} — {c.mat_ref||'Acier'}
+      </text>
+      {/* Sortie réseau */}
+      <line x1={850} y1={pipeY+8} x2={875} y2={pipeY+8} stroke="#1e293b" strokeWidth="2.5" markerEnd="url(#arr)"/>
+      <text x={892} y={pipeY+8} fontSize="8" fontWeight="700" fill="#059669">→ RÉSEAU</text>
+      <text x={892} y={pipeY+20} fontSize="7" fill="#64748b">Q={c.Q_r}m³/h</text>
+      <text x={892} y={pipeY+30} fontSize="7" fill="#64748b">HMT={H.HMT}m</text>
+
+      {/* ── Coffret ── */}
       {a.coffret&&<>
-        <rect x={680} y={100} width="120" height="80" rx="6" fill="#1e1b4b" stroke="#4338ca" strokeWidth="2" filter="url(#shadow)"/>
-        <rect x={684} y={104} width="112" height="72" rx="4" fill="none" stroke="#6366f1" strokeWidth="0.8"/>
-        <text x={740} y={132} textAnchor="middle" fontSize="12" fontWeight="700" fill="white">COFFRET</text>
-        <text x={740} y={148} textAnchor="middle" fontSize="9" fill="#a5b4fc">commande</text>
-        <text x={740} y={163} textAnchor="middle" fontSize="8" fill="#6366f1">{c.volt} | {c.prot}</text>
+        <rect x={720} y={170} width={110} height={70} fill="#f0f4ff" stroke="#4338ca" strokeWidth="1.2"/>
+        <rect x={724} y={174} width={102} height={62} fill="none" stroke="#6366f1" strokeWidth="0.6" strokeDasharray="3 2"/>
+        <text x={775} y={194} textAnchor="middle" fontSize="8" fontWeight="700" fill="#3730a3">COFFRET</text>
+        <text x={775} y={206} textAnchor="middle" fontSize="7" fill="#4f46e5">COMMANDE</text>
+        <text x={775} y={218} textAnchor="middle" fontSize="7" fill="#6366f1">{c.volt}</text>
+        <text x={775} y={230} textAnchor="middle" fontSize="6.5" fill="#6366f1">{c.prot}</text>
         {/* Câbles pompes */}
         {[...Array(tot)].map((_,i)=>{
-          const px=bachX+firstPX+i*pSp+35;
-          return <line key={i} x1={680} y1={115+i*6} x2={px} y2={pumpY-20} stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 2" opacity="0.7"/>;
+          const px=pX0+i*pSp;
+          return <line key={i} x1={720} y1={186+i*6} x2={px+12} y2={pY+68}
+            stroke="#f59e0b" strokeWidth="0.7" strokeDasharray="4 2" opacity="0.8"/>;
         })}
         {/* Câbles flotteurs */}
-        {a.fl_h&&<line x1={680} y1={152} x2={bachX+28} y2={waterY+3} stroke="#22c55e" strokeWidth="1" strokeDasharray="4 2" opacity="0.7"/>}
-        {a.fl_b&&<line x1={680} y1={162} x2={bachX+48} y2={bachY+bachH-70} stroke="#ef4444" strokeWidth="1" strokeDasharray="4 2" opacity="0.7"/>}
+        {a.fl_h&&<line x1={720} y1={218} x2={bachX+20} y2={waterY+23} stroke="#059669" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.7"/>}
+        {a.fl_b&&<line x1={720} y1={228} x2={bachX+36} y2={bachY+bachH-45} stroke="#7c3aed" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.7"/>}
         {/* Légende câbles */}
-        <text x={680} y={200} fontSize="8" fill="#f59e0b">━━ alimentation pompes</text>
-        <text x={680} y={214} fontSize="8" fill="#22c55e">━━ flotteur NHE</text>
-        <text x={680} y={228} fontSize="8" fill="#ef4444">━━ flotteur NBE</text>
+        <text x={720} y={250} fontSize="6.5" fill="#f59e0b">━ alim. pompes</text>
+        {a.fl_h&&<text x={720} y={262} fontSize="6.5" fill="#059669">━ flotteur NHE</text>}
+        {a.fl_b&&<text x={720} y={274} fontSize="6.5" fill="#7c3aed">━ flotteur NBE</text>}
       </>}
-      {/* ═══ BILAN HYDRAULIQUE ═══ */}
-      <rect x="668" y={a.coffret?248:110} width="205" height="130" rx="6" fill="white" stroke="#e2e8f0" strokeWidth="1.5" filter="url(#shadow)"/>
-      <rect x="668" y={a.coffret?248:110} width="205" height="26" rx="6" fill="#1e293b"/>
-      <text x="770" y={a.coffret?265:127} textAnchor="middle" fontSize="10" fontWeight="700" fill="white">BILAN HYDRAULIQUE</text>
+
+      {/* ── Bilan hydraulique ── */}
+      <rect x={850} y={170} width={220} height={145} fill="#f8fafc" stroke="#1e293b" strokeWidth="1.2"/>
+      <rect x={850} y={170} width={220} height={20} fill="#1e293b"/>
+      <text x={960} y={184} textAnchor="middle" fontSize="8" fontWeight="700" fill="white">BILAN HYDRAULIQUE</text>
       {[
-        {l:`Q unitaire = ${c.Q_r} m³/h`, c:'#475569'},
-        {l:`H.ref = ${c.h_r} m | J.ref = ${H.Jr} m`, c:'#475569'},
-        {l:`HMT = ${H.HMT} m`, c:'#059669', bold:true},
-        {l:`Pa ≈ ${H.Pa} kW`, c:'#7c3aed', bold:true},
-        {l:`V = ${H.V} m/s | DN${c.dn_r}`, c:'#475569'},
-        {l:`${tot} pompes (${np} serv. + ${ns} sec.)`, c:'#1d4ed8'},
+        {l:`Q unitaire = ${c.Q_r} m³/h`, c:'#1e293b'},
+        {l:`H.ref = ${c.h_r} m`, c:'#1e293b'},
+        {l:`J.ref = ${H.Jr} m`, c:'#1e293b'},
+        {l:`HMT = ${H.HMT} m`, c:'#059669', b:true},
+        {l:`Pa ≈ ${H.Pa} kW / pompe`, c:'#7c3aed', b:true},
+        {l:`V = ${H.V} m/s | DN${c.dn_r}`, c:'#1e293b'},
+        {l:`${tot} pompes (${np} serv. + ${ns} sec.)`, c:'#2563eb'},
       ].map((r,i)=>(
-        <text key={i} x="678" y={(a.coffret?278:140)+i*16} fontSize="9" fill={r.c} fontWeight={r.bold?700:400}>{r.l}</text>
+        <text key={i} x={858} y={200+i*16} fontSize="8" fill={r.c} fontWeight={r.b?700:400}>{r.l}</text>
       ))}
-      {Cartouche({Q:c.Q_r, HMT:H.HMT})}
+
+      {CartouchePID({Q:c.Q_r, HMT:H.HMT, titre:'SCHÉMA DE PRINCIPE — STATION DE RELEVAGE', sousTitre:c.proj})}
     </svg>);
   };
 
   // ══════════════════════════════════════════════════════════
-  // SCHÉMA SURFACE/SURPRESSION/INCENDIE
-  // ══════════════════════════════════════════════════════════
-  // ══════════════════════════════════════════════════════════
-  // SCHÉMA SURFACE/SURPRESSION/INCENDIE
+  // SCHÉMA SURFACE / SURPRESSION / INCENDIE — style P&ID
   // ══════════════════════════════════════════════════════════
   const SchemaSurface = () => {
     const a=acc, c=cfg;
     const np=c.np, ns=c.ns, tot=np+ns;
     const isC=c.asp==='flooded', isL=c.asp==='level';
-    const pSp=tot<=2?130:tot===3?108:92;
-    const pX0=230, pY=isC?230:isL?245:175;
-    const aspY=isC?192:isL?260:pY+22;
-    const outX=pX0+(tot-1)*pSp/2+35;
-    const tc=t==='incendie'?'#dc2626':t==='surpression'?'#6d28d9':'#1e40af';
-    const tcLight=t==='incendie'?'#fef2f2':t==='surpression'?'#f5f3ff':'#eff6ff';
-    const titre=t==='incendie'?'INSTALLATION INCENDIE — EN 12845':t==='surpression'?'GROUPE DE SURPRESSION':'POMPAGE EN SURFACE';
+    // Couleurs par type
+    const tc=t==='incendie'?'#dc2626':t==='surpression'?'#6d28d9':'#1e293b';
+    const titre=t==='incendie'?'INSTALLATION INCENDIE — EN 12845 / NFS 61-213'
+      :t==='surpression'?'GROUPE DE SURPRESSION — EAU DOMESTIQUE'
+      :'STATION DE POMPAGE EN SURFACE';
+    // Layout horizontal type P&ID : source gauche → pompes centre → réseau droite
+    const pipeY=200;     // collecteur refoulement horizontal Y
+    const aspY=280;      // aspiration commune horizontal Y
+    const surY=450;      // sol NGF Y
+    // Source d'eau
+    const srcX=30, srcY=isC?90:180, srcW=160, srcH=isC?220:160;
+    // Pompes
+    const pSp=tot<=2?90:tot===3?78:66;
+    const pX0=260;
+    const pY=240; // centre pompes Y
+    const outX=pX0+(tot-1)*pSp/2;
     return (
-    <svg width="100%" viewBox="0 0 900 575" id="hydraulic-schema" style={{display:'block',background:'#f8fafc',fontFamily:'Arial,sans-serif'}}>
-      <defs>
-        <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M1 1L9 5L1 9" fill="none" stroke="#059669" strokeWidth="1.5" strokeLinecap="round"/>
-        </marker>
-        <marker id="arrC" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M1 1L9 5L1 9" fill="none" stroke="#ef4444" strokeWidth="1.5"/>
-        </marker>
-        <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#93c5fd" stopOpacity="0.5"/>
-          <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.3"/>
-        </linearGradient>
-        <filter id="shadow">
-          <feDropShadow dx="2" dy="2" stdDeviation="3" floodOpacity="0.12"/>
-        </filter>
-        <pattern id="sol" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="10" stroke="#94a3b8" strokeWidth="1.5" opacity="0.4"/>
-        </pattern>
-      </defs>
-      {/* Fond */}
-      <rect width="900" height="575" fill="#f8fafc"/>
-      {/* Bandeau titre */}
-      <rect x="0" y="0" width="900" height="44" fill="#1e293b"/>
-      <text x="450" y="27" textAnchor="middle" fontSize="13" fontWeight="700" fill="white" letterSpacing="0.5">SCHÉMA DE PRINCIPE — {titre}</text>
-      <text x="450" y="40" textAnchor="middle" fontSize="9" fill="#94a3b8">{c.proj} | {c.volt} | Q={c.Q} m³/h | HMT={H.HMT} m | Pa≈{H.Pa} kW</text>
-      {/* Sol */}
-      <rect x="0" y="440" width="900" height="16" fill="url(#sol)" opacity="0.8"/>
-      <line x1="0" y1="440" x2="900" y2="440" stroke="#78716c" strokeWidth="2"/>
-      <text x="12" y="436" fontSize="9" fill="#78716c" fontWeight="700">NGF ± 0.00</text>
+    <svg width="100%" viewBox="0 0 1100 600" id="hydraulic-schema"
+      style={{display:'block',background:'white',fontFamily:'Arial,sans-serif',border:'1px solid #e2e8f0'}}>
+      <PID_DEFS/>
 
-      {/* ═══ SOURCE D'EAU ═══ */}
-      {isC ? <>
-        <rect x={22} y={95} width={158} height={210} rx="5" fill="#eff6ff" stroke="#1d4ed8" strokeWidth="2.5" filter="url(#shadow)"/>
-        <rect x={24} y={128} width={154} height={175} rx="4" fill="url(#waterGrad)"/>
-        {[0,1,2,3].map(i=><line key={i} x1={34+i*30} y1={136} x2={48+i*30} y2={136} stroke="white" strokeWidth="1.5" opacity="0.5"/>)}
-        <line x1={22} y1={128} x2={180} y2={128} stroke="#2563eb" strokeWidth="1.5" strokeDasharray="6 3"/>
-        <text x={101} y={85} textAnchor="middle" fontSize="12" fontWeight="700" fill="#1d4ed8">RÉSERVOIR</text>
-        <text x={101} y={122} textAnchor="middle" fontSize="8" fill="#2563eb">NHE</text>
-        <rect x={78} y={305} width="44" height="135" rx="3" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5"/>
-        <text x={101} y={362} textAnchor="middle" fontSize="8" fill="#94a3b8" transform={`rotate(-90,101,362)`}>support</text>
-        <line x1={10} y1={128} x2={10} y2={aspY} stroke="#ef4444" strokeWidth="1.2" markerEnd="url(#arrC)" markerStart="url(#arrC)"/>
-        <text x={0} y={(128+aspY)/2+4} textAnchor="middle" fontSize="8" fill="#ef4444" fontWeight="700" transform={`rotate(-90,0,${(128+aspY)/2})`}>Hgéo={c.h_geo}m</text>
-        <line x1={180} y1={aspY} x2={pX0-58} y2={aspY} stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
-        <text x={(180+pX0-58)/2} y={aspY-8} textAnchor="middle" fontSize="8" fill="#475569">DN{c.dn_asp} — {c.mat_asp}</text>
-      </> : isL ? <>
-        <rect x={22} y={210} width={158} height={180} rx="5" fill="#eff6ff" stroke="#1d4ed8" strokeWidth="2.5" filter="url(#shadow)"/>
-        <rect x={24} y={242} width={154} height={146} rx="4" fill="url(#waterGrad)"/>
-        {[0,1,2].map(i=><line key={i} x1={34+i*36} y1={250} x2={52+i*36} y2={250} stroke="white" strokeWidth="1.5" opacity="0.5"/>)}
-        <line x1={22} y1={242} x2={180} y2={242} stroke="#2563eb" strokeWidth="1.5" strokeDasharray="6 3"/>
-        <text x={101} y={200} textAnchor="middle" fontSize="12" fontWeight="700" fill="#1d4ed8">BÂCHE</text>
-        <text x={101} y={236} textAnchor="middle" fontSize="8" fill="#2563eb">NHE</text>
-        <line x1={180} y1={aspY} x2={pX0-58} y2={aspY} stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
-        <text x={(180+pX0-58)/2} y={aspY-8} textAnchor="middle" fontSize="8" fill="#475569">DN{c.dn_asp}</text>
-      </> : <>
-        <rect x={22} y={290} width={158} height={130} rx="5" fill="#eff6ff" stroke="#1d4ed8" strokeWidth="2.5" filter="url(#shadow)"/>
-        <rect x={24} y={320} width={154} height={98} rx="4" fill="url(#waterGrad)"/>
-        <line x1={22} y1={320} x2={180} y2={320} stroke="#2563eb" strokeWidth="1.5" strokeDasharray="6 3"/>
-        <text x={101} y={280} textAnchor="middle" fontSize="12" fontWeight="700" fill="#1d4ed8">BÂCHE</text>
-        <text x={101} y={314} textAnchor="middle" fontSize="8" fill="#2563eb">NHE</text>
-        <line x1={180} y1={320} x2={pX0-58} y2={320} stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
-        <line x1={pX0-58} y1={320} x2={pX0-58} y2={aspY} stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
-        <line x1={10} y1={pY+22} x2={10} y2={320} stroke="#ef4444" strokeWidth="1.2" markerEnd="url(#arrC)" markerStart="url(#arrC)"/>
-        <text x={0} y={(pY+22+320)/2} textAnchor="middle" fontSize="8" fill="#ef4444" fontWeight="700" transform={`rotate(-90,0,${(pY+22+320)/2})`}>Hasp={c.hasp}m</text>
+      {/* ── Titre ── */}
+      <rect x={0} y={0} width={1100} height={28} fill="#1e293b"/>
+      <text x={550} y={18} textAnchor="middle" fontSize="11" fontWeight="700" fill="white" letterSpacing="1">
+        SCHÉMA DE PRINCIPE — {titre}
+      </text>
+      <text x={550} y={26} textAnchor="middle" fontSize="7" fill="#94a3b8">
+        {c.proj} | {c.volt} | Q={c.Q} m³/h | HMT={H.HMT} m | Pa≈{H.Pa} kW | {tot} pompe{tot>1?'s':''}
+      </text>
+
+      {/* ── Sol ── */}
+      <line x1={0} y1={surY} x2={1100} y2={surY} stroke="#78716c" strokeWidth="1.2"/>
+      <rect x={0} y={surY} width={1100} height={8} fill="url(#hatch)" opacity="0.5"/>
+      <text x={8} y={surY-4} fontSize="7" fontWeight="700" fill="#78716c">NGF ± 0.00</text>
+
+      {/* ── Source d'eau ── */}
+      {/* Parois béton */}
+      <rect x={srcX} y={srcY} width={srcW} height={srcH} fill="url(#beton)" opacity="0.35" stroke="#475569" strokeWidth="1.5"/>
+      <rect x={srcX+5} y={srcY+5} width={srcW-10} height={srcH-10} fill="white" stroke="none"/>
+      {/* Eau */}
+      <rect x={srcX+5} y={isC?srcY+60:srcY+35} width={srcW-10} height={srcH-(isC?65:40)} fill="url(#eau)"/>
+      {[0,1,2].map(i=><line key={i} x1={srcX+12+i*36} y1={isC?srcY+66:srcY+42}
+        x2={srcX+26+i*36} y2={isC?srcY+66:srcY+42} stroke="white" strokeWidth="1" opacity="0.7"/>)}
+      {/* NHE */}
+      <line x1={srcX} y1={isC?srcY+60:srcY+35} x2={srcX+srcW} y2={isC?srcY+60:srcY+35}
+        stroke="#2563eb" strokeWidth="0.8" strokeDasharray="4 2"/>
+      <text x={srcX+srcW+5} y={isC?srcY+64:srcY+39} fontSize="7" fill="#2563eb">NHE</text>
+      {/* Label */}
+      <text x={srcX+srcW/2} y={srcY-6} textAnchor="middle" fontSize="8" fontWeight="700" fill="#475569">
+        {isC?'RÉSERVOIR / BÂCHE':'BÂCHE'}
+      </text>
+      {/* Cote géométrique */}
+      {isC&&<>
+        <line x1={srcX-12} y1={isC?srcY+60:srcY+35} x2={srcX-12} y2={aspY}
+          stroke="#dc2626" strokeWidth="0.8" markerStart="url(#arrR)" markerEnd="url(#arrR)"/>
+        <text x={srcX-24} y={(isC?(srcY+60):srcY+35+aspY)/2+3} textAnchor="middle" fontSize="7" fill="#dc2626"
+          fontWeight="700" transform={`rotate(-90,${srcX-24},${((isC?(srcY+60):srcY+35)+aspY)/2})`}>
+          Hgéo={c.h_geo}m
+        </text>
       </>}
 
+      {/* ── Aspiration ── */}
+      {/* Tuyau depuis source */}
+      <line x1={srcX+srcW} y1={aspY} x2={pX0-18} y2={aspY} stroke="#1e293b" strokeWidth="2.5"/>
+      <text x={(srcX+srcW+pX0-18)/2} y={aspY+12} textAnchor="middle" fontSize="7" fill="#475569">
+        DN{c.dn_asp} — {c.mat_asp} | ASP.
+      </text>
       {/* Crépine */}
       {a.crepine&&isC&&<>
-        <rect x={pX0-68} y={aspY-8} width="16" height="16" rx="2" fill="#fef3c7" stroke="#d97706" strokeWidth="1.5"/>
-        {[-4,0,4].map(i=><line key={i} x1={pX0-60+i} y1={aspY-8} x2={pX0-60+i} y2={aspY+8} stroke="#d97706" strokeWidth="1"/>)}
-        <text x={pX0-60} y={aspY+24} textAnchor="middle" fontSize="8" fill="#92400e">crép.</text>
+        <PIDCrepine cx={srcX+srcW+18} cy={aspY-8} h={10}/>
+        <line x1={srcX+srcW+18} y1={aspY} x2={srcX+srcW+18} y2={aspY-8} stroke="#64748b" strokeWidth="0.8"/>
       </>}
       {/* Vanne aspiration */}
       {a.v_asp&&<>
-        <g transform={`translate(${pX0-36},${aspY})`}>
-          <polygon points="-11,-9 0,0 -11,9" fill="white" stroke="#1a1a2e" strokeWidth="1.8"/>
-          <polygon points="11,-9 0,0 11,9" fill="white" stroke="#1a1a2e" strokeWidth="1.8"/>
-          <line x1={0} y1={-11} x2={0} y2={-20} stroke="#1a1a2e" strokeWidth="1.5"/>
-          <rect x={-6} y={-28} width="12" height="9" fill="white" stroke="#1a1a2e" strokeWidth="1.2"/>
-        </g>
-        <text x={pX0-36} y={aspY-34} textAnchor="middle" fontSize="8" fill="#1a1a2e" fontWeight="600">VIA</text>
+        <PIDVanne cx={srcX+srcW+55} cy={aspY} h={9} horiz={true}/>
+        <text x={srcX+srcW+55} y={aspY+20} textAnchor="middle" fontSize="7" fill="#1e293b">VIA</text>
       </>}
-      {/* Manomètre aspiration */}
+      {/* Mano aspiration */}
       {a.mano_asp&&<>
-        <circle cx={pX0-8} cy={aspY-22} r={11} fill="white" stroke="#1a1a2e" strokeWidth="1.5" filter="url(#shadow)"/>
-        <path d={`M${pX0-16},${aspY-19} A8,8 0 0,1 ${pX0},${aspY-19}`} fill="none" stroke="#1a1a2e" strokeWidth="0.8"/>
-        <line x1={pX0-8} y1={aspY-22} x2={pX0-4} y2={aspY-27} stroke="#ef4444" strokeWidth="1.2"/>
-        <line x1={pX0-8} y1={aspY-11} x2={pX0-8} y2={aspY} stroke="#1a1a2e" strokeWidth="1"/>
-        <text x={pX0-8} y={aspY-38} textAnchor="middle" fontSize="8" fill="#1a1a2e" fontWeight="600">PI</text>
+        <line x1={srcX+srcW+95} y1={aspY} x2={srcX+srcW+95} y2={aspY-18} stroke="#1e293b" strokeWidth="0.8"/>
+        <PIDMano cx={srcX+srcW+95} cy={aspY-27}/>
       </>}
-      {/* Badge NPSHd */}
+
+      {/* ── Badge NPSHd ── */}
       {H.NPSHd&&<>
-        <rect x={pX0-58} y={aspY+18} width="115" height="30" rx="5" fill={H.cav?'#fef2f2':'#f0fdf4'} stroke={H.cav?'#fca5a5':'#86efac'} strokeWidth="1.5"/>
-        <text x={pX0} y={aspY+30} textAnchor="middle" fontSize="8" fontWeight="700" fill={H.cav?'#dc2626':'#16a34a'}>
-          NPSHd = {H.NPSHd} m {H.cav?'⚠ RISQUE CAVITATION':'✓ OK'}
+        <rect x={srcX+srcW+30} y={aspY+22} width={120} height={26} rx="3"
+          fill={H.cav?'#fff1f2':'#f0fdf4'} stroke={H.cav?'#fca5a5':'#86efac'} strokeWidth="1.2"/>
+        <text x={srcX+srcW+90} y={aspY+33} textAnchor="middle" fontSize="7" fontWeight="700" fill={H.cav?'#dc2626':'#16a34a'}>
+          NPSHd={H.NPSHd}m {H.cav?'⚠ CAVITATION':'✓ OK'}
         </text>
-        <text x={pX0} y={aspY+44} textAnchor="middle" fontSize="7" fill={H.cav?'#dc2626':'#16a34a'}>
-          NPSHr = {c.npsh_req} m (constructeur)
+        <text x={srcX+srcW+90} y={aspY+44} textAnchor="middle" fontSize="6.5" fill={H.cav?'#ef4444':'#15803d'}>
+          NPSHr={c.npsh_req}m (constructeur)
         </text>
       </>}
 
-      {/* ═══ POMPES ═══ */}
+      {/* ── POMPES ── */}
       {[...Array(tot)].map((_,i)=>{
-        const px=pX0+i*pSp; const stb=i>=np;
+        const px=pX0+i*pSp;
+        const stb=i>=np;
+        const pc=stb?'#94a3b8':tc;
         return <g key={i}>
-          {/* Tuyau aspiration individuel */}
-          <line x1={pX0-14} y1={aspY} x2={px+35} y2={aspY} stroke="#1e293b" strokeWidth={stb?4:6} strokeLinecap="round"/>
-          <line x1={px+35} y1={aspY} x2={px+35} y2={pY+22} stroke="#1e293b" strokeWidth={stb?4:6} strokeLinecap="round"/>
-          {/* Corps pompe (symbole normalisé) */}
-          <circle cx={px+35} cy={pY} r={24} fill={stb?'#f8fafc':tcLight} stroke={stb?'#94a3b8':tc} strokeWidth="2.5" filter="url(#shadow)"/>
-          <polygon points={`${px+35},${pY-16} ${px+53},${pY+13} ${px+17},${pY+13}`} fill={stb?'#94a3b8':tc} opacity={stb?0.4:0.8}/>
-          <text x={px+35} y={pY+6} textAnchor="middle" fontSize="10" fontWeight="700" fill={stb?'#94a3b8':'white'}>{stb?`P${i+1}S`:`P${i+1}`}</text>
+          {/* Piquage aspiration individuel (vertical bas vers pompe) */}
+          <line x1={px} y1={aspY} x2={px} y2={pY+14} stroke={pc} strokeWidth="1.5"/>
+          {/* Pompe */}
+          <PIDPompe cx={px} cy={pY} r={16} label={stb?`P${i+1}S`:`P${i+1}`} stb={stb} color={tc}/>
+          {/* Axe moteur */}
+          <line x1={px} y1={pY-16} x2={px} y2={pY-27} stroke={pc} strokeWidth="1"/>
           {/* Moteur */}
-          <circle cx={px+35} cy={pY-46} r={16} fill={stb?'#e2e8f0':'#1e3a8a'} stroke={stb?'#94a3b8':'#1e3a8a'} strokeWidth="1.5" filter="url(#shadow)"/>
-          <text x={px+35} y={pY-41} textAnchor="middle" fontSize="11" fontWeight="700" fill={stb?'#94a3b8':'white'}>M</text>
-          <text x={px+35} y={pY-68} textAnchor="middle" fontSize="8" fill="#64748b">≈{(parseFloat(H.Pa||0)/Math.max(np,1)).toFixed(1)}kW</text>
-          <text x={px+35} y={pY+34} textAnchor="middle" fontSize="8" fill={stb?'#94a3b8':tc} fontWeight="600">{stb?'SECOURS':'SERVICE'}</text>
-          {/* Tuyau refoulement individuel */}
-          <line x1={px+35} y1={pY-24} x2={px+35} y2={85} stroke="#1e293b" strokeWidth={stb?4:5.5} strokeLinecap="round"/>
+          <PIDMoteur cx={px} cy={pY-38} r={11} stb={stb}/>
+          <text x={px} y={pY-54} textAnchor="middle" fontSize="6.5" fill={pc} fontWeight={stb?400:600}>
+            {stb?'SECOURS':'SERVICE'}
+          </text>
+          <text x={px} y={pY-64} textAnchor="middle" fontSize="6" fill="#64748b">
+            ≈{(parseFloat(H.Pa||0)/Math.max(np,1)).toFixed(1)}kW
+          </text>
+          {/* Refoulement individuel (vertical haut) */}
+          <line x1={px} y1={pY-16} x2={px} y2={pipeY+8} stroke={pc} strokeWidth="1.5"/>
           {/* Clapet anti-retour */}
           {a.clapet&&<>
-            <g transform={`translate(${px+35},120)`}>
-              <line x1={-12} y1={0} x2={12} y2={0} stroke="white" strokeWidth="3"/>
-              <polygon points="-9,-9 9,0 -9,9" fill="#1a1a2e"/>
-              <line x1={9} y1={-10} x2={9} y2={10} stroke="#1a1a2e" strokeWidth="2.5"/>
-            </g>
-            <text x={px+52} y={123} fontSize="8" fill="#475569" fontWeight="600">CAR</text>
+            <PIDClapet cx={px} cy={pipeY+36} h={9} horiz={false}/>
+            <text x={px+14} y={pipeY+39} fontSize="7" fill="#475569">CAR</text>
           </>}
           {/* Vanne refoulement */}
           {a.v_ref&&<>
-            <g transform={`translate(${px+35},152)`}>
-              <polygon points="-10,-9 0,0 -10,9" fill="white" stroke="#1a1a2e" strokeWidth="1.8"/>
-              <polygon points="10,-9 0,0 10,9" fill="white" stroke="#1a1a2e" strokeWidth="1.8"/>
-              <line x1={0} y1={-11} x2={0} y2={-18} stroke="#1a1a2e" strokeWidth="1.5"/>
-              <rect x={-6} y={-26} width="12" height="9" fill="white" stroke="#1a1a2e" strokeWidth="1.2"/>
-            </g>
-            <text x={px+52} y={155} fontSize="8" fill="#1a1a2e" fontWeight="600">VIA</text>
+            <PIDVanne cx={px} cy={pipeY+62} h={9} horiz={false}/>
+            <text x={px+14} y={pipeY+65} fontSize="7" fill="#1e293b">VIR</text>
           </>}
-          {/* Manomètre refoulement */}
+          {/* Mano refoulement */}
           {a.mano_ref&&<>
-            <circle cx={px+60} cy={pY+8} r={10} fill="white" stroke="#1a1a2e" strokeWidth="1.2" filter="url(#shadow)"/>
-            <path d={`M${px+52},${pY+11} A7,7 0 0,1 ${px+68},${pY+11}`} fill="none" stroke="#1a1a2e" strokeWidth="0.8"/>
-            <line x1={px+60} y1={pY+8} x2={px+64} y2={pY+4} stroke="#ef4444" strokeWidth="1.2"/>
-            <text x={px+60} y={pY+24} textAnchor="middle" fontSize="7" fill="#1a1a2e" fontWeight="600">PI</text>
+            <line x1={px+16} y1={pY} x2={px+26} y2={pY} stroke="#1e293b" strokeWidth="0.8"/>
+            <PIDMano cx={px+35} cy={pY} r={8}/>
           </>}
         </g>;
       })}
 
-      {/* ═══ COLLECTEUR ═══ */}
+      {/* ── Collecteur refoulement ── */}
       {tot>1&&<>
-        <rect x={pX0+35-15} y={79} width={(tot-1)*pSp+30} height="12" rx="3" fill="#1e293b" opacity="0.9"/>
-        <text x={pX0+35+(tot-1)*pSp/2} y={72} textAnchor="middle" fontSize="8" fill="#475569" fontWeight="600">
+        <line x1={pX0} y1={pipeY+8} x2={pX0+(tot-1)*pSp} y2={pipeY+8} stroke="#1e293b" strokeWidth="3"/>
+        <text x={(pX0+pX0+(tot-1)*pSp)/2} y={pipeY-2} textAnchor="middle" fontSize="7.5" fill="#1e293b" fontWeight="600">
           COLLECTEUR DN{c.dn_ref} — {c.mat_ref}
         </text>
       </>}
 
-      {/* ═══ SORTIE PRINCIPALE ═══ */}
+      {/* ── Sortie réseau ── */}
       {(()=>{
+        const rX=outX; const rY=pipeY+8;
         return <>
-          <line x1={outX} y1={85} x2={outX} y2={50} stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
+          <line x1={rX} y1={rY} x2={870} y2={rY} stroke="#1e293b" strokeWidth="2.5"/>
+          <text x={(rX+870)/2} y={rY-8} textAnchor="middle" fontSize="7" fill="#475569">
+            DN{c.dn_ref} — {c.mat_ref}
+          </text>
+          {/* Débitmètre */}
           {a.debit&&<>
-            <rect x={outX-18} y={58} width="36" height="28" rx="4" fill="white" stroke="#1a1a2e" strokeWidth="1.5" filter="url(#shadow)"/>
-            <text x={outX} y={75} textAnchor="middle" fontSize="10" fontWeight="700" fill="#1a1a2e">FI</text>
-            <text x={outX+24} y={75} fontSize="8" fill="#475569">débitmètre</text>
+            <PIDDebit cx={rX+70} cy={rY}/>
+            <text x={rX+70} y={rY-16} textAnchor="middle" fontSize="7" fill="#475569">FT-01</text>
           </>}
+          {/* Réservoir à vessie surpression */}
           {a.vv&&<>
-            <ellipse cx={outX+46} cy={100} rx={20} ry={26} fill="white" stroke="#1a1a2e" strokeWidth="1.5" filter="url(#shadow)"/>
-            <ellipse cx={outX+46} cy={108} rx={12} ry={14} fill="#dbeafe" stroke="#2563eb" strokeWidth="1"/>
-            <line x1={outX} y1={100} x2={outX+26} y2={100} stroke="#1a1a2e" strokeWidth="2"/>
-            <text x={outX+46} y={80} textAnchor="middle" fontSize="8" fill="#1a1a2e" fontWeight="600">réservoir</text>
-            <text x={outX+46} y={92} textAnchor="middle" fontSize="7" fill="#475569">à vessie</text>
+            <line x1={rX+130} y1={rY} x2={rX+130} y2={rY-28} stroke="#1e293b" strokeWidth="1.2"/>
+            <PIDVessie cx={rX+130} cy={rY-50}/>
           </>}
+          {/* Soupape sécurité */}
           {a.soupape&&<>
-            <circle cx={outX-30} cy={95} r={13} fill="white" stroke="#dc2626" strokeWidth="1.8" filter="url(#shadow)"/>
-            <text x={outX-30} y={99} textAnchor="middle" fontSize="9" fontWeight="700" fill="#dc2626">SV</text>
-            <line x1={outX-30} y1={82} x2={outX} y2={85} stroke="#dc2626" strokeWidth="1" opacity="0.5"/>
-            <text x={outX-30} y={116} textAnchor="middle" fontSize="7" fill="#dc2626">soupape</text>
+            <line x1={rX+180} y1={rY} x2={rX+180} y2={rY-16} stroke="#dc2626" strokeWidth="1"/>
+            <PIDSoupape cx={rX+180} cy={rY-26}/>
           </>}
-          <line x1={outX} y1={62} x2={outX} y2={48} stroke="#059669" strokeWidth="2.5" markerEnd="url(#arrG)"/>
-          <rect x={outX-50} y={34} width="100" height="20" rx="10" fill="#059669" filter="url(#shadow)"/>
-          <text x={outX} y={48} textAnchor="middle" fontSize="10" fontWeight="700" fill="white">→ RÉSEAU</text>
-          <text x={outX} y={28} textAnchor="middle" fontSize="8" fill="#475569">Q={c.Q}m³/h | HMT={H.HMT}m</text>
+          {/* Flèche réseau */}
+          <line x1={870} y1={rY} x2={892} y2={rY} stroke="#1e293b" strokeWidth="2.5" markerEnd="url(#arr)"/>
+          <text x={900} y={rY+4} fontSize="8" fontWeight="700" fill="#059669">→ RÉSEAU</text>
+          <text x={900} y={rY+16} fontSize="7" fill="#64748b">Q={c.Q}m³/h | HMT={H.HMT}m</text>
+          {/* Sonde pression */}
+          {a.cap_p&&<>
+            <line x1={830} y1={rY} x2={830} y2={rY-18} stroke="#1e293b" strokeWidth="0.8"/>
+            <PIDTag cx={830} cy={rY-27} tag="PT" r={9}/>
+            <text x={830} y={rY-40} textAnchor="middle" fontSize="7" fill="#475569">SONDE P</text>
+          </>}
         </>;
       })()}
 
-      {/* ═══ COFFRET ═══ */}
+      {/* ── Coffret commande ── */}
       {a.coffret&&<>
-        <rect x={700} y={80} width="125" height="88" rx="6" fill="#1e1b4b" stroke="#4338ca" strokeWidth="2" filter="url(#shadow)"/>
-        <rect x={704} y={84} width="117" height="80" rx="4" fill="none" stroke="#6366f1" strokeWidth="0.8"/>
-        <text x={762} y={112} textAnchor="middle" fontSize="12" fontWeight="700" fill="white">COFFRET</text>
-        <text x={762} y={128} textAnchor="middle" fontSize="9" fill="#a5b4fc">commande</text>
-        <text x={762} y={148} textAnchor="middle" fontSize="8" fill="#6366f1">{c.volt}</text>
-        <text x={762} y={162} textAnchor="middle" fontSize="8" fill="#4f46e5">{c.prot}</text>
+        <rect x={720} y={50} width={115} height={a.vfd?115:75} fill="#f0f4ff" stroke="#4338ca" strokeWidth="1.2"/>
+        <rect x={724} y={54} width={107} height={a.vfd?107:67} fill="none" stroke="#6366f1" strokeWidth="0.6" strokeDasharray="3 2"/>
+        <text x={777} y={72} textAnchor="middle" fontSize="8" fontWeight="700" fill="#3730a3">COFFRET</text>
+        <text x={777} y={84} textAnchor="middle" fontSize="7" fill="#4f46e5">COMMANDE</text>
+        <text x={777} y={96} textAnchor="middle" fontSize="7" fill="#6366f1">{c.volt}</text>
+        <text x={777} y={108} textAnchor="middle" fontSize="6.5" fill="#6366f1">{c.prot}</text>
         {a.vfd&&<>
-          <rect x={700} y={176} width="125" height="44" rx="6" fill="#312e81" stroke="#4338ca" strokeWidth="2" filter="url(#shadow)"/>
-          <text x={762} y={196} textAnchor="middle" fontSize="11" fontWeight="700" fill="white">VFD</text>
-          <text x={762} y={212} textAnchor="middle" fontSize="8" fill="#a5b4fc">variateur fréquence</text>
+          <line x1={730} y1={120} x2={828} y2={120} stroke="#6366f1" strokeWidth="0.6"/>
+          <text x={777} y={132} textAnchor="middle" fontSize="7.5" fontWeight="700" fill="#6d28d9">VFD</text>
+          <text x={777} y={144} textAnchor="middle" fontSize="6.5" fill="#7c3aed">VARIATEUR</text>
+          <text x={777} y={156} textAnchor="middle" fontSize="6" fill="#8b5cf6">f.réglable</text>
         </>}
-        <text x={700} y={a.vfd?236:186} fontSize="8" fill="#f59e0b">━━ câbles alimentation</text>
+        {/* Câbles vers pompes */}
+        {[...Array(tot)].map((_,i)=>{
+          const px=pX0+i*pSp;
+          return <line key={i} x1={720} y1={65+i*5} x2={px+12} y2={pY-38}
+            stroke="#f59e0b" strokeWidth="0.7" strokeDasharray="4 2" opacity="0.75"/>;
+        })}
+        <text x={720} y={a.vfd?176:136} fontSize="6.5" fill="#f59e0b">━ câbles alimentation</text>
       </>}
 
-      {/* ═══ BILAN HYDRAULIQUE ═══ */}
+      {/* ── Bilan hydraulique ── */}
       {(()=>{
-        const bY=a.coffret?(a.vfd?256:196):80;
+        const bY=50;
         return <>
-          <rect x="688" y={bY} width="212" height="158" rx="6" fill="white" stroke="#e2e8f0" strokeWidth="1.5" filter="url(#shadow)"/>
-          <rect x="688" y={bY} width="212" height="26" rx="6" fill="#1e293b"/>
-          <text x="794" y={bY+17} textAnchor="middle" fontSize="10" fontWeight="700" fill="white">BILAN HYDRAULIQUE</text>
+          <rect x={850} y={bY} width={230} height={160} fill="#f8fafc" stroke="#1e293b" strokeWidth="1.2"/>
+          <rect x={850} y={bY} width={230} height={20} fill="#1e293b"/>
+          <text x={965} y={bY+14} textAnchor="middle" fontSize="8" fontWeight="700" fill="white">BILAN HYDRAULIQUE</text>
           {[
-            {l:`Q = ${c.Q} m³/h`,c:'#475569'},
-            {l:`H.géo = ${c.h_geo} m | Hasp = ${c.hasp} m`,c:'#475569'},
-            {l:`J.asp = ${H.Ja} m | J.ref = ${H.Jr} m`,c:'#475569'},
-            {l:`HMT = ${H.HMT} m`,c:'#059669',b:true},
-            {l:`Pa ≈ ${H.Pa} kW`,c:'#7c3aed',b:true},
-            {l:`Va = ${H.Va} m/s | Vr = ${H.Vr} m/s`,c:'#475569'},
-            {l:`NPSHd = ${H.NPSHd} m ${H.cav?'⚠ CAVITATION':'✓ OK'}`,c:H.cav?'#dc2626':'#16a34a',b:H.cav},
-            {l:`${tot} pompes (${np} serv. + ${ns} sec.)`,c:'#1d4ed8'},
+            {l:`Q = ${c.Q} m³/h`, c:'#1e293b'},
+            {l:`H.géo = ${c.h_geo} m | Hasp = ${c.hasp} m`, c:'#1e293b'},
+            {l:`J.asp = ${H.Ja} m | J.ref = ${H.Jr} m`, c:'#1e293b'},
+            {l:`HMT = ${H.HMT} m`, c:'#059669', b:true},
+            {l:`Pa ≈ ${H.Pa} kW`, c:'#7c3aed', b:true},
+            {l:`Va = ${H.Va} m/s | Vr = ${H.Vr} m/s`, c:'#1e293b'},
+            {l:`NPSHd = ${H.NPSHd} m ${H.cav?'⚠ CAVIT.':'✓ OK'}`, c:H.cav?'#dc2626':'#16a34a', b:H.cav},
+            {l:`${tot} pompes (${np} serv. + ${ns} sec.)`, c:'#2563eb'},
           ].map((r,i)=>(
-            <text key={i} x="696" y={bY+42+i*15} fontSize="8.5" fill={r.c} fontWeight={r.b?700:400}>{r.l}</text>
+            <text key={i} x={858} y={bY+36+i*15} fontSize="8" fill={r.c} fontWeight={r.b?700:400}>{r.l}</text>
           ))}
         </>;
       })()}
-      {Cartouche({Q:c.Q, HMT:H.HMT})}
+
+      {CartouchePID({Q:c.Q, HMT:H.HMT, titre:`SCHÉMA DE PRINCIPE — ${titre}`, sousTitre:c.proj})}
     </svg>);
   };
-
 
   const renderSchema = () => {
     if(t==='forage') return <SchemaForage/>;
