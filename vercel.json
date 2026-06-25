@@ -1,0 +1,23 @@
+{
+  "experimentalServices": {
+    "frontend": {
+      "root": "frontend",
+      "framework": "create-react-app",
+      "buildCommand": "yarn build",
+      "outputDirectory": "build",
+      "env": {
+        "REACT_APP_BACKEND_URL": "@eco-expert-backend-url"
+      }
+    },
+    "backend": {
+      "root": "backend",
+      "framework": "python",
+      "buildCommand": "pip install -r requirements.txt",
+      "startCommand": "uvicorn server:app --host 0.0.0.0 --port $PORT",
+      "env": {
+        "MONGO_URL": "@eco-expert-mongo-url",
+        "DB_NAME": "@eco-expert-db-name"
+      }
+    }
+  }
+}
