@@ -8343,9 +8343,90 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
   );
 };
 
+// Dashboard Home Component
+const DashboardHome = ({ onNavigate }) => {
+  const modules = [
+    { id: 'npshd', icon: '🔷', title: 'Calcul NPSHd', desc: 'Net Positive Suction Head disponible — prévention cavitation', cls: 'npshd' },
+    { id: 'hmt', icon: '🔶', title: 'Calcul HMT', desc: 'Hauteur manométrique totale et pertes de charge', cls: 'hmt' },
+    { id: 'performance', icon: '📊', title: 'Performance', desc: 'Courbes de performance et point de fonctionnement optimal', cls: 'perf' },
+    { id: 'formulas', icon: '📚', title: 'Base de Formules', desc: 'Bibliothèque complète des formules hydrauliques', cls: 'formulas' },
+    { id: 'chemical_compatibility', icon: '🧪', title: 'Compatibilité Chimique', desc: 'Compatibilité fluides / matériaux de tuyauterie', cls: 'chemical' },
+    { id: 'audit', icon: '🔧', title: 'Audit Hydraulique', desc: 'Audit complet ISO 50001 — analyse énergétique', cls: 'audit' },
+    { id: 'expert', icon: '🎯', title: 'Expert Pro', desc: 'Analyse experte complète avec rapport PDF', cls: 'expert' },
+    { id: 'solar', icon: '☀️', title: 'Expert Solaire', desc: 'Dimensionnement pompage solaire photovoltaïque', cls: 'solar' },
+  ];
+
+  return (
+    <div className="dashboard-home fade-in">
+      {/* Hero */}
+      <div className="dashboard-hero">
+        <div className="dashboard-hero-title">
+          Bienvenue sur <span>ECO-PUMP AFRIK</span>
+        </div>
+        <p className="dashboard-hero-desc">
+          La plateforme de référence pour le calcul hydraulique professionnel en Afrique.
+          Dimensionnez, auditez et optimisez vos installations de pompage.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary btn-lg" onClick={() => onNavigate('npshd')}>
+            🚀 Commencer un calcul
+          </button>
+          <button className="btn btn-secondary btn-lg" style={{ background: 'rgba(255,255,255,0.1)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }} onClick={() => onNavigate('expert')}>
+            🎯 Mode Expert
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="dashboard-stats">
+        {[
+          { icon: '🔷', label: 'Modules disponibles', value: '8', color: '#3b82f6', bg: '#dbeafe' },
+          { icon: '📐', label: 'Formules hydrauliques', value: '60+', color: '#10b981', bg: '#d1fae5' },
+          { icon: '🧪', label: 'Fluides référencés', value: '15+', color: '#f59e0b', bg: '#fef3c7' },
+          { icon: '☀️', label: 'Standards supportés', value: 'ISO 50001', color: '#8b5cf6', bg: '#ede9fe' },
+        ].map((s, i) => (
+          <div key={i} className="stat-card">
+            <div className="stat-icon" style={{ background: s.bg }}>
+              <span style={{ fontSize: '18px' }}>{s.icon}</span>
+            </div>
+            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+            <div className="stat-label">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modules */}
+      <div style={{ marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--navy-900)', marginBottom: '4px' }}>Modules de calcul</h2>
+        <p style={{ fontSize: '0.82rem', color: 'var(--slate-600)' }}>Sélectionnez un module pour commencer</p>
+      </div>
+      <div className="module-grid">
+        {modules.map(m => (
+          <div key={m.id} className={`module-card ${m.cls}`} onClick={() => onNavigate(m.id)}>
+            <span className="module-icon">{m.icon}</span>
+            <div className="module-title">{m.title}</div>
+            <div className="module-desc">{m.desc}</div>
+            <div className="module-arrow">→</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer info */}
+      <div style={{ background: 'white', borderRadius: 'var(--radius-lg)', padding: '20px 24px', border: '1px solid var(--slate-200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+          {['✅ ISO 50001', '✅ IEC 60034', '✅ ASHRAE', '✅ ENERGY STAR'].map(s => (
+            <span key={s} style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--slate-600)' }}>{s}</span>
+          ))}
+        </div>
+        <span style={{ fontSize: '0.72rem', color: 'var(--slate-400)', fontFamily: 'JetBrains Mono, monospace' }}>v4.0 PRO — ECO-PUMP AFRIK</span>
+      </div>
+    </div>
+  );
+};
+
 // Composant principal
 function App() {
-  const [activeTab, setActiveTab] = useState('npshd');
+  const [activeTab, setActiveTab] = useState('home');
   const [fluids, setFluids] = useState([]);
   const [pipeMaterials, setPipeMaterials] = useState([]);
   const [fittings, setFittings] = useState([]);
@@ -8363,7 +8444,6 @@ function App() {
         axios.get(`${API}/fittings`),
         axios.get(`${API}/history`)
       ]);
-      
       setFluids(fluidsRes.data.fluids);
       setPipeMaterials(materialsRes.data.materials);
       setFittings(fittingsRes.data.fittings);
@@ -8375,6 +8455,8 @@ function App() {
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'home':
+        return <DashboardHome onNavigate={setActiveTab} />;
       case 'npshd':
         return <NPSHdCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} />;
       case 'hmt':
@@ -8393,28 +8475,31 @@ function App() {
         return <SolarExpertSystem />;
       case 'history':
         return (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900">Historique des Calculs</h2>
-            {history.length === 0 ? (
-              <div className="text-gray-500 text-center py-8">
-                Aucun calcul sauvegardé pour le moment.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {history.map((item) => (
-                  <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{item.project_name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {new Date(item.timestamp).toLocaleString()}
-                        </p>
+          <div className="card fade-in">
+            <div className="card-header">
+              <div className="card-title">📋 Historique des Calculs</div>
+            </div>
+            <div className="card-body">
+              {history.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--slate-600)' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📭</div>
+                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>Aucun calcul sauvegardé</div>
+                  <div style={{ fontSize: '0.82rem' }}>Vos calculs apparaîtront ici après les avoir effectués.</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {history.map((item) => (
+                    <div key={item.id} style={{ border: '1px solid var(--slate-200)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--navy-900)', marginBottom: '4px' }}>{item.project_name}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--slate-500)' }}>{new Date(item.timestamp).toLocaleString('fr-FR')}</div>
                       </div>
+                      <span className="badge badge-teal">Sauvegardé</span>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
       default:
@@ -8422,148 +8507,61 @@ function App() {
     }
   };
 
+  const navItems = [
+    { id: 'home', icon: '🏠', label: 'Accueil' },
+    { id: 'npshd', icon: '🔷', label: 'NPSHd' },
+    { id: 'hmt', icon: '🔶', label: 'HMT' },
+    { id: 'performance', icon: '📊', label: 'Performance' },
+    { id: 'formulas', icon: '📚', label: 'Formules' },
+    { id: 'chemical_compatibility', icon: '🧪', label: 'Compatibilité' },
+    { id: 'audit', icon: '🔧', label: 'Audit' },
+    { id: 'expert', icon: '🎯', label: 'Expert' },
+    { id: 'solar', icon: '☀️', label: 'Solaire' },
+    { id: 'history', icon: '📋', label: 'Historique' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Professionnel */}
-      <header className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 shadow-2xl border-b border-blue-700">
-        <div className="max-w-7xl mx-auto">
-          {/* Ligne du titre et branding */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-blue-700/30">
-            <div className="flex items-center space-x-4">
-              <div className="bg-white/10 p-2 rounded-full">
-                <svg className="w-8 h-8 text-blue-200" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V19A2 2 0 0 0 5 21H19A2 2 0 0 0 21 19V9Z"/>
-                </svg>
-              </div>
+    <div style={{ minHeight: '100vh', background: 'var(--slate-100)' }}>
+      {/* Header */}
+      <header className="app-header no-print">
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
+          {/* Top bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0 10px' }}>
+            <div className="header-brand" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }}>
+              <div className="header-logo">💧</div>
               <div>
-                <h1 className="text-3xl font-bold text-white tracking-tight">
-                  ECO-PUMP AFRIK
-                </h1>
-                <p className="text-blue-200 text-sm font-medium">
-                  Calculateur Hydraulique Professionnel
-                </p>
+                <div className="header-title">ECO-PUMP AFRIK</div>
+                <div className="header-subtitle">Calculateur Hydraulique Professionnel</div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="bg-green-500/20 px-3 py-1 rounded-full">
-                <span className="text-green-200 text-xs font-medium">● ACTIF</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div className="header-badge">
+                <div className="header-badge-dot"></div>
+                <span className="header-badge-text">ACTIF</span>
               </div>
-              <div className="text-blue-200 text-sm">
-                v3.0 PRO
-              </div>
+              <span className="header-version">v4.0 PRO</span>
             </div>
           </div>
-
-          {/* Navigation principale */}
-          <nav className="px-6 py-2">
-            <div className="flex items-center space-x-1 overflow-x-auto">
+          {/* Navigation */}
+          <nav className="app-nav">
+            {navItems.map(item => (
               <button
-                onClick={() => setActiveTab('npshd')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'npshd'
-                    ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                    : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
-                }`}
+                key={item.id}
+                className={`nav-btn ${activeTab === item.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(item.id)}
               >
-                <span className="text-lg">🔷</span>
-                <span>NPSHd</span>
+                <span className="nav-icon">{item.icon}</span>
+                <span>{item.label}</span>
               </button>
-              <button
-                onClick={() => setActiveTab('hmt')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'hmt'
-                    ? 'bg-emerald-600 text-white shadow-lg transform scale-105'
-                    : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">🔶</span>
-                <span>HMT</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('performance')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'performance'
-                    ? 'bg-yellow-600 text-white shadow-lg transform scale-105'
-                    : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">📊</span>
-                <span>Performance</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('formulas')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'formulas'
-                    ? 'bg-purple-600 text-white shadow-lg transform scale-105'
-                    : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">📚</span>
-                <span>Formules</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('chemical_compatibility')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'chemical_compatibility'
-                    ? 'bg-teal-600 text-white shadow-lg transform scale-105'
-                    : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">🧪</span>
-                <span>Compatibilité</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('audit')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'audit'
-                    ? 'bg-indigo-600 text-white shadow-lg transform scale-105'
-                    : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">🔧</span>
-                <span>Audit</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('expert')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'expert'
-                    ? 'bg-violet-600 text-white shadow-lg transform scale-105'
-                    : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">🎯</span>
-                <span>Expert</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('solar')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'solar'
-                    ? 'bg-gradient-to-r from-orange-500 to-yellow-500 text-white shadow-lg transform scale-105'
-                    : 'text-blue-200 hover:bg-gradient-to-r hover:from-orange-600 hover:to-yellow-600 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">☀️</span>
-                <span>Expert Solaire</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'history'
-                    ? 'bg-slate-600 text-white shadow-lg transform scale-105'
-                    : 'text-blue-200 hover:bg-blue-700/50 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">📋</span>
-                <span>Historique</span>
-              </button>
-            </div>
+            ))}
           </nav>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main content */}
+      <main className="app-main">
         {renderTabContent()}
-      </div>
+      </main>
     </div>
   );
 }
