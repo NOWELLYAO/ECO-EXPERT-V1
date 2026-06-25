@@ -8666,6 +8666,466 @@ const DrawingTool = () => {
         {[...Array(tot)].map((_,i)=>{
           const px=sx+i*sp+37;
           return <path key={i} d={`M620 130 Q${px+80} 130 ${px+85} 230`} fill="none" stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="3 2" opacity="0.7"/>;
+        })}
+        {/* Câbles flotteurs */}
+        {a.flotteur_h && <path d="M620 150 Q400 150 49 287" fill="none" stroke="#22c55e" strokeWidth="1.2" strokeDasharray="4 2" markerEnd="url(#arr)"/>}
+        {a.flotteur_b && <path d="M620 165 Q400 165 79 340" fill="none" stroke="#ef4444" strokeWidth="1.2" strokeDasharray="4 2" markerEnd="url(#arr)"/>}
+        <text x="690" y="220" textAnchor="middle" fontSize="8" fill="#f59e0b">━ câbles pompes</text>
+        <text x="690" y="232" textAnchor="middle" fontSize="8" fill="#22c55e">━ flotteur haut</text>
+        <text x="690" y="244" textAnchor="middle" fontSize="8" fill="#ef4444">━ flotteur bas</text>
+      </>}
+      {/* Info calculs */}
+      <rect x="12" y="100" width="160" height="90" rx="6" fill="white" stroke="#e2e8f0" strokeWidth="1"/>
+      <text x="22" y="118" fontSize="10" fontWeight="700" fill="#0f172a">Calculs :</text>
+      <text x="22" y="133" fontSize="9" fill="#475569">J.ref = {calc.Jr} m</text>
+      <text x="22" y="148" fontSize="11" fontWeight="800" fill="#059669">HMT = {calc.HMT} m</text>
+      <text x="22" y="163" fontSize="9" fill="#7c3aed">Pa = {calc.Pa} kW</text>
+      <text x="22" y="177" fontSize="9" fill="#475569">V = {calc.V} m/s</text>
+      {Cartouche({c,calc,type:'relevage',acc:a,Q:c.Q_relev})}
+    </svg>);
+  };
+
+  // ══════════════════════════════════════════
+  // SVG SURFACE / SURPRESSION / INCENDIE
+  // ══════════════════════════════════════════
+  const SvgSurface = () => {
+    const c=config; const a=acc;
+    const np=c.num_pumps, ns=c.num_standby, tot=np+ns;
+    const isC=c.suction_type==='flooded', isL=c.suction_type==='level';
+    const sp = tot<=2?140:tot===3?115:100;
+    const sx = 230;
+    const pY = isC ? 230 : isL ? 240 : 170;
+    const aspY = isC ? 195 : pY+25;
+    const tc = type==='incendie'?'#dc2626':type==='surpression'?'#7c3aed':'#059669';
+    const tb = type==='incendie'?'#fef2f2':type==='surpression'?'#f5f3ff':'#f0fdf4';
+
+    return (
+    <svg width="100%" viewBox="0 0 800 500" id="hydraulic-schema" style={{display:'block',background:'white'}}>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="context-stroke" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </marker>
+        <pattern id="gr" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M20 0L0 0 0 20" fill="none" stroke="#e2e8f0" strokeWidth="0.5"/>
+        </pattern>
+      </defs>
+      <rect width="800" height="420" fill="url(#gr)"/>
+
+      {/* ── SOURCE ── */}
+      {isC ? <>
+        {/* Réservoir surélevé */}
+        <rect x="12" y="100" width="150" height="180" rx="6" fill="#dbeafe" stroke="#1d4ed8" strokeWidth="2"/>
+        <rect x="14" y="130" width="146" height="148" rx="4" fill="#3b82f6" opacity="0.25"/>
+        <line x1="12" y1="130" x2="162" y2="130" stroke="#60a5fa" strokeWidth="1.5" strokeDasharray="5 3"/>
+        <text x="87" y="90" textAnchor="middle" fontSize="13" fontWeight="700" fill="#1d4ed8">RÉSERVOIR</text>
+        <text x="87" y="124" textAnchor="middle" fontSize="9" fill="#2563eb">niveau eau</text>
+        {/* Piédestal */}
+        <rect x="72" y="280" width="30" height="100" rx="2" fill="#94a3b8" opacity="0.4"/>
+        {/* Cote géo */}
+        <line x1="6" y1="130" x2="6" y2={aspY} stroke="#ef4444" strokeWidth="1.2" markerEnd="url(#arr)" markerStart="url(#arr)"/>
+        <text x="-2" y={(130+aspY)/2} textAnchor="middle" fontSize="8" fill="#ef4444" fontWeight="700" transform={`rotate(-90,-2,${(130+aspY)/2})`}>H.geo={c.h_geo}m</text>
+        {/* Tuyau aspiration */}
+        <line x1="162" y1={aspY} x2={sx-50} y2={aspY} stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
+      </> : isL ? <>
+        {/* Bâche niveau égal */}
+        <rect x="12" y="220" width="150" height="140" rx="6" fill="#dbeafe" stroke="#1d4ed8" strokeWidth="2"/>
+        <rect x="14" y="250" width="146" height="108" rx="4" fill="#3b82f6" opacity="0.25"/>
+        <line x1="12" y1="250" x2="162" y2="250" stroke="#60a5fa" strokeWidth="1.5" strokeDasharray="5 3"/>
+        <text x="87" y="210" textAnchor="middle" fontSize="13" fontWeight="700" fill="#1d4ed8">BÂCHE</text>
+        <text x="87" y="244" textAnchor="middle" fontSize="9" fill="#2563eb">niveau eau</text>
+        <line x1="162" y1="270" x2={sx-50} y2="270" stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
+        <line x1={sx-50} y1="270" x2={sx-50} y2={aspY} stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
+      </> : <>
+        {/* Bâche en dépression */}
+        <rect x="12" y="280" width="150" height="100" rx="6" fill="#dbeafe" stroke="#1d4ed8" strokeWidth="2"/>
+        <rect x="14" y="305" width="146" height="73" rx="4" fill="#3b82f6" opacity="0.25"/>
+        <line x1="12" y1="305" x2="162" y2="305" stroke="#60a5fa" strokeWidth="1.5" strokeDasharray="5 3"/>
+        <text x="87" y="270" textAnchor="middle" fontSize="13" fontWeight="700" fill="#1d4ed8">BÂCHE</text>
+        <text x="87" y="299" textAnchor="middle" fontSize="9" fill="#2563eb">niveau eau</text>
+        <line x1="162" y1="318" x2={sx-50} y2="318" stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
+        <line x1={sx-50} y1="318" x2={sx-50} y2={aspY} stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
+        {/* Cote Hasp */}
+        <line x1="6" y1={aspY} x2="6" y2="305" stroke="#ef4444" strokeWidth="1.2" markerEnd="url(#arr)" markerStart="url(#arr)"/>
+        <text x="-2" y={(aspY+305)/2} textAnchor="middle" fontSize="8" fill="#ef4444" fontWeight="700" transform={`rotate(-90,-2,${(aspY+305)/2})`}>Hasp={c.hasp}m</text>
+      </>}
+
+      {/* Crépine */}
+      {a.crepine && isC && <><rect x={sx-62} y={aspY-10} width="18" height="20" rx="2" fill="#fef3c7" stroke="#f59e0b" strokeWidth="1"/><text x={sx-53} y={aspY+24} textAnchor="middle" fontSize="8" fill="#b45309">crép.</text></>}
+      {/* Vanne aspiration */}
+      {a.vanne_asp && <><rect x={sx-52} y={aspY-14} width="30" height="28" rx="5" fill="#dbeafe" stroke="#2563eb" strokeWidth="1.5"/><line x1={sx-37} y1={aspY-14} x2={sx-37} y2={aspY+14} stroke="#2563eb" strokeWidth="2"/><line x1={sx-52} y1={aspY} x2={sx-22} y2={aspY} stroke="#2563eb" strokeWidth="2"/><text x={sx-37} y={aspY+27} textAnchor="middle" fontSize="8" fill="#1d4ed8">V.asp</text></>}
+      {/* Manomètre aspiration */}
+      {a.manometre_asp && <><circle cx={sx-8} cy={aspY-16} r="11" fill="#f0fdf4" stroke="#16a34a" strokeWidth="1.5"/><text x={sx-8} y={aspY-12} textAnchor="middle" fontSize="9" fontWeight="700" fill="#166534">P</text></>}
+      {/* NPSHd */}
+      {calc.NPSHd && <><rect x={sx-55} y={aspY+35} width="100" height="32" rx="5" fill={calc.cav?'#fee2e2':'#f0fdf4'} stroke={calc.cav?'#fca5a5':'#86efac'} strokeWidth="1"/><text x={sx-5} y={aspY+49} textAnchor="middle" fontSize="9" fontWeight="700" fill={calc.cav?'#dc2626':'#16a34a'}>NPSHd={calc.NPSHd}m {calc.cav?'⚠':'✓'}</text><text x={sx-5} y={aspY+62} textAnchor="middle" fontSize="8" fill={calc.cav?'#dc2626':'#16a34a'}>{calc.cav?'RISQUE CAVITATION':'OK — pas de cavitation'}</text></>}
+
+      {/* POMPES */}
+      {[...Array(tot)].map((_,i)=>{
+        const px=sx+i*sp; const stb=i>=np;
+        return <g key={i}>
+          <line x1={sx-22} y1={aspY} x2={px} y2={aspY} stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
+          {/* Corps */}
+          <rect x={px} y={pY} width="75" height="55" rx="8" fill={stb?tb:tc} stroke={stb?'#94a3b8':tc} strokeWidth="2"/>
+          <text x={px+37} y={pY+24} textAnchor="middle" fontSize="12" fontWeight="700" fill={stb?'#64748b':'white'}>{stb?'SEC.':'P'+(i+1)}</text>
+          <text x={px+37} y={pY+40} textAnchor="middle" fontSize="9" fill={stb?'#94a3b8':'white'}>{type==='incendie'?'INC.':type==='surpression'?'SURPR.':'SERV.'}</text>
+          {/* Moteur */}
+          <ellipse cx={px+37} cy={pY-18} rx="25" ry="16" fill={stb?'#e2e8f0':'#1e40af'} stroke={stb?'#94a3b8':'#1e3a8a'} strokeWidth="1.5"/>
+          <text x={px+37} y={pY-13} textAnchor="middle" fontSize="11" fontWeight="700" fill={stb?'#64748b':'white'}>M</text>
+          <text x={px+37} y={pY-34} textAnchor="middle" fontSize="8" fill="#64748b">≈{(parseFloat(calc.Pa||0)/Math.max(np,1)).toFixed(1)}kW</text>
+          {/* Vanne ref */}
+          {a.vanne_ref && <><rect x={px+80} y={pY+13} width="30" height="30" rx="5" fill="#dbeafe" stroke="#2563eb" strokeWidth="1.5"/><line x1={px+95} y1={pY+13} x2={px+95} y2={pY+43} stroke="#2563eb" strokeWidth="2"/><line x1={px+80} y1={pY+28} x2={px+110} y2={pY+28} stroke="#2563eb" strokeWidth="2"/></>}
+          {/* Clapet */}
+          {a.clapet && <><rect x={px+112} y={pY+15} width="24" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b" strokeWidth="1.5"/><text x={px+124} y={pY+31} textAnchor="middle" fontSize="9" fontWeight="700" fill="#b45309">CA</text></>}
+          {/* Mano ref */}
+          {a.manometre_ref && <><circle cx={px+37} cy={pY+70} r="11" fill="#f0fdf4" stroke="#16a34a" strokeWidth="1.5"/><text x={px+37} y={pY+74} textAnchor="middle" fontSize="9" fontWeight="700" fill="#166534">P</text></>}
+          {/* Sortie individuelle */}
+          <line x1={px+138} y1={pY+28} x2={px+155} y2={pY+28} stroke="#1e293b" strokeWidth="6" strokeLinecap="round"/>
+        </g>;
+      })}
+
+      {/* Collecteur + sortie */}
+      {(()=>{
+        const lastX = sx+(tot-1)*sp+155;
+        const cY = pY+28;
+        const outX = tot>1 ? sx+(tot-1)*sp/2+155 : sx+155;
+        return <>
+          {tot>1 && <line x1={sx+155} y1={cY} x2={lastX} y2={cY} stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>}
+          <line x1={outX} y1={cY} x2={outX} y2="35" stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
+          {a.debitmetre && <><rect x={outX-16} y="80" width="32" height="28" rx="5" fill="#ede9fe" stroke="#7c3aed" strokeWidth="1.5"/><text x={outX} y="98" textAnchor="middle" fontSize="11" fontWeight="700" fill="#5b21b6">Q</text></>}
+          {a.vv && <><ellipse cx={outX+38} cy="120" rx="26" ry="18" fill="#fef3c7" stroke="#f59e0b" strokeWidth="1.5"/><text x={outX+38} y="124" textAnchor="middle" fontSize="9" fontWeight="700" fill="#92400e">VV</text><line x1={outX} y1="120" x2={outX+12} y2="120" stroke="#f59e0b" strokeWidth="1.5"/></>}
+          {a.capteur_P && <><rect x={outX+16} y="72" width="22" height="22" rx="4" fill="#fce7f3" stroke="#db2777" strokeWidth="1.5"/><text x={outX+27} y="87" textAnchor="middle" fontSize="9" fontWeight="700" fill="#9d174d">CP</text></>}
+          {a.soupape && <><circle cx={outX-28} cy="110" r="13" fill="#fee2e2" stroke="#dc2626" strokeWidth="1.5"/><text x={outX-28} y="114" textAnchor="middle" fontSize="9" fontWeight="700" fill="#dc2626">SV</text></>}
+          <line x1={outX} y1="95" x2={outX} y2="42" stroke="#10b981" strokeWidth="2.5" markerEnd="url(#arr)"/>
+          <rect x={outX-35} y="18" width="70" height="22" rx="5" fill="#10b981" opacity="0.85"/>
+          <text x={outX} y="33" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">→ Réseau</text>
+          <text x={outX} y="12" textAnchor="middle" fontSize="9" fill="#64748b">Q={c.Q}m³/h | P={calc.Pa}kW</text>
+        </>;
+      })()}
+
+      {/* Coffret */}
+      {a.coffret && <>
+        <rect x="630" y="80" width="140" height="110" rx="8" fill="#1e1b4b" stroke="#4338ca" strokeWidth="2"/>
+        <text x="700" y="110" textAnchor="middle" fontSize="13" fontWeight="700" fill="white">COFFRET</text>
+        <text x="700" y="128" textAnchor="middle" fontSize="10" fill="#a5b4fc">commande</text>
+        <text x="700" y="144" textAnchor="middle" fontSize="9" fill="#6366f1">{config.voltage}</text>
+        <text x="700" y="160" textAnchor="middle" fontSize="8" fill="#4f46e5">{config.protection}</text>
+        <text x="700" y="176" textAnchor="middle" fontSize="8" fill="#818cf8">{type.toUpperCase()}</text>
+        {a.vfd && <><rect x="630" y="200" width="140" height="40" rx="6" fill="#312e81" stroke="#4338ca" strokeWidth="1.5"/><text x="700" y="218" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">VFD</text><text x="700" y="232" textAnchor="middle" fontSize="9" fill="#a5b4fc">variateur fréq.</text></>}
+      </>}
+
+      {/* Info calculs */}
+      <rect x="12" y="100" width="195" height="130" rx="6" fill="white" stroke="#e2e8f0" strokeWidth="1"/>
+      <text x="22" y="118" fontSize="10" fontWeight="700" fill="#0f172a">Calculs automatiques :</text>
+      <text x="22" y="133" fontSize="9" fill="#475569">J.asp={calc.Ja}m | J.ref={calc.Jr}m</text>
+      <text x="22" y="147" fontSize="9" fill="#475569">Va={calc.Va}m/s | Vr={calc.Vr}m/s</text>
+      <text x="22" y="162" fontSize="11" fontWeight="800" fill="#059669">HMT = {calc.HMT} m</text>
+      <text x="22" y="176" fontSize="9" fill="#7c3aed">Pa ≈ {calc.Pa} kW</text>
+      <text x="22" y="190" fontSize="9" fill={calc.cav?'#dc2626':'#16a34a'}>NPSHd = {calc.NPSHd} m {calc.cav?'⚠ CAVITATION':'✓ OK'}</text>
+      <text x="22" y="204" fontSize="9" fill="#475569">H.géo = {c.h_geo} m</text>
+      <text x="22" y="218" fontSize="9" fill="#475569">Fluide: {c.fluid} — {c.temperature}°C</text>
+
+      {Cartouche({c,calc,type,acc:a,Q:c.Q})}
+    </svg>);
+  };
+
+  const Cartouche = ({c,calc,type,acc,Q}) => (
+    <g>
+      <rect x="0" y="420" width="800" height="80" fill="#1e293b"/>
+      <line x1="0" y1="420" x2="800" y2="420" stroke="#14b8a6" strokeWidth="2"/>
+      <text x="12" y="440" fontSize="10" fontWeight="700" fill="#14b8a6">INSTALLATION</text>
+      <text x="12" y="454" fontSize="10" fill="white">{type.toUpperCase()}</text>
+      <text x="12" y="468" fontSize="9" fill="#94a3b8">{c.num_pumps} serv. + {c.num_standby} sec.</text>
+      <text x="12" y="482" fontSize="9" fill="#64748b">{c.fluid} — {c.temperature}°C</text>
+      <line x1="190" y1="428" x2="190" y2="492" stroke="#334155" strokeWidth="0.8"/>
+      <text x="202" y="440" fontSize="10" fontWeight="700" fill="#14b8a6">HYDRAULIQUE</text>
+      <text x="202" y="454" fontSize="10" fill="white">Q: {Q} m³/h</text>
+      <text x="202" y="468" fontSize="10" fill="white">HMT: {calc.HMT} m</text>
+      <text x="202" y="482" fontSize="10" fill="#22c55e" fontWeight="700">Pa: {calc.Pa} kW</text>
+      <line x1="380" y1="428" x2="380" y2="492" stroke="#334155" strokeWidth="0.8"/>
+      <text x="392" y="440" fontSize="10" fontWeight="700" fill="#14b8a6">TUYAUTERIES</text>
+      <text x="392" y="454" fontSize="10" fill="white">DN Ref: {type==='forage'?c.dn_ref_forage:type==='relevage'?c.dn_relev:c.dn_ref}mm — {type==='forage'?c.mat_forage:type==='relevage'?'Acier':c.mat_ref}</text>
+      {type!=='forage'&&type!=='relevage'&&<text x="392" y="468" fontSize="10" fill="white">DN Asp: {c.dn_asp}mm — {c.mat_asp}</text>}
+      <line x1="570" y1="428" x2="570" y2="492" stroke="#334155" strokeWidth="0.8"/>
+      <text x="582" y="440" fontSize="10" fontWeight="700" fill="#14b8a6">SPÉCIFICATIONS</text>
+      <text x="582" y="454" fontSize="10" fill="white">{c.voltage}</text>
+      <text x="582" y="468" fontSize="10" fill="white">{c.protection}</text>
+      <text x="582" y="482" fontSize="9" fill="#94a3b8">Acc: {Object.values(acc).filter(Boolean).length} équip.</text>
+      <line x1="700" y1="428" x2="700" y2="492" stroke="#334155" strokeWidth="0.8"/>
+      <text x="712" y="444" fontSize="10" fontWeight="700" fill="white">ECO-PUMP</text>
+      <text x="712" y="458" fontSize="9" fill="#14b8a6">AFRIK</text>
+      <text x="712" y="472" fontSize="8" fill="#64748b">{c.project_name}</text>
+      <text x="712" y="486" fontSize="8" fill="#64748b">{c.date}</text>
+      <text x="6" y="498" fontSize="7" fill="#475569">Conformité: ISO 14692, NF EN 806, DTU 60.11 | Expert Hydraulique IA v4.0 | {c.date}</text>
+    </g>
+  );
+
+  const renderSchema = () => {
+    if(type==='forage') return <SvgForage/>;
+    if(type==='relevage') return <SvgRelevage/>;
+    return <SvgSurface/>;
+  };
+
+  const handlePrint = () => {
+    const el = document.getElementById('hydraulic-schema');
+    if(!el) return;
+    const svg = new XMLSerializer().serializeToString(el);
+    const w = window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><title>Schéma — ${config.project_name}</title>
+    <style>body{margin:0;padding:16px;background:white;font-family:Arial}h2{font-size:15px;color:#1e293b;margin:0 0 4px}p{font-size:10px;color:#64748b;margin:0 0 12px}svg{width:100%;max-width:1000px;height:auto;border:1px solid #e2e8f0}@media print{body{padding:6px}@page{size:A4 landscape;margin:8mm}}</style>
+    </head><body><h2>Schéma Hydraulique — ${config.project_name}</h2><p>ECO-PUMP AFRIK | v4.0 | ${config.date}</p>${svg}<script>window.onload=()=>window.print()<\/script></body></html>`);
+    w.document.close();
+  };
+
+  const standbyOpts = [0,1,2].filter(n=>n+config.num_pumps<=maxP);
+
+  return (
+    <div className="fade-in" style={{display:'flex',flexDirection:'column',gap:'18px'}}>
+      {/* Header */}
+      <div style={{background:'linear-gradient(135deg,#0f172a,#1e293b)',borderRadius:'14px',padding:'24px 28px',color:'white',border:'1px solid rgba(20,184,166,0.2)',position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',right:'20px',top:'12px',fontSize:'70px',opacity:0.05}}>📐</div>
+        <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.14em',color:'#14b8a6',textTransform:'uppercase',marginBottom:'5px'}}>Outil Professionnel</div>
+        <h2 style={{fontSize:'1.4rem',fontWeight:800,marginBottom:'5px'}}>⚙️ Générateur de Schéma Hydraulique</h2>
+        <p style={{color:'rgba(255,255,255,0.45)',fontSize:'0.82rem',margin:0}}>Calculs auto | Schéma temps réel | Export PDF | ISO-EN-DTU</p>
+        <div style={{display:'flex',gap:'8px',marginTop:'10px',flexWrap:'wrap'}}>
+          {['✅ HMT auto','📐 NPSHd','🖨️ PDF','🔖 ISO 14692'].map(b=>(
+            <span key={b} style={{background:'rgba(20,184,166,0.12)',border:'1px solid rgba(20,184,166,0.25)',color:'#2dd4bf',padding:'3px 10px',borderRadius:'20px',fontSize:'0.68rem',fontWeight:700}}>{b}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Steps */}
+      <div style={{display:'flex',background:'white',borderRadius:'10px',border:'1px solid #e2e8f0',overflow:'hidden'}}>
+        {['Type','Données','Accessoires','Schéma'].map((s,i)=>(
+          <div key={i} onClick={()=>setStep(i+1)} style={{flex:1,padding:'10px 6px',textAlign:'center',cursor:'pointer',borderRight:i<3?'1px solid #e2e8f0':'none',background:step===i+1?'#f0fdfa':'white',borderBottom:step===i+1?'3px solid #14b8a6':'3px solid transparent'}}>
+            <div style={{fontSize:'0.62rem',fontWeight:700,color:step===i+1?'#0f766e':'#94a3b8',textTransform:'uppercase',letterSpacing:'0.05em'}}>Étape {i+1}</div>
+            <div style={{fontSize:'0.82rem',fontWeight:600,color:step===i+1?'#134e4a':'#64748b'}}>{s}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* STEP 1 */}
+      {step===1 && (
+        <div className="card">
+          <div className="card-header"><div className="card-title">🏗️ Type d'installation</div></div>
+          <div className="card-body">
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:'10px',marginBottom:'20px'}}>
+              {types.map(t=>(
+                <div key={t.id} onClick={()=>{set('installation_type',t.id);if(!t.sub)set('suction_type','flooded');}}
+                  style={{border:`2px solid ${config.installation_type===t.id?'#14b8a6':'#e2e8f0'}`,borderRadius:'10px',padding:'14px 10px',cursor:'pointer',textAlign:'center',background:config.installation_type===t.id?'#f0fdfa':'white',transition:'all 0.15s'}}>
+                  <div style={{fontSize:'1.8rem',marginBottom:'6px'}}>{t.icon}</div>
+                  <div style={{fontWeight:700,fontSize:'0.82rem',color:config.installation_type===t.id?'#0f766e':'#1e293b'}}>{t.label}</div>
+                  <div style={{fontSize:'0.65rem',color:'#64748b',marginTop:'3px'}}>Max {t.max} pompe{t.max>1?'s':''}</div>
+                </div>
+              ))}
+            </div>
+            {cur.sub && (
+              <div style={{marginBottom:'18px'}}>
+                <div style={{fontWeight:700,marginBottom:'10px',fontSize:'0.88rem'}}>Type d'aspiration</div>
+                <div style={{display:'flex',gap:'10px'}}>
+                  {[{id:'flooded',l:'① En charge',d:'Réservoir surélevé',c:'#16a34a',bg:'#dcfce7'},
+                    {id:'level',  l:'② Niveau égal',d:'Réservoir au sol',  c:'#b45309',bg:'#fef9c3'},
+                    {id:'suction_lift',l:'③ En dépression',d:'Pompe surélevée',c:'#dc2626',bg:'#fee2e2'}
+                  ].map(s=>(
+                    <div key={s.id} onClick={()=>set('suction_type',s.id)}
+                      style={{flex:1,border:`2px solid ${config.suction_type===s.id?s.c:'#e2e8f0'}`,borderRadius:'8px',padding:'10px',cursor:'pointer',background:config.suction_type===s.id?s.bg:'white'}}>
+                      <div style={{fontWeight:700,fontSize:'0.82rem',color:config.suction_type===s.id?s.c:'#1e293b'}}>{s.l}</div>
+                      <div style={{fontSize:'0.72rem',color:'#64748b'}}>{s.d}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
+              <div>
+                <label style={{display:'block',fontWeight:600,fontSize:'0.8rem',marginBottom:'6px'}}>Pompes en service</label>
+                <select value={config.num_pumps} onChange={e=>{const v=parseInt(e.target.value);set('num_pumps',v);if(config.num_standby+v>maxP)set('num_standby',0);}}
+                  style={{width:'100%',padding:'9px 12px',border:'1.5px solid #e2e8f0',borderRadius:'6px',fontSize:'0.875rem',appearance:'none'}}>
+                  {[...Array(maxP)].map((_,i)=><option key={i+1} value={i+1}>{i+1} pompe{i>0?'s':''} en service</option>)}
+                </select>
+              </div>
+              {type!=='forage' && (
+                <div>
+                  <label style={{display:'block',fontWeight:600,fontSize:'0.8rem',marginBottom:'6px'}}>Pompes de secours</label>
+                  <select value={config.num_standby} onChange={e=>set('num_standby',parseInt(e.target.value))}
+                    style={{width:'100%',padding:'9px 12px',border:'1.5px solid #e2e8f0',borderRadius:'6px',fontSize:'0.875rem',appearance:'none'}}>
+                    {standbyOpts.map(n=><option key={n} value={n}>{n} pompe{n>1?'s':''} de secours</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+            <div style={{background:'#f0fdfa',border:'1px solid #99f6e4',borderRadius:'10px',padding:'12px',marginTop:'14px',fontSize:'0.85rem'}}>
+              <strong style={{color:'#0f766e'}}>{cur.label}</strong>
+              {cur.sub&&<span style={{color:'#0d9488'}}> — {config.suction_type==='flooded'?'En charge':config.suction_type==='level'?'Niveau égal':'En dépression'}</span>}
+              <span style={{color:'#64748b'}}> | {config.num_pumps} serv. + {config.num_standby} sec.</span>
+            </div>
+            <button onClick={()=>setStep(2)} style={{marginTop:'16px',width:'100%',background:'linear-gradient(135deg,#14b8a6,#0f766e)',color:'white',padding:'12px',borderRadius:'10px',border:'none',cursor:'pointer',fontWeight:700,fontSize:'0.95rem'}}>
+              Suivant → Données système
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 2 */}
+      {step===2 && (
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
+          <div className="card">
+            <div className="card-header"><div className="card-title">⚙️ {cur.label} — Données</div></div>
+            <div className="card-body" style={{display:'flex',flexDirection:'column',gap:'11px'}}>
+              {type==='forage' && <>
+                <Sec t="Hydraulique forage" c="#1d4ed8"/>
+                <F label="Débit de pompage" k="Q_forage" unit="m³/h" note="Débit de la pompe immergée"/>
+                <F label="Niveau dynamique" k="dynamic_level" unit="m" note="Profondeur de l'eau en pompage"/>
+                <F label="Hauteur château d'eau" k="tank_height" unit="m" note="Hauteur de refoulement final"/>
+                <F label="Longueur refoulement" k="l_ref_forage" unit="m"/>
+                <F label="Pression résiduelle" k="residual_P_forage" unit="bar" s={0.1}/>
+                <Sec t="Tuyauterie" c="#059669"/>
+                <F label="DN refoulement" k="dn_ref_forage" unit="mm"/>
+                <S label="Matériau" k="mat_forage" opts={['PEHD','PVC','Acier inox','Acier galvanisé']}/>
+              </>}
+              {type==='relevage' && <>
+                <Sec t="Hydraulique relevage" c="#4338ca"/>
+                <F label="Débit unitaire" k="Q_relev" unit="m³/h" note="Débit par pompe en service"/>
+                <F label="Hauteur de refoulement" k="h_ref_relev" unit="m" note="Hauteur géométrique totale"/>
+                <F label="Longueur refoulement" k="l_ref_relev" unit="m"/>
+                <Sec t="Tuyauterie" c="#059669"/>
+                <F label="DN refoulement" k="dn_relev" unit="mm"/>
+              </>}
+              {(type==='surface'||type==='surpression'||type==='incendie') && <>
+                <Sec t="Hydraulique" c="#059669"/>
+                <F label="Débit total" k="Q" unit="m³/h"/>
+                <F label="Hauteur géométrique" k="h_geo" unit="m" note="Différence de niveau source → livraison"/>
+                <F label="Hasp — hauteur aspiration" k="hasp" unit="m" note={config.suction_type==='flooded'?'Hauteur eau au-dessus pompe':'Hauteur de levée (max ~7m)'}/>
+                <F label="Pression résiduelle" k="residual_P" unit="bar" s={0.1}/>
+                <S label="Fluide pompé" k="fluid" opts={['Eau','Eau de mer','Eaux usées','Eaux chargées','Huile hydraulique','Diesel','Huile de palme','Glycol']}/>
+                <F label="Température" k="temperature" unit="°C"/>
+                <Sec t="Aspiration" c="#2563eb"/>
+                <F label="DN aspiration" k="dn_asp" unit="mm"/>
+                <F label="Longueur aspiration" k="l_asp" unit="m"/>
+                <S label="Matériau aspiration" k="mat_asp" opts={['PVC','PEHD','Acier','Fonte','Acier inox']}/>
+                <F label="NPSH requis (constructeur)" k="npsh_req" unit="m" s={0.1}/>
+                <Sec t="Refoulement" c="#0891b2"/>
+                <F label="DN refoulement" k="dn_ref" unit="mm"/>
+                <F label="Longueur refoulement" k="l_ref" unit="m"/>
+                <S label="Matériau refoulement" k="mat_ref" opts={['Acier','PVC','PEHD','Fonte','Acier inox','Acier galvanisé']}/>
+              </>}
+              <Sec t="Électrique" c="#8b5cf6"/>
+              <S label="Tension réseau" k="voltage" opts={['400V - 50Hz','230V - 50Hz','220V - 60Hz','380V - 50Hz']}/>
+              <S label="Protection IP" k="protection" opts={['IP55','IP65','IP68']}/>
+              <div>
+                <label style={{display:'block',fontSize:'0.78rem',fontWeight:600,color:'#475569',marginBottom:'4px'}}>Nom du projet</label>
+                <input type="text" value={config.project_name} onChange={e=>set('project_name',e.target.value)}
+                  style={{width:'100%',padding:'8px 11px',border:'1.5px solid #e2e8f0',borderRadius:'6px',fontSize:'0.875rem'}}/>
+              </div>
+              <div style={{display:'flex',gap:'10px',marginTop:'6px'}}>
+                <button onClick={()=>setStep(1)} style={{flex:1,padding:'10px',border:'1.5px solid #e2e8f0',borderRadius:'8px',cursor:'pointer',fontWeight:600,background:'white'}}>← Retour</button>
+                <button onClick={()=>setStep(3)} style={{flex:2,background:'linear-gradient(135deg,#14b8a6,#0f766e)',color:'white',padding:'10px',borderRadius:'8px',border:'none',cursor:'pointer',fontWeight:700}}>Accessoires →</button>
+              </div>
+            </div>
+          </div>
+          {/* Résultats + aperçu */}
+          <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+            <div className="card">
+              <div className="card-header"><div className="card-title">📊 Résultats calculés</div></div>
+              <div className="card-body" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                <RC l="HMT totale" v={calc.HMT} u="m" c="#059669"/>
+                <RC l="Puissance absorbée" v={calc.Pa} u="kW" c="#7c3aed"/>
+                <RC l="Puissance hydraulique" v={calc.Ph} u="kW" c="#0891b2"/>
+                {calc.Va&&<RC l="V. aspiration" v={calc.Va} u="m/s" c={parseFloat(calc.Va)>1.5?'#f59e0b':'#059669'} warn={parseFloat(calc.Va)>1.5?'⚠ > 1.5 m/s':'✓ OK'}/>}
+                {calc.Vr&&<RC l="V. refoulement" v={calc.Vr} u="m/s" c={parseFloat(calc.Vr)>2.5?'#f59e0b':'#059669'} warn={parseFloat(calc.Vr)>2.5?'⚠ > 2.5 m/s':'✓ OK'}/>}
+                {calc.V&&<RC l="Vitesse écoul." v={calc.V} u="m/s" c="#059669"/>}
+                {calc.NPSHd&&<RC l="NPSHd" v={calc.NPSHd} u="m" c={calc.cav?'#dc2626':'#059669'} warn={calc.cav?'⚠ CAVITATION':'✓ Sécurité OK'}/>}
+                {calc.Jr&&<RC l="J. ref" v={calc.Jr} u="m" c="#64748b"/>}
+                {calc.Ja&&<RC l="J. asp" v={calc.Ja} u="m" c="#64748b"/>}
+                {calc.Hg&&<RC l="H. géométrique" v={calc.Hg} u="m" c="#1d4ed8"/>}
+              </div>
+            </div>
+            <div className="card">
+              <div className="card-header"><div className="card-title">👁️ Aperçu en temps réel</div></div>
+              <div style={{padding:'4px',background:'#f8fafc',borderRadius:'0 0 12px 12px',overflow:'hidden'}}>
+                <div style={{transform:'scale(0.48)',transformOrigin:'top left',width:'208%',height:'240px',overflow:'hidden',pointerEvents:'none'}}>
+                  {renderSchema()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3 */}
+      {step===3 && (
+        <div className="card">
+          <div className="card-header">
+            <div className="card-title">🔩 Accessoires & Équipements</div>
+            <span style={{background:'#f3e8ff',color:'#6b21a8',padding:'3px 10px',borderRadius:'20px',fontSize:'0.72rem',fontWeight:700}}>
+              {Object.values(acc).filter(Boolean).length} sélectionnés
+            </span>
+          </div>
+          <div className="card-body" style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+            {accDefs.map(g=>{
+              const items=g.items.filter(i=>i.t.includes(type));
+              if(!items.length) return null;
+              return (
+                <div key={g.label}>
+                  <div style={{fontWeight:700,fontSize:'0.8rem',color:g.color,marginBottom:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
+                    <span style={{width:'7px',height:'7px',borderRadius:'50%',background:g.color,display:'inline-block'}}></span>{g.label}
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'7px'}}>
+                    {items.map(item=>(
+                      <div key={item.k} onClick={()=>tog(item.k)}
+                        style={{display:'flex',alignItems:'center',gap:'9px',padding:'9px 12px',border:`1.5px solid ${acc[item.k]?g.color:'#e2e8f0'}`,borderRadius:'7px',cursor:'pointer',background:acc[item.k]?g.color+'10':'white',transition:'all 0.15s'}}>
+                        <div style={{width:'17px',height:'17px',borderRadius:'3px',border:`2px solid ${acc[item.k]?g.color:'#cbd5e1'}`,background:acc[item.k]?g.color:'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                          {acc[item.k]&&<span style={{color:'white',fontSize:'10px',fontWeight:700}}>✓</span>}
+                        </div>
+                        <span style={{fontSize:'0.8rem',fontWeight:500,color:acc[item.k]?'#1e293b':'#64748b'}}>{item.l}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{display:'flex',gap:'10px',marginTop:'6px'}}>
+              <button onClick={()=>setStep(2)} style={{flex:1,padding:'11px',border:'1.5px solid #e2e8f0',borderRadius:'9px',cursor:'pointer',fontWeight:600,background:'white'}}>← Retour</button>
+              <button onClick={()=>{setReady(true);setStep(4);}} style={{flex:3,background:'linear-gradient(135deg,#6366f1,#4338ca)',color:'white',padding:'11px',borderRadius:'9px',border:'none',cursor:'pointer',fontWeight:700,fontSize:'0.95rem'}}>
+                ⚡ Générer le Schéma Expert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 4 */}
+      {step===4 && ready && (
+        <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+          <div style={{display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center'}}>
+            <button onClick={()=>setStep(2)} style={{padding:'8px 14px',border:'1.5px solid #e2e8f0',borderRadius:'7px',cursor:'pointer',fontWeight:600,background:'white',fontSize:'0.82rem'}}>← Données</button>
+            <button onClick={()=>setStep(3)} style={{padding:'8px 14px',border:'1.5px solid #a5b4fc',borderRadius:'7px',cursor:'pointer',fontWeight:600,background:'#f5f3ff',color:'#4338ca',fontSize:'0.82rem'}}>🔩 Accessoires</button>
+            <button onClick={handlePrint} style={{padding:'8px 20px',background:'linear-gradient(135deg,#ef4444,#dc2626)',color:'white',border:'none',borderRadius:'7px',cursor:'pointer',fontWeight:700,fontSize:'0.88rem',boxShadow:'0 4px 12px rgba(239,68,68,0.3)'}}>
+              🖨️ Imprimer / Exporter PDF
+            </button>
+            <div style={{marginLeft:'auto',background:'#f0fdf4',border:'1px solid #86efac',borderRadius:'8px',padding:'6px 14px',fontSize:'0.78rem',fontWeight:700,color:'#15803d'}}>
+              HMT = {calc.HMT} m | Pa = {calc.Pa} kW
+            </div>
+          </div>
+          <div style={{background:'white',border:'1px solid #e2e8f0',borderRadius:'12px',overflow:'hidden',boxShadow:'0 4px 20px rgba(0,0,0,0.08)'}}>
+            {renderSchema()}
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'10px'}}>
+            {accDefs.map(g=>{
+              const sel=g.items.filter(i=>i.t.includes(type)&&acc[i.k]);
+              if(!sel.length) return null;
+              return (
+                <div key={g.label} style={{background:'white',border:`1px solid ${g.color}25`,borderRadius:'8px',padding:'12px',borderLeft:`3px solid ${g.color}`}}>
+                  <div style={{fontWeight:700,fontSize:'0.72rem',color:g.color,marginBottom:'6px',textTransform:'uppercase'}}>{g.label}</div>
+                  {sel.map(i=><div key={i.k} style={{fontSize:'0.75rem',color:'#475569',marginBottom:'2px'}}>✓ {i.l}</div>)}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ============================================================
 // OUTIL 1 : COUP DE BÉLIER (Water Hammer)
 // ============================================================
