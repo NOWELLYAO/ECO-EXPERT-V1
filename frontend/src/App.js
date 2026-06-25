@@ -9846,67 +9846,6 @@ const DashboardHome = ({ onNavigate }) => {
   );
 };
 
-// ============================================================
-// DASHBOARD HOME
-// ============================================================
-const DashboardHome = ({ onNavigate }) => {
-  const modules = [
-    { id: 'npshd', icon: '🔷', title: 'Calcul NPSHd', desc: 'Net Positive Suction Head — prévention cavitation', color: '#3b82f6' },
-    { id: 'hmt', icon: '🔶', title: 'Calcul HMT', desc: 'Hauteur Manométrique Totale et pertes de charge', color: '#10b981' },
-    { id: 'performance', icon: '📊', title: 'Performance', desc: 'Courbes de performance et point optimal', color: '#f59e0b' },
-    { id: 'drawing', icon: '📐', title: 'Schéma 2D Expert', desc: 'Générateur de schéma hydraulique professionnel PDF', color: '#6366f1' },
-    { id: 'pump_selector', icon: '⚙️', title: 'Sélection Pompe', desc: 'Choisir la pompe adaptée à votre besoin', color: '#14b8a6' },
-    { id: 'water_hammer', icon: '🌊', title: 'Coup de Bélier', desc: 'Analyse transitoire — surpressions Joukowsky', color: '#0891b2' },
-    { id: 'motor_cable', icon: '⚡', title: 'Moteur & Câblage', desc: 'Puissance absorbée et section de câble', color: '#f97316' },
-    { id: 'formulas', icon: '📚', title: 'Base de Formules', desc: 'Bibliothèque des formules hydrauliques', color: '#8b5cf6' },
-    { id: 'chemical_compatibility', icon: '🧪', title: 'Compatibilité Chimique', desc: 'Compatibilité fluides / matériaux', color: '#0d9488' },
-    { id: 'audit', icon: '🔧', title: 'Audit ISO 50001', desc: 'Audit hydraulique & énergétique complet', color: '#4338ca' },
-    { id: 'expert', icon: '🎯', title: 'Expert Pro', desc: 'Analyse experte complète avec rapport PDF', color: '#ec4899' },
-    { id: 'solar', icon: '☀️', title: 'Expert Solaire', desc: 'Dimensionnement pompage photovoltaïque', color: '#d97706' },
-  ];
-  return (
-    <div className="dashboard-home fade-in">
-      <div className="dashboard-hero">
-        <div className="dashboard-hero-title">Bienvenue sur <span>ECO-PUMP AFRIK</span></div>
-        <p className="dashboard-hero-desc">La plateforme de référence pour le calcul hydraulique professionnel. Dimensionnez, auditez et optimisez vos installations de pompage.</p>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary btn-lg" onClick={() => onNavigate('npshd')}>🚀 Commencer un calcul</button>
-          <button onClick={() => onNavigate('drawing')} style={{ background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)', padding: '13px 28px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>📐 Schéma Expert</button>
-        </div>
-      </div>
-      <div className="dashboard-stats">
-        {[
-          { icon: '🔧', label: 'Modules disponibles', value: '12', color: '#3b82f6', bg: '#dbeafe' },
-          { icon: '📐', label: 'Formules hydrauliques', value: '60+', color: '#10b981', bg: '#d1fae5' },
-          { icon: '🧪', label: 'Fluides référencés', value: '15+', color: '#f59e0b', bg: '#fef3c7' },
-          { icon: '⚙️', label: 'Pompes en base', value: '12+', color: '#8b5cf6', bg: '#ede9fe' },
-        ].map((s, i) => (
-          <div key={i} className="stat-card">
-            <div className="stat-icon" style={{ background: s.bg }}><span style={{ fontSize: '18px' }}>{s.icon}</span></div>
-            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-            <div className="stat-label">{s.label}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ marginBottom: '12px' }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--navy-900)', marginBottom: '4px' }}>Tous les modules</h2>
-        <p style={{ fontSize: '0.82rem', color: 'var(--slate-600)' }}>Cliquez sur un module pour commencer</p>
-      </div>
-      <div className="module-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        {modules.map(m => (
-          <div key={m.id} className="module-card" onClick={() => onNavigate(m.id)} style={{ borderTop: `3px solid ${m.color}`, cursor: 'pointer' }}>
-            <span className="module-icon">{m.icon}</span>
-            <div className="module-title">{m.title}</div>
-            <div className="module-desc">{m.desc}</div>
-            <div className="module-arrow" style={{ background: m.color + '18', color: m.color }}>→</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ============================================================
 // APP PRINCIPAL
 // ============================================================
 function App() {
@@ -10028,4 +9967,3 @@ function App() {
 }
 
 export default App;
-                      
