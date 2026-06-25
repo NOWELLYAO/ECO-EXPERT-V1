@@ -410,7 +410,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Âge installation (années)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={hydraulicAuditData.installation_age}
                       onChange={(e) => setHydraulicAuditData(prev => ({...prev, installation_age: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -450,7 +450,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Débit actuel (m³/h)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={hydraulicAuditData.current_flow_rate}
                       onChange={(e) => setHydraulicAuditData(prev => ({...prev, current_flow_rate: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -460,7 +460,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">HMT actuelle (m)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={hydraulicAuditData.current_head}
                       onChange={(e) => setHydraulicAuditData(prev => ({...prev, current_head: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -470,7 +470,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Rendement estimé (%)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={hydraulicAuditData.current_efficiency}
                       onChange={(e) => setHydraulicAuditData(prev => ({...prev, current_efficiency: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -480,7 +480,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Heures/jour</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={hydraulicAuditData.operating_hours_daily}
                       onChange={(e) => setHydraulicAuditData(prev => ({...prev, operating_hours_daily: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -567,7 +567,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tarif moyen (FCFA/kWh)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={energyAuditData.electricity_tariff}
                       onChange={(e) => setEnergyAuditData(prev => ({...prev, electricity_tariff: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
@@ -577,7 +577,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Heures pleines (FCFA/kWh)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={energyAuditData.peak_hours_tariff}
                       onChange={(e) => setEnergyAuditData(prev => ({...prev, peak_hours_tariff: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
@@ -587,7 +587,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Heures creuses (FCFA/kWh)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={energyAuditData.off_peak_tariff}
                       onChange={(e) => setEnergyAuditData(prev => ({...prev, off_peak_tariff: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
@@ -597,7 +597,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Prime puissance (FCFA/kW/mois)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={energyAuditData.demand_charge}
                       onChange={(e) => setEnergyAuditData(prev => ({...prev, demand_charge: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
@@ -614,7 +614,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Consommation mesurée (kW)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={energyAuditData.power_consumption_measured}
                       onChange={(e) => setEnergyAuditData(prev => ({...prev, power_consumption_measured: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
@@ -624,7 +624,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Facteur de puissance</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       step="0.01"
                       value={energyAuditData.power_factor_measured}
                       onChange={(e) => setEnergyAuditData(prev => ({...prev, power_factor_measured: e.target.value}))}
@@ -635,7 +635,7 @@ const AuditSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Consommation mensuelle (kWh)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={energyAuditData.energy_monthly_kwh}
                       onChange={(e) => setEnergyAuditData(prev => ({...prev, energy_monthly_kwh: e.target.value}))}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
@@ -1190,6 +1190,8 @@ const SolarExpertSystem = () => {
               <select
                 value={solarData.system_voltage}
                 onChange={(e) => handleInputChange('system_voltage', parseInt(e.target.value))}
+                onFocus={e=>e.target.select()}
+                onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                 className="w-full p-3 border-2 border-blue-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
                 <option value={12}>12V DC</option>
@@ -1202,9 +1204,11 @@ const SolarExpertSystem = () => {
             <div>
               <label className="block text-sm font-medium text-blue-700 mb-2">Autonomie souhaitée (jours)</label>
               <input
-                type="number"
+                type="text" inputMode="decimal"
                 value={solarData.autonomy_days}
                 onChange={(e) => handleInputChange('autonomy_days', parseInt(e.target.value))}
+                onFocus={e=>e.target.select()}
+                onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                 className="w-full p-3 border-2 border-blue-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 min="1" max="7"
               />
@@ -1213,9 +1217,11 @@ const SolarExpertSystem = () => {
             <div>
               <label className="block text-sm font-medium text-blue-700 mb-2">Budget maximum (€)</label>
               <input
-                type="number"
+                type="text" inputMode="decimal"
                 value={solarData.max_budget || ''}
                 onChange={(e) => handleInputChange('max_budget', e.target.value ? parseFloat(e.target.value) : null)}
+                onFocus={e=>e.target.select()}
+                onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                 className="w-full p-3 border-2 border-blue-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 placeholder="Optionnel"
               />
@@ -1236,10 +1242,12 @@ const SolarExpertSystem = () => {
               <div className="bg-white p-4 rounded-lg border-l-4 border-cyan-500">
                 <label className="block text-sm font-medium text-cyan-700 mb-2">Volume quotidien (m³/jour)</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={solarData.daily_water_need}
                   onChange={(e) => handleInputChange('daily_water_need', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-3 border-2 border-cyan-200 rounded-lg focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 text-lg font-semibold"
                 />
                 <p className="text-xs text-cyan-600 mt-1">Volume d'eau nécessaire par jour</p>
@@ -1248,12 +1256,14 @@ const SolarExpertSystem = () => {
               <div className="bg-white p-4 rounded-lg border-l-4 border-blue-500">
                 <label className="block text-sm font-medium text-blue-700 mb-2">Heures fonctionnement/jour</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.5"
                   min="1"
                   max="12"
                   value={solarData.operating_hours}
                   onChange={(e) => handleInputChange('operating_hours', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-3 border-2 border-blue-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-lg font-semibold"
                 />
                 <p className="text-xs text-blue-600 mt-1">Heures de pompage par jour</p>
@@ -1262,11 +1272,14 @@ const SolarExpertSystem = () => {
               <div className="bg-gradient-to-r from-green-100 to-green-200 p-4 rounded-lg border-l-4 border-green-600">
                 <label className="block text-sm font-medium text-green-800 mb-2">Débit calculé (m³/h)</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={solarData.flow_rate}
                   readOnly
                   className="w-full p-3 border-2 border-green-300 rounded-lg bg-green-50 text-lg font-bold text-green-800 cursor-not-allowed"
+                
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                 />
                 <p className="text-xs text-green-700 mt-1">Calculé automatiquement</p>
               </div>
@@ -1274,10 +1287,12 @@ const SolarExpertSystem = () => {
               <div className="bg-white p-4 rounded-lg border-l-4 border-orange-500">
                 <label className="block text-sm font-medium text-orange-700 mb-2">Variation saisonnière</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={solarData.seasonal_variation}
                   onChange={(e) => handleInputChange('seasonal_variation', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-3 border-2 border-orange-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                   min="1.0" max="2.0"
                 />
@@ -1295,10 +1310,12 @@ const SolarExpertSystem = () => {
               <div className="bg-white p-4 rounded-lg border-l-4 border-blue-500">
                 <label className="block text-sm font-medium text-blue-700 mb-2">Niveau dynamique (m)</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={solarData.dynamic_level}
                   onChange={(e) => handleInputChange('dynamic_level', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-3 border-2 border-blue-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-lg font-semibold"
                 />
                 <p className="text-xs text-blue-600 mt-1">Profondeur niveau d'eau</p>
@@ -1307,10 +1324,12 @@ const SolarExpertSystem = () => {
               <div className="bg-white p-4 rounded-lg border-l-4 border-blue-500">
                 <label className="block text-sm font-medium text-blue-700 mb-2">Hauteur château (m)</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={solarData.tank_height}
                   onChange={(e) => handleInputChange('tank_height', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-3 border-2 border-blue-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-lg font-semibold"
                 />
                 <p className="text-xs text-blue-600 mt-1">Hauteur du réservoir/château</p>
@@ -1319,11 +1338,14 @@ const SolarExpertSystem = () => {
               <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-4 rounded-lg border-l-4 border-purple-600">
                 <label className="block text-sm font-medium text-purple-800 mb-2">Hauteur géométrique (m)</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={solarData.static_head}
                   readOnly
                   className="w-full p-3 border-2 border-purple-300 rounded-lg bg-purple-50 text-lg font-bold text-purple-800 cursor-not-allowed"
+                
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                 />
                 <p className="text-xs text-purple-700 mt-1">Niveau + Château (auto)</p>
               </div>
@@ -1331,10 +1353,12 @@ const SolarExpertSystem = () => {
               <div className="bg-white p-4 rounded-lg border-l-4 border-red-500">
                 <label className="block text-sm font-medium text-red-700 mb-2">Pertes de charge (m)</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={solarData.dynamic_losses}
                   onChange={(e) => handleInputChange('dynamic_losses', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-3 border-2 border-red-200 rounded-lg focus:border-red-500 focus:ring-2 focus:ring-red-200 text-lg font-semibold"
                 />
                 <p className="text-xs text-red-600 mt-1">Pertes dans tuyauteries</p>
@@ -1346,10 +1370,12 @@ const SolarExpertSystem = () => {
               <div className="bg-white p-4 rounded-lg border-l-4 border-yellow-500">
                 <label className="block text-sm font-medium text-yellow-700 mb-2">Pression utile (Bar)</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={solarData.useful_pressure_head}
                   onChange={(e) => handleInputChange('useful_pressure_head', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-3 border-2 border-yellow-200 rounded-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 text-lg font-semibold"
                 />
                 <p className="text-xs text-yellow-600 mt-1">Pression résiduelle requise en sortie</p>
@@ -1358,11 +1384,14 @@ const SolarExpertSystem = () => {
               <div className="bg-gradient-to-r from-green-200 to-green-300 p-4 rounded-lg border-l-4 border-green-700 shadow-lg">
                 <label className="block text-sm font-medium text-green-900 mb-2">🎯 HMT TOTALE (m)</label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={solarData.total_head}
                   readOnly
                   className="w-full p-3 border-2 border-green-400 rounded-lg bg-green-100 text-2xl font-bold text-green-900 cursor-not-allowed text-center"
+                
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                 />
                 <p className="text-xs text-green-800 mt-1 text-center">Calculé automatiquement</p>
               </div>
@@ -1396,6 +1425,8 @@ const SolarExpertSystem = () => {
                 <select
                   value={solarData.panel_peak_power}
                   onChange={(e) => handleInputChange('panel_peak_power', parseInt(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-3 border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 text-lg font-semibold"
                 >
                   <option value={100}>100 Wc - Petit panneau</option>
@@ -1490,19 +1521,23 @@ const SolarExpertSystem = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Coût électricité (€/kWh)</label>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     step="0.01"
                     value={solarData.electricity_cost}
                     onChange={(e) => handleInputChange('electricity_cost', parseFloat(e.target.value))}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-200"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Durée projet (années)</label>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     value={solarData.project_lifetime}
                     onChange={(e) => handleInputChange('project_lifetime', parseInt(e.target.value))}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-200"
                     min="10" max="30"
                   />
@@ -1510,10 +1545,12 @@ const SolarExpertSystem = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Maintenance annuelle (%)</label>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     step="0.01"
                     value={solarData.maintenance_cost_annual * 100}
                     onChange={(e) => handleInputChange('maintenance_cost_annual', parseFloat(e.target.value) / 100)}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-200"
                   />
                 </div>
@@ -1527,31 +1564,37 @@ const SolarExpertSystem = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Température ambiante (°C)</label>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     value={solarData.ambient_temperature_avg}
                     onChange={(e) => handleInputChange('ambient_temperature_avg', parseFloat(e.target.value))}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-200"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Facteur poussière (0.9-1.0)</label>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     step="0.01"
                     min="0.8" max="1.0"
                     value={solarData.dust_factor}
                     onChange={(e) => handleInputChange('dust_factor', parseFloat(e.target.value))}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-200"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Facteur ombrage (0.8-1.0)</label>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     step="0.01"
                     min="0.8" max="1.0"
                     value={solarData.shading_factor}
                     onChange={(e) => handleInputChange('shading_factor', parseFloat(e.target.value))}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-200"
                   />
                 </div>
@@ -3347,6 +3390,45 @@ const FormulaDatabase = () => {
     </div>
   );
 };
+// ─────────────────────────────────────────────────────────────
+// COMPOSANT PARTAGÉ : NumInput — champ numérique sans blocage
+// Résout le problème du "0 qui reste" et du double-clic requis
+// ─────────────────────────────────────────────────────────────
+const NumInput = ({ value, onChange, step=1, min, max, placeholder, className, style, disabled }) => {
+  const [raw, setRaw] = React.useState(value === null || value === undefined ? '' : String(value));
+  // Sync si valeur externe change (ex: reset du formulaire)
+  React.useEffect(() => {
+    setRaw(value === null || value === undefined ? '' : String(value));
+  }, [value]);
+  const commit = (str) => {
+    const n = parseFloat(str);
+    if (!isNaN(n)) {
+      if (min !== undefined && n < min) { onChange(min); setRaw(String(min)); return; }
+      if (max !== undefined && n > max) { onChange(max); setRaw(String(max)); return; }
+      onChange(n);
+      setRaw(String(n));
+    } else {
+      // Valeur vide ou invalide → revenir à la dernière valeur valide
+      setRaw(value === null || value === undefined ? '' : String(value));
+    }
+  };
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={raw}
+      placeholder={placeholder}
+      disabled={disabled}
+      className={className}
+      style={style}
+      onChange={e => setRaw(e.target.value)}
+      onBlur={e => commit(e.target.value)}
+      onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+      onFocus={e => e.target.select()}
+    />
+  );
+};
+
 const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
   const [inputData, setInputData] = useState({
     suction_type: 'flooded',
@@ -3433,19 +3515,21 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   Hauteur d'Aspiration Hasp (m)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.hasp}
                   onChange={(e) => handleInputChange('hasp', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
                 />
                 <style jsx>{`
-                  input[type="number"]::-webkit-outer-spin-button,
-                  input[type="number"]::-webkit-inner-spin-button {
+                  input[type="text" inputMode="decimal"]::-webkit-outer-spin-button,
+                  input[type="text" inputMode="decimal"]::-webkit-inner-spin-button {
                     -webkit-appearance: none;
                     margin: 0;
                   }
-                  input[type="number"] {
+                  input[type="text" inputMode="decimal"] {
                     -moz-appearance: textfield;
                   }
                 `}</style>
@@ -3459,9 +3543,11 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   Débit (m³/h)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.flow_rate}
                   onChange={(e) => handleInputChange('flow_rate', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -3486,9 +3572,11 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   Température (°C)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.temperature}
                   onChange={(e) => handleInputChange('temperature', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -3498,10 +3586,12 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   NPSH Requis (m) - Données Constructeur
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.1"
                   value={inputData.npsh_required}
                   onChange={(e) => handleInputChange('npsh_required', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Ex: 3.5"
                 />
@@ -3519,9 +3609,11 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   Diamètre (mm)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.pipe_diameter}
                   onChange={(e) => handleInputChange('pipe_diameter', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -3546,9 +3638,11 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   Longueur (m)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.pipe_length}
                   onChange={(e) => handleInputChange('pipe_length', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -3581,9 +3675,11 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   ))}
                 </select>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={fitting.quantity}
                   onChange={(e) => updateFitting(index, 'quantity', parseInt(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   min="1"
                   className="w-20 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -4076,9 +4172,11 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       Hauteur d'Aspiration (m)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={inputData.hasp}
                       onChange={(e) => handleInputChange('hasp', parseFloat(e.target.value))}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -4090,9 +4188,11 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   Hauteur de Refoulement (m)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.discharge_height}
                   onChange={(e) => handleInputChange('discharge_height', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -4102,9 +4202,11 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   Pression Utile (bar)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.useful_pressure}
                   onChange={(e) => handleInputChange('useful_pressure', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">Pression de refoulement requise</p>
@@ -4115,9 +4217,11 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   Débit (m³/h)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.flow_rate}
                   onChange={(e) => handleInputChange('flow_rate', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -4142,9 +4246,11 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   Température (°C)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.temperature}
                   onChange={(e) => handleInputChange('temperature', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -4163,18 +4269,22 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                     <div>
                       <label className="block text-xs text-blue-700 mb-1">Diamètre (mm)</label>
                       <input
-                        type="number"
+                        type="text" inputMode="decimal"
                         value={inputData.suction_pipe_diameter}
                         onChange={(e) => handleInputChange('suction_pipe_diameter', parseFloat(e.target.value))}
+                        onFocus={e=>e.target.select()}
+                        onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                         className="w-full p-1 border border-blue-300 rounded text-sm"
                       />
                     </div>
                     <div>
                       <label className="block text-xs text-blue-700 mb-1">Longueur (m)</label>
                       <input
-                        type="number"
+                        type="text" inputMode="decimal"
                         value={inputData.suction_pipe_length}
                         onChange={(e) => handleInputChange('suction_pipe_length', parseFloat(e.target.value))}
+                        onFocus={e=>e.target.select()}
+                        onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                         className="w-full p-1 border border-blue-300 rounded text-sm"
                       />
                     </div>
@@ -4200,18 +4310,22 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   <div>
                     <label className="block text-xs text-green-700 mb-1">Diamètre (mm)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={inputData.discharge_pipe_diameter}
                       onChange={(e) => handleInputChange('discharge_pipe_diameter', parseFloat(e.target.value))}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-green-300 rounded text-sm"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-green-700 mb-1">Longueur (m)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={inputData.discharge_pipe_length}
                       onChange={(e) => handleInputChange('discharge_pipe_length', parseFloat(e.target.value))}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-green-300 rounded text-sm"
                     />
                   </div>
@@ -4261,9 +4375,11 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       ))}
                     </select>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={fitting.quantity}
                       onChange={(e) => updateFitting('suction', index, 'quantity', parseInt(e.target.value))}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       min="1"
                       className="w-16 p-1 border border-gray-300 rounded text-sm"
                     />
@@ -4304,9 +4420,11 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                     ))}
                   </select>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     value={fitting.quantity}
                     onChange={(e) => updateFitting('discharge', index, 'quantity', parseInt(e.target.value))}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     min="1"
                     className="w-16 p-1 border border-gray-300 rounded text-sm"
                   />
@@ -5825,9 +5943,11 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       ⭐ Débit (m³/h)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={inputData.flow_rate || ''}
                       onChange={(e) => handleInputChange('flow_rate', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                       placeholder="Saisissez le débit"
                     />
@@ -5838,9 +5958,11 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       ⭐ Température (°C)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={inputData.temperature || ''}
                       onChange={(e) => handleInputChange('temperature', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                       placeholder="Température du fluide"
                     />
@@ -5926,10 +6048,12 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       ⭐ Hauteur Asp. (m)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       step="0.1"
                       value={inputData.suction_height !== undefined && inputData.suction_height !== null ? inputData.suction_height : ''}
                       onChange={(e) => handleInputChange('suction_height', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                       placeholder="Hauteur d'aspiration"
                     />
@@ -5943,10 +6067,12 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       ⭐ Hauteur Ref. (m)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       step="0.1"
                       value={inputData.discharge_height !== undefined && inputData.discharge_height !== null ? inputData.discharge_height : ''}
                       onChange={(e) => handleInputChange('discharge_height', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                       placeholder="Hauteur de refoulement"
                     />
@@ -5958,10 +6084,12 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                     Pression Utile (bar)
                   </label>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     step="0.1"
                     value={inputData.useful_pressure || ''}
                     onChange={(e) => handleInputChange('useful_pressure', parseFloat(e.target.value) || 0)}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Pression supplémentaire"
                   />
@@ -5978,6 +6106,8 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                     <select
                       value={inputData.suction_pipe_diameter || ''}
                       onChange={(e) => handleInputChange('suction_pipe_diameter', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                     >
                       <option value="">Sélectionnez un diamètre</option>
@@ -5994,6 +6124,8 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                     <select
                       value={inputData.discharge_pipe_diameter || ''}
                       onChange={(e) => handleInputChange('discharge_pipe_diameter', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                     >
                       <option value="">Sélectionnez un diamètre</option>
@@ -6010,9 +6142,11 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       Long. Asp. (m)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={inputData.suction_length !== undefined && inputData.suction_length !== null ? inputData.suction_length : ''}
                       onChange={(e) => handleInputChange('suction_length', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Longueur aspiration"
                     />
@@ -6023,9 +6157,11 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       Long. Ref. (m)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={inputData.discharge_length !== undefined && inputData.discharge_length !== null ? inputData.discharge_length : ''}
                       onChange={(e) => handleInputChange('discharge_length', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Longueur refoulement"
                     />
@@ -6069,10 +6205,12 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                     ⭐ NPSH Requis (m)
                   </label>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     step="0.1"
                     value={inputData.npsh_required !== undefined && inputData.npsh_required !== null ? inputData.npsh_required : ''}
                     onChange={(e) => handleInputChange('npsh_required', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                     placeholder="NPSH requis de la pompe"
                   />
@@ -6097,40 +6235,48 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Coudes 90°</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_elbow_90}
                       onChange={(e) => handleInputChange('suction_elbow_90', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Coudes 45°</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_elbow_45}
                       onChange={(e) => handleInputChange('suction_elbow_45', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Coudes 30°</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_elbow_30}
                       onChange={(e) => handleInputChange('suction_elbow_30', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Crépine</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_strainer}
                       onChange={(e) => handleInputChange('suction_strainer', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -6141,40 +6287,48 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Té (passage)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_tee_flow}
                       onChange={(e) => handleInputChange('suction_tee_flow', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Té (dérivation)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_tee_branch}
                       onChange={(e) => handleInputChange('suction_tee_branch', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Réduction grad.</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_reducer_gradual}
                       onChange={(e) => handleInputChange('suction_reducer_gradual', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Réduction brusque</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_reducer_sudden}
                       onChange={(e) => handleInputChange('suction_reducer_sudden', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -6185,40 +6339,48 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">V. à opercule</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_gate_valve}
                       onChange={(e) => handleInputChange('suction_gate_valve', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">V. à boisseau</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_ball_valve}
                       onChange={(e) => handleInputChange('suction_ball_valve', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Clapet A.R.</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_check_valve}
                       onChange={(e) => handleInputChange('suction_check_valve', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Clapet de pied</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.suction_foot_valve}
                       onChange={(e) => handleInputChange('suction_foot_valve', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -6233,40 +6395,48 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Coudes 90°</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_elbow_90}
                       onChange={(e) => handleInputChange('discharge_elbow_90', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Coudes 45°</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_elbow_45}
                       onChange={(e) => handleInputChange('discharge_elbow_45', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Coudes 30°</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_elbow_30}
                       onChange={(e) => handleInputChange('discharge_elbow_30', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Té (passage)</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_tee_flow}
                       onChange={(e) => handleInputChange('discharge_tee_flow', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -6277,40 +6447,48 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">V. à opercule</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_gate_valve}
                       onChange={(e) => handleInputChange('discharge_gate_valve', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">V. à boisseau</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_ball_valve}
                       onChange={(e) => handleInputChange('discharge_ball_valve', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">V. papillon</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_butterfly_valve}
                       onChange={(e) => handleInputChange('discharge_butterfly_valve', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Clapet A.R.</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_check_valve}
                       onChange={(e) => handleInputChange('discharge_check_valve', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -6321,40 +6499,48 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Réduction grad.</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_reducer_gradual}
                       onChange={(e) => handleInputChange('discharge_reducer_gradual', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Débitmètre</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_flow_meter}
                       onChange={(e) => handleInputChange('discharge_flow_meter', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Manomètre</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_pressure_gauge}
                       onChange={(e) => handleInputChange('discharge_pressure_gauge', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Filtre</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0"
                       value={inputData.discharge_strainer}
                       onChange={(e) => handleInputChange('discharge_strainer', parseInt(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -6384,11 +6570,13 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       ⭐ Rendement Pompe (%)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="40"
                       max="95"
                       value={inputData.pump_efficiency || ''}
                       onChange={(e) => handleInputChange('pump_efficiency', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                       placeholder="75"
                     />
@@ -6399,11 +6587,13 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       ⭐ Rendement Moteur (%)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="70"
                       max="98"
                       value={inputData.motor_efficiency || ''}
                       onChange={(e) => handleInputChange('motor_efficiency', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
                       placeholder="85"
                     />
@@ -6418,6 +6608,8 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                     <select
                       value={inputData.voltage}
                       onChange={(e) => handleInputChange('voltage', parseInt(e.target.value))}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value={230}>230V (Monophasé)</option>
@@ -6430,12 +6622,14 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       Cos φ
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       min="0.6"
                       max="1"
                       step="0.01"
                       value={inputData.power_factor}
                       onChange={(e) => handleInputChange('power_factor', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -6461,9 +6655,11 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       Longueur Câble (m)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={inputData.cable_length || ''}
                       onChange={(e) => handleInputChange('cable_length', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Longueur du câble"
                     />
@@ -6489,12 +6685,14 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                     Chute de Tension (%)
                   </label>
                   <input
-                    type="number"
+                    type="text" inputMode="decimal"
                     step="0.1"
                     min="0"
                     max="10"
                     value={inputData.voltage_drop || ''}
                     onChange={(e) => handleInputChange('voltage_drop', parseFloat(e.target.value) || 0)}
+                    onFocus={e=>e.target.select()}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="3"
                   />
@@ -6509,9 +6707,11 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       Fonctionnement (h/an)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={inputData.operating_hours || ''}
                       onChange={(e) => handleInputChange('operating_hours', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Heures de fonctionnement annuel"
                     />
@@ -6522,10 +6722,12 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       Prix kWh (FCFA)
                     </label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       step="0.1"
                       value={inputData.electricity_cost || ''}
                       onChange={(e) => handleInputChange('electricity_cost', parseFloat(e.target.value) || 0)}
+                      onFocus={e=>e.target.select()}
+                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Prix du kWh en FCFA"
                     />
@@ -7973,9 +8175,11 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   Débit (m³/h)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.flow_rate}
                   onChange={(e) => handleInputChange('flow_rate', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -7985,9 +8189,11 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   HMT (m)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.hmt}
                   onChange={(e) => handleInputChange('hmt', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -7997,9 +8203,11 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   Diamètre de tuyauterie (mm)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.pipe_diameter}
                   onChange={(e) => handleInputChange('pipe_diameter', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -8046,9 +8254,11 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   Rendement pompe (%)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.pump_efficiency}
                   onChange={(e) => handleInputChange('pump_efficiency', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -8058,9 +8268,11 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   Rendement moteur (%)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.motor_efficiency}
                   onChange={(e) => handleInputChange('motor_efficiency', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -8070,9 +8282,11 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   Puissance absorbée P1 (kW) - Optionnel
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.absorbed_power || ''}
                   onChange={(e) => handleInputChange('absorbed_power', e.target.value ? parseFloat(e.target.value) : null)}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -8082,9 +8296,11 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   Puissance hydraulique P2 (kW) - Optionnel
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.hydraulic_power || ''}
                   onChange={(e) => handleInputChange('hydraulic_power', e.target.value ? parseFloat(e.target.value) : null)}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -8108,12 +8324,14 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   Facteur de puissance (cos φ)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   step="0.01"
                   min="0.1"
                   max="1"
                   value={inputData.power_factor}
                   onChange={(e) => handleInputChange('power_factor', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -8123,9 +8341,11 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   Longueur de câble (m)
                 </label>
                 <input
-                  type="number"
+                  type="text" inputMode="decimal"
                   value={inputData.cable_length}
                   onChange={(e) => handleInputChange('cable_length', parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -8151,6 +8371,8 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                 <select
                   value={inputData.voltage}
                   onChange={(e) => handleInputChange('voltage', parseInt(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value={230}>230V</option>
@@ -9631,16 +9853,35 @@ const DrawingTool = () => {
   };
 
   // ── UI helpers ──
-  const FI = ({label,k,unit='',s=1,note}) => (
+  const FI = ({label,k,unit='',s=1,note}) => {
+    // Utilise un state local string pour permettre l'édition libre (suppression, saisie libre)
+    const [raw, setRaw] = React.useState(String(cfg[k] ?? ''));
+    // Synchronise si la valeur externe change (ex: reset)
+    React.useEffect(() => { setRaw(String(cfg[k] ?? '')); }, [cfg[k]]);
+    const commit = (val) => {
+      const n = parseFloat(val);
+      if (!isNaN(n)) S(k, n);
+      else setRaw(String(cfg[k] ?? ''));
+    };
+    return (
     <div>
       <label style={{display:'block',fontSize:'0.78rem',fontWeight:600,color:'#374151',marginBottom:'3px'}}>
         {label}{unit&&<span style={{color:'#9ca3af',fontWeight:400}}> ({unit})</span>}
       </label>
-      <input type="number" value={cfg[k]} step={s} onChange={e=>S(k,parseFloat(e.target.value)||0)}
-        style={{width:'100%',padding:'7px 10px',border:'1.5px solid #e5e7eb',borderRadius:'5px',fontSize:'0.85rem'}}/>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={raw}
+        step={s}
+        onChange={e => setRaw(e.target.value)}
+        onBlur={e => commit(e.target.value)}
+        onKeyDown={e => { if(e.key==='Enter') { e.target.blur(); } }}
+        onFocus={e => e.target.select()}
+        style={{width:'100%',padding:'7px 10px',border:'1.5px solid #e5e7eb',borderRadius:'5px',fontSize:'0.85rem',boxSizing:'border-box'}}
+      />
       {note&&<p style={{fontSize:'0.68rem',color:'#9ca3af',margin:'2px 0 0'}}>{note}</p>}
     </div>
-  );
+  );};
   const SI = ({label,k,opts}) => (
     <div>
       <label style={{display:'block',fontSize:'0.78rem',fontWeight:600,color:'#374151',marginBottom:'3px'}}>{label}</label>
@@ -9734,6 +9975,8 @@ const DrawingTool = () => {
               <div>
                 <label style={{display:'block',fontWeight:600,fontSize:'0.8rem',marginBottom:'5px'}}>Pompes en service</label>
                 <select value={cfg.np} onChange={e=>{const v=parseInt(e.target.value);S('np',v);S('ns',Math.min(cfg.ns,maxP-v));}}
+                onFocus={e=>e.target.select()}
+                onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   style={{width:'100%',padding:'8px 10px',border:'1.5px solid #e5e7eb',borderRadius:'5px',fontSize:'0.875rem',appearance:'none'}}>
                   {[...Array(maxP)].map((_,i)=><option key={i+1} value={i+1}>{i+1} pompe{i>0?'s':''} service</option>)}
                 </select>
@@ -9742,6 +9985,8 @@ const DrawingTool = () => {
                 <div>
                   <label style={{display:'block',fontWeight:600,fontSize:'0.8rem',marginBottom:'5px'}}>Pompes de secours</label>
                   <select value={cfg.ns} onChange={e=>S('ns',parseInt(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                     style={{width:'100%',padding:'8px 10px',border:'1.5px solid #e5e7eb',borderRadius:'5px',fontSize:'0.875rem',appearance:'none'}}>
                     {standby.map(n=><option key={n} value={n}>{n===0?'Aucune':n+` pompe${n>1?'s':''} secours`}</option>)}
                   </select>
@@ -9990,8 +10235,10 @@ const WaterHammerCalculator = () => {
             ].map(f => (
               <div key={f.key}>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--slate-700)', marginBottom: '5px' }}>{f.label}</label>
-                <input type="number" value={data[f.key]} step={f.step}
+                <input type="text" inputMode="decimal" value={data[f.key]} step={f.step}
                   onChange={e => set(f.key, parseFloat(e.target.value))}
+                  onFocus={e=>e.target.select()}
+                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--slate-200)', borderRadius: '6px', fontSize: '0.875rem' }} />
               </div>
             ))}
@@ -10159,7 +10406,9 @@ const PumpSelector = () => {
             ].map(f => (
               <div key={f.key}>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--slate-700)', marginBottom: '5px' }}>{f.label}</label>
-                <input type="number" value={data[f.key]} onChange={e => set(f.key, parseFloat(e.target.value))}
+                <input type="text" inputMode="decimal" value={data[f.key]} onChange={e => set(f.key, parseFloat(e.target.value))}
+                onFocus={e=>e.target.select()}
+                onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--slate-200)', borderRadius: '6px', fontSize: '0.875rem' }} />
               </div>
             ))}
@@ -10284,7 +10533,9 @@ const MotorCableCalculator = () => {
             ].map(f => (
               <div key={f.key}>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--slate-700)', marginBottom: '4px' }}>{f.label}</label>
-                <input type="number" value={data[f.key]} step="0.1" onChange={e => set(f.key, parseFloat(e.target.value))}
+                <input type="text" inputMode="decimal" value={data[f.key]} step="0.1" onChange={e => set(f.key, parseFloat(e.target.value))}
+                onFocus={e=>e.target.select()}
+                onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
                   style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--slate-200)', borderRadius: '6px', fontSize: '0.875rem' }}/>
               </div>
             ))}
