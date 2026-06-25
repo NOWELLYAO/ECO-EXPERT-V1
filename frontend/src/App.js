@@ -8912,15 +8912,28 @@ const DrawingTool = () => {
   const SchemaRelevage = () => {
     const a=acc, c=cfg;
     const np=c.np, ns=c.ns, tot=np+ns;
-    // Layout : bâche à gauche, pompes au centre en colonne, collecteur horizontal, réseau à droite
-    const pipeY=110; // collecteur horizontal Y
-    const surY=420;  // sol Y
-    const bachX=30, bachY=210, bachW=180, bachH=210;
-    const waterY=bachY+60;
-    const pSp=tot<=2?85:tot===3?72:62; // espacement pompes
-    const pX0=270; // X première pompe
-    const pY=295;  // Y pompes (horizontal, axe au centre)
-    const outX=pX0+(tot-1)*pSp/2; // sortie collecteur
+
+    // ── Layout général ──
+    // COFFRET à gauche | BÂCHE avec pompes immergées | COLLECTEUR | RÉSEAU
+    const surY=470;       // NGF sol
+    const cofX=20, cofY=80, cofW=100, cofH=tot<=2?80:95; // coffret gauche
+    const bachX=140, bachY=160, bachW=tot<=2?180:tot===3?220:260, bachH=290;
+    const waterY=bachY+55;  // NHE
+    const nbeY=bachY+bachH-70; // NBE
+    // Pompes au fond de la bâche
+    const pSp=tot<=2?80:tot===3?65:55;
+    const pX0=bachX+bachW/(tot+1); // centrage pompes dans bâche
+    const pumpBotY=bachY+bachH-30; // bas pompe (moteur)
+    const pumpTopY=pumpBotY-50;    // haut pompe (sortie)
+    // Colonne montante de chaque pompe → sort par le haut de la bâche
+    const colTopY=bachY-2; // sortie colonne au-dessus bâche
+    const colHorizY=bachY-30; // horizontal collecteur
+    const outX=bachX+bachW; // sortie droite du collecteur
+    // Bus câbles électriques (chemin câbles horizontal sous coffret)
+    const cableBusY=cofY+cofH+12; // Y du bus câble horizontal
+    const cableBusX1=cofX+cofW;   // depuis coffret
+    const cableBusX2=bachX+bachW-10; // jusqu'au bord droit bâche
+
     return (
     <svg width="100%" viewBox="0 0 1100 600" id="hydraulic-schema"
       style={{display:'block',background:'white',fontFamily:'Arial,sans-serif',border:'1px solid #e2e8f0'}}>
@@ -8940,156 +8953,190 @@ const DrawingTool = () => {
       <rect x={0} y={surY} width={1100} height={8} fill="url(#hatch)" opacity="0.5"/>
       <text x={8} y={surY-4} fontSize="7" fontWeight="700" fill="#78716c">NGF ± 0.00</text>
 
-      {/* ── Bâche de relevage ── */}
+      {/* ══════════════════════════════════
+           COFFRET — gauche de la bâche
+         ══════════════════════════════════ */}
+      {a.coffret&&<>
+        <rect x={cofX} y={cofY} width={cofW} height={cofH} fill="#f0f4ff" stroke="#4338ca" strokeWidth="1.2"/>
+        <rect x={cofX+3} y={cofY+3} width={cofW-6} height={cofH-6} fill="none" stroke="#6366f1" strokeWidth="0.6" strokeDasharray="3 2"/>
+        <text x={cofX+cofW/2} y={cofY+18} textAnchor="middle" fontSize="8" fontWeight="700" fill="#3730a3">COFFRET</text>
+        <text x={cofX+cofW/2} y={cofY+30} textAnchor="middle" fontSize="7" fill="#4f46e5">COMMANDE</text>
+        <text x={cofX+cofW/2} y={cofY+42} textAnchor="middle" fontSize="6.5" fill="#6366f1">{c.volt}</text>
+        <text x={cofX+cofW/2} y={cofY+53} textAnchor="middle" fontSize="6.5" fill="#6366f1">{c.prot}</text>
+        {tot>2&&<text x={cofX+cofW/2} y={cofY+65} textAnchor="middle" fontSize="6" fill="#4f46e5">{tot} départs</text>}
+
+        {/* ── Bus câble horizontal coffret → bâche (ORTHOGONAL) ── */}
+        {/* Ligne horizontale principale bus câble */}
+        <line x1={cableBusX1} y1={cableBusY} x2={cableBusX2} y2={cableBusY}
+          stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="5 2"/>
+        <text x={(cableBusX1+cableBusX2)/2} y={cableBusY-5} textAnchor="middle" fontSize="6.5" fill="#d97706">
+          bus câbles alimentation
+        </text>
+
+        {/* Un départ vertical par pompe depuis le bus */}
+        {[...Array(tot)].map((_,i)=>{
+          const px=pX0+i*pSp;
+          return <g key={i}>
+            {/* Vertical du bus vers la pompe */}
+            <line x1={px} y1={cableBusY} x2={px} y2={pumpBotY-10}
+              stroke="#f59e0b" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.85"/>
+            {/* Piquage horizontal sur bus */}
+            <circle cx={px} cy={cableBusY} r={2.5} fill="#f59e0b"/>
+          </g>;
+        })}
+
+        {/* Câbles flotteurs — chemin orthogonal : coffret → vertical → horizontal dans bâche */}
+        {a.fl_h&&<>
+          {/* Vertical depuis coffret bas → niveau NHE */}
+          <line x1={cofX+cofW-15} y1={cofY+cofH} x2={cofX+cofW-15} y2={waterY}
+            stroke="#059669" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.8"/>
+          {/* Horizontal vers flotteur NHE */}
+          <line x1={cofX+cofW-15} y1={waterY} x2={bachX+35} y2={waterY}
+            stroke="#059669" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.8"/>
+        </>}
+        {a.fl_b&&<>
+          {/* Vertical depuis coffret bas → niveau NBE */}
+          <line x1={cofX+cofW-25} y1={cofY+cofH} x2={cofX+cofW-25} y2={nbeY}
+            stroke="#7c3aed" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.8"/>
+          {/* Horizontal vers flotteur NBE */}
+          <line x1={cofX+cofW-25} y1={nbeY} x2={bachX+55} y2={nbeY}
+            stroke="#7c3aed" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.8"/>
+        </>}
+
+        {/* Légende */}
+        <text x={cofX} y={cofY+cofH+30} fontSize="6.5" fill="#f59e0b">━ alim. pompes</text>
+        {a.fl_h&&<text x={cofX} y={cofY+cofH+42} fontSize="6.5" fill="#059669">━ flotteur NHE</text>}
+        {a.fl_b&&<text x={cofX} y={cofY+cofH+54} fontSize="6.5" fill="#7c3aed">━ flotteur NBE</text>}
+      </>}
+
+      {/* ══════════════════════════════════
+           BÂCHE DE RELEVAGE
+         ══════════════════════════════════ */}
       {/* Parois béton */}
-      <rect x={bachX} y={bachY} width={bachW} height={bachH} fill="url(#beton)" opacity="0.4" stroke="#475569" strokeWidth="1.5"/>
-      <rect x={bachX+6} y={bachY+6} width={bachW-12} height={bachH-12} fill="white" stroke="none"/>
+      <rect x={bachX} y={bachY} width={bachW} height={bachH} fill="url(#beton)" opacity="0.4" stroke="#475569" strokeWidth="2"/>
+      <rect x={bachX+5} y={bachY+5} width={bachW-10} height={bachH-10} fill="white" stroke="none"/>
       {/* Eau */}
-      <rect x={bachX+6} y={waterY} width={bachW-12} height={bachY+bachH-waterY-6} fill="url(#eau)"/>
-      {[0,1,2].map(i=><line key={i} x1={bachX+16+i*40} y1={waterY+6} x2={bachX+30+i*40} y2={waterY+6}
+      <rect x={bachX+5} y={waterY} width={bachW-10} height={bachY+bachH-waterY-5} fill="url(#eau)"/>
+      {[0,1,2].map(i=><line key={i} x1={bachX+15+i*45} y1={waterY+7} x2={bachX+32+i*45} y2={waterY+7}
         stroke="white" strokeWidth="1" opacity="0.7"/>)}
-      <text x={bachX+bachW/2} y={bachY-5} textAnchor="middle" fontSize="8" fontWeight="700" fill="#475569">
+      <text x={bachX+bachW/2} y={bachY-8} textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#475569">
         BÂCHE DE RELEVAGE
       </text>
+
       {/* NHE */}
       <line x1={bachX} y1={waterY} x2={bachX+bachW} y2={waterY} stroke="#2563eb" strokeWidth="0.8" strokeDasharray="5 2"/>
       <text x={bachX+bachW+5} y={waterY+4} fontSize="7" fill="#2563eb">NHE</text>
       {/* NBE */}
-      <line x1={bachX} y1={bachY+bachH-65} x2={bachX+bachW} y2={bachY+bachH-65}
-        stroke="#7c3aed" strokeWidth="0.8" strokeDasharray="3 2"/>
-      <text x={bachX+bachW+5} y={bachY+bachH-61} fontSize="7" fill="#7c3aed">NBE</text>
-      {/* Flotteurs */}
+      <line x1={bachX} y1={nbeY} x2={bachX+bachW} y2={nbeY} stroke="#7c3aed" strokeWidth="0.8" strokeDasharray="3 2"/>
+      <text x={bachX+bachW+5} y={nbeY+4} fontSize="7" fill="#7c3aed">NBE</text>
+
+      {/* Flotteurs dans la bâche */}
       {a.fl_h&&<>
-        <line x1={bachX+20} y1={waterY} x2={bachX+20} y2={waterY+16} stroke="#059669" strokeWidth="0.8"/>
-        <circle cx={bachX+20} cy={waterY+23} r={6} fill="white" stroke="#059669" strokeWidth="1.2"/>
-        <text x={bachX+20} y={waterY+27} textAnchor="middle" fontSize="5.5" fill="#059669" fontWeight="700">NH</text>
+        <line x1={bachX+35} y1={waterY} x2={bachX+35} y2={waterY+18} stroke="#059669" strokeWidth="0.8"/>
+        <circle cx={bachX+35} cy={waterY+25} r={7} fill="white" stroke="#059669" strokeWidth="1.2"/>
+        <text x={bachX+35} y={waterY+29} textAnchor="middle" fontSize="5.5" fill="#059669" fontWeight="700">NH</text>
       </>}
       {a.fl_b&&<>
-        <line x1={bachX+36} y1={bachY+bachH-65} x2={bachX+36} y2={bachY+bachH-52} stroke="#7c3aed" strokeWidth="0.8"/>
-        <circle cx={bachX+36} cy={bachY+bachH-45} r={6} fill="white" stroke="#7c3aed" strokeWidth="1.2"/>
-        <text x={bachX+36} y={bachY+bachH-41} textAnchor="middle" fontSize="5.5" fill="#7c3aed" fontWeight="700">NB</text>
+        <line x1={bachX+55} y1={nbeY} x2={bachX+55} y2={nbeY+18} stroke="#7c3aed" strokeWidth="0.8"/>
+        <circle cx={bachX+55} cy={nbeY+25} r={7} fill="white" stroke="#7c3aed" strokeWidth="1.2"/>
+        <text x={bachX+55} y={nbeY+29} textAnchor="middle" fontSize="5.5" fill="#7c3aed" fontWeight="700">NB</text>
       </>}
 
-      {/* ── Tuyauterie aspiration commune (bâche → pompes) ── */}
-      {/* Ligne aspiration horizontale */}
-      <line x1={bachX+bachW} y1={pY} x2={pX0-16} y2={pY} stroke="#1e293b" strokeWidth="2.5"/>
-      <text x={(bachX+bachW+pX0-16)/2} y={pY+12} textAnchor="middle" fontSize="7" fill="#475569">
-        DN{c.dn_r} ASP.
-      </text>
-      {/* Crépine aspiration */}
-      {a.crepine&&<>
-        <PIDCrepine cx={bachX+bachW+20} cy={pY-8} h={10}/>
-        <line x1={bachX+bachW+20} y1={pY-8} x2={bachX+bachW+20} y2={pY} stroke="#64748b" strokeWidth="0.8"/>
-      </>}
-      {/* Vanne isolement aspiration */}
-      {a.v_asp&&<>
-        <PIDVanne cx={bachX+bachW+55} cy={pY} h={9} horiz={true}/>
-        <text x={bachX+bachW+55} y={pY+20} textAnchor="middle" fontSize="7" fill="#1e293b">VIA</text>
-      </>}
-      {/* Mano aspiration */}
-      {a.mano_asp&&<>
-        <line x1={bachX+bachW+90} y1={pY} x2={bachX+bachW+90} y2={pY-20} stroke="#1e293b" strokeWidth="0.8"/>
-        <PIDMano cx={bachX+bachW+90} cy={pY-29}/>
-      </>}
-
-      {/* ── POMPES ── */}
+      {/* ══════════════════════════════════
+           POMPES IMMERGÉES dans la bâche
+         ══════════════════════════════════ */}
       {[...Array(tot)].map((_,i)=>{
         const px=pX0+i*pSp;
         const stb=i>=np;
         const pc=stb?'#94a3b8':'#1e293b';
+        const pCY=pumpTopY+16; // centre pompe
+        const mCY=pumpBotY-10; // centre moteur
         return <g key={i}>
-          {/* Piquage aspiration individuel */}
-          <line x1={px} y1={pY} x2={px} y2={pY+14} stroke={pc} strokeWidth="1.5"/>
-          {/* Pompe */}
-          <PIDPompe cx={px} cy={pY+30} r={16} label={stb?`P${i+1}S`:`P${i+1}`} stb={stb} color="#1e293b"/>
-          {/* Connexion pompe → moteur */}
-          <line x1={px} y1={pY+46} x2={px} y2={pY+56} stroke={pc} strokeWidth="1"/>
-          {/* Moteur */}
-          <PIDMoteur cx={px} cy={pY+68} r={11} stb={stb}/>
-          <text x={px} y={pY+84} textAnchor="middle" fontSize="6.5" fill={pc} fontWeight={stb?400:600}>
-            {stb?'SECOURS':'SERVICE'}
+          {/* ── Colonne montante (refoulement vertical) ── */}
+          <line x1={px} y1={pCY-16} x2={px} y2={colTopY} stroke={pc} strokeWidth="2"/>
+
+          {/* Clapet anti-retour sur colonne montante */}
+          {a.clapet&&<>
+            <PIDClapet cx={px} cy={bachY+65} h={9} horiz={false}/>
+            <text x={px+13} y={bachY+68} fontSize="6.5" fill="#475569">CAR</text>
+          </>}
+          {/* Vanne de refoulement */}
+          {a.v_ref&&<>
+            <PIDVanne cx={px} cy={bachY+95} h={9} horiz={false}/>
+            <text x={px+13} y={bachY+98} fontSize="6.5" fill="#1e293b">VIR</text>
+          </>}
+
+          {/* ── Pompe P&ID (centrifuge immergée) ── */}
+          <PIDPompe cx={px} cy={pCY} r={16} label={stb?`P${i+1}S`:`P${i+1}`} stb={stb} color="#1e293b"/>
+
+          {/* Axe pompe-moteur */}
+          <line x1={px} y1={pCY+16} x2={px} y2={mCY-11} stroke={pc} strokeWidth="1"/>
+          {/* Moteur submersible */}
+          <PIDMoteur cx={px} cy={mCY} r={12} stb={stb}/>
+          <text x={px} y={mCY+16} textAnchor="middle" fontSize="6" fill={pc} fontWeight={stb?400:600}>
+            {stb?'SEC.':'SERV.'}
           </text>
-          {/* Puissance estimée */}
-          <text x={px} y={pY+96} textAnchor="middle" fontSize="6" fill="#64748b">
+          <text x={px} y={mCY+26} textAnchor="middle" fontSize="6" fill="#64748b">
             ≈{(parseFloat(H.Pa||0)/Math.max(np,1)).toFixed(1)}kW
           </text>
-          {/* Refoulement individuel */}
-          <line x1={px} y1={pY+14} x2={px} y2={pipeY+8} stroke={pc} strokeWidth="1.5"/>
-          {/* Clapet anti-retour */}
-          {a.clapet&&<>
-            <PIDClapet cx={px} cy={pipeY+40} h={9} horiz={false}/>
-            <text x={px+14} y={pipeY+43} fontSize="7" fill="#475569">CAR</text>
-          </>}
-          {/* Vanne refoulement */}
-          {a.v_ref&&<>
-            <PIDVanne cx={px} cy={pipeY+70} h={9} horiz={false}/>
-            <text x={px+14} y={pipeY+73} fontSize="7" fill="#1e293b">VIR</text>
-          </>}
-          {/* Mano refoulement individuel */}
+
+          {/* Manomètre refoulement (piqûre horizontale sur colonne) */}
           {a.mano_ref&&<>
-            <line x1={px+16} y1={pY+30} x2={px+28} y2={pY+30} stroke="#1e293b" strokeWidth="0.8"/>
-            <PIDMano cx={px+37} cy={pY+30} r={8}/>
+            <line x1={px+16} y1={bachY+48} x2={px+28} y2={bachY+48} stroke="#1e293b" strokeWidth="0.8"/>
+            <PIDMano cx={px+37} cy={bachY+48} r={8}/>
+          </>}
+
+          {/* Crépine en bas du moteur */}
+          {a.crepine&&<>
+            <line x1={px} y1={mCY+12} x2={px} y2={mCY+20} stroke={pc} strokeWidth="1"/>
+            <PIDCrepine cx={px} cy={mCY+20} h={10}/>
           </>}
         </g>;
       })}
 
-      {/* ── Collecteur refoulement horizontal ── */}
-      {tot>1&&<>
-        <line x1={pX0} y1={pipeY+8} x2={pX0+(tot-1)*pSp} y2={pipeY+8} stroke="#1e293b" strokeWidth="3"/>
-        <text x={(pX0+pX0+(tot-1)*pSp)/2} y={pipeY-2} textAnchor="middle" fontSize="7.5" fill="#1e293b" fontWeight="600">
-          COLLECTEUR DN{c.dn_r} — {c.mat_ref||'Acier'}
-        </text>
-      </>}
+      {/* ══════════════════════════════════
+           COLLECTEUR horizontal hors bâche
+         ══════════════════════════════════ */}
+      {/* Tuyaux individuels → collecteur (sorties colonnes montantes → horiz.) */}
+      {[...Array(tot)].map((_,i)=>{
+        const px=pX0+i*pSp;
+        const stb=i>=np;
+        return <line key={i} x1={px} y1={colTopY} x2={px} y2={colHorizY}
+          stroke={stb?'#94a3b8':'#1e293b'} strokeWidth="2"/>;
+      })}
+      {/* Collecteur horizontal */}
+      <line x1={pX0} y1={colHorizY} x2={outX+5} y2={colHorizY} stroke="#1e293b" strokeWidth="3"/>
+      <text x={(pX0+outX)/2} y={colHorizY-8} textAnchor="middle" fontSize="7.5" fill="#1e293b" fontWeight="600">
+        COLLECTEUR REF. DN{c.dn_r} — {c.mat_ref||'Acier'}
+      </text>
 
-      {/* ── Tuyauterie sortie vers réseau ── */}
-      <line x1={outX} y1={pipeY+8} x2={850} y2={pipeY+8} stroke="#1e293b" strokeWidth="2.5"/>
-      {/* Débitmètre */}
-      {a.debit&&<>
-        <PIDDebit cx={outX+80} cy={pipeY+8}/>
-        <text x={outX+80} y={pipeY-8} textAnchor="middle" fontSize="7" fill="#475569">FT-01</text>
-      </>}
-      {/* Vanne réseau */}
-      {a.v_ref&&tot===1&&<>
-        <PIDVanne cx={outX+150} cy={pipeY+8} h={9} horiz={true}/>
-        <text x={outX+150} y={pipeY+26} textAnchor="middle" fontSize="7" fill="#1e293b">VIR</text>
-      </>}
-      {/* Label conduite */}
-      <text x={(outX+850)/2} y={pipeY+22} textAnchor="middle" fontSize="7" fill="#475569">
+      {/* ══════════════════════════════════
+           LIGNE RÉSEAU → droite
+         ══════════════════════════════════ */}
+      <line x1={outX+5} y1={colHorizY} x2={840} y2={colHorizY} stroke="#1e293b" strokeWidth="2.5"/>
+      <text x={(outX+5+840)/2} y={colHorizY+14} textAnchor="middle" fontSize="7" fill="#475569">
         DN{c.dn_r} — {c.mat_ref||'Acier'}
       </text>
-      {/* Sortie réseau */}
-      <line x1={850} y1={pipeY+8} x2={875} y2={pipeY+8} stroke="#1e293b" strokeWidth="2.5" markerEnd="url(#arr)"/>
-      <text x={892} y={pipeY+8} fontSize="8" fontWeight="700" fill="#059669">→ RÉSEAU</text>
-      <text x={892} y={pipeY+20} fontSize="7" fill="#64748b">Q={c.Q_r}m³/h</text>
-      <text x={892} y={pipeY+30} fontSize="7" fill="#64748b">HMT={H.HMT}m</text>
-
-      {/* ── Coffret ── */}
-      {a.coffret&&<>
-        <rect x={720} y={170} width={110} height={70} fill="#f0f4ff" stroke="#4338ca" strokeWidth="1.2"/>
-        <rect x={724} y={174} width={102} height={62} fill="none" stroke="#6366f1" strokeWidth="0.6" strokeDasharray="3 2"/>
-        <text x={775} y={194} textAnchor="middle" fontSize="8" fontWeight="700" fill="#3730a3">COFFRET</text>
-        <text x={775} y={206} textAnchor="middle" fontSize="7" fill="#4f46e5">COMMANDE</text>
-        <text x={775} y={218} textAnchor="middle" fontSize="7" fill="#6366f1">{c.volt}</text>
-        <text x={775} y={230} textAnchor="middle" fontSize="6.5" fill="#6366f1">{c.prot}</text>
-        {/* Câbles pompes */}
-        {[...Array(tot)].map((_,i)=>{
-          const px=pX0+i*pSp;
-          return <line key={i} x1={720} y1={186+i*6} x2={px+12} y2={pY+68}
-            stroke="#f59e0b" strokeWidth="0.7" strokeDasharray="4 2" opacity="0.8"/>;
-        })}
-        {/* Câbles flotteurs */}
-        {a.fl_h&&<line x1={720} y1={218} x2={bachX+20} y2={waterY+23} stroke="#059669" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.7"/>}
-        {a.fl_b&&<line x1={720} y1={228} x2={bachX+36} y2={bachY+bachH-45} stroke="#7c3aed" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.7"/>}
-        {/* Légende câbles */}
-        <text x={720} y={250} fontSize="6.5" fill="#f59e0b">━ alim. pompes</text>
-        {a.fl_h&&<text x={720} y={262} fontSize="6.5" fill="#059669">━ flotteur NHE</text>}
-        {a.fl_b&&<text x={720} y={274} fontSize="6.5" fill="#7c3aed">━ flotteur NBE</text>}
+      {/* Débitmètre */}
+      {a.debit&&<>
+        <PIDDebit cx={outX+80} cy={colHorizY}/>
+        <text x={outX+80} y={colHorizY-16} textAnchor="middle" fontSize="7" fill="#475569">FT-01</text>
       </>}
+      {/* Vanne de tête si pompe unique */}
+      {a.v_ref&&tot===1&&<>
+        <PIDVanne cx={outX+130} cy={colHorizY} h={9} horiz={true}/>
+        <text x={outX+130} y={colHorizY+22} textAnchor="middle" fontSize="7" fill="#1e293b">VIR</text>
+      </>}
+      {/* Flèche + label réseau */}
+      <line x1={840} y1={colHorizY} x2={862} y2={colHorizY} stroke="#1e293b" strokeWidth="2.5" markerEnd="url(#arr)"/>
+      <text x={872} y={colHorizY+4} fontSize="9" fontWeight="700" fill="#059669">→ RÉSEAU</text>
+      <text x={872} y={colHorizY+16} fontSize="7" fill="#64748b">Q={c.Q_r}m³/h</text>
+      <text x={872} y={colHorizY+27} fontSize="7" fill="#64748b">HMT={H.HMT}m</text>
 
       {/* ── Bilan hydraulique ── */}
-      <rect x={850} y={170} width={220} height={145} fill="#f8fafc" stroke="#1e293b" strokeWidth="1.2"/>
-      <rect x={850} y={170} width={220} height={20} fill="#1e293b"/>
-      <text x={960} y={184} textAnchor="middle" fontSize="8" fontWeight="700" fill="white">BILAN HYDRAULIQUE</text>
+      <rect x={860} y={170} width={220} height={145} fill="#f8fafc" stroke="#1e293b" strokeWidth="1.2"/>
+      <rect x={860} y={170} width={220} height={20} fill="#1e293b"/>
+      <text x={970} y={184} textAnchor="middle" fontSize="8" fontWeight="700" fill="white">BILAN HYDRAULIQUE</text>
       {[
         {l:`Q unitaire = ${c.Q_r} m³/h`, c:'#1e293b'},
         {l:`H.ref = ${c.h_r} m`, c:'#1e293b'},
@@ -9099,7 +9146,7 @@ const DrawingTool = () => {
         {l:`V = ${H.V} m/s | DN${c.dn_r}`, c:'#1e293b'},
         {l:`${tot} pompes (${np} serv. + ${ns} sec.)`, c:'#2563eb'},
       ].map((r,i)=>(
-        <text key={i} x={858} y={200+i*16} fontSize="8" fill={r.c} fontWeight={r.b?700:400}>{r.l}</text>
+        <text key={i} x={868} y={200+i*16} fontSize="8" fill={r.c} fontWeight={r.b?700:400}>{r.l}</text>
       ))}
 
       {CartouchePID({Q:c.Q_r, HMT:H.HMT, titre:'SCHÉMA DE PRINCIPE — STATION DE RELEVAGE', sousTitre:c.proj})}
