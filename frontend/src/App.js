@@ -3429,6 +3429,145 @@ const NumInput = ({ value, onChange, step=1, min, max, placeholder, className, s
   );
 };
 
+
+// ════════════════════════════════════════════════════════════════
+// STYLES PARTAGÉS — Design System ECO-PUMP AFRIK Pro
+// ════════════════════════════════════════════════════════════════
+const DS = {
+  // Polices
+  fontHead: "'Inter', 'Segoe UI', system-ui, sans-serif",
+  fontMono: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+  // Couleurs
+  blue:   { 50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 900:'#1e3a8a' },
+  green:  { 50:'#f0fdf4', 100:'#dcfce7', 500:'#22c55e', 600:'#16a34a', 700:'#15803d' },
+  red:    { 50:'#fff1f2', 100:'#ffe4e6', 500:'#ef4444', 600:'#dc2626', 700:'#b91c1c' },
+  amber:  { 50:'#fffbeb', 100:'#fef3c7', 500:'#f59e0b', 600:'#d97706', 700:'#b45309' },
+  purple: { 50:'#faf5ff', 100:'#f3e8ff', 500:'#a855f7', 600:'#9333ea', 700:'#7e22ce' },
+  slate:  { 50:'#f8fafc', 100:'#f1f5f9', 200:'#e2e8f0', 300:'#cbd5e1', 400:'#94a3b8', 500:'#64748b', 700:'#334155', 900:'#0f172a' },
+};
+
+// Composant : Label + input stylé avec unité
+const ProInput = ({ label, value, onChange, unit, note, warn, icon, min, max, step=1 }) => {
+  const [raw, setRaw] = React.useState(value === null || value === undefined ? '' : String(value));
+  React.useEffect(() => { setRaw(value === null || value === undefined ? '' : String(value)); }, [value]);
+  const commit = str => {
+    const n = parseFloat(str);
+    if (!isNaN(n)) onChange(n);
+    else setRaw(String(value ?? ''));
+  };
+  return (
+    <div style={{ marginBottom: '0' }}>
+      <label style={{ display:'block', fontSize:'0.72rem', fontWeight:600, color:'#475569', marginBottom:'4px', letterSpacing:'0.03em', textTransform:'uppercase' }}>
+        {icon&&<span style={{marginRight:'5px'}}>{icon}</span>}{label}
+        {unit&&<span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', marginLeft:'4px' }}>({unit})</span>}
+      </label>
+      <div style={{ position:'relative' }}>
+        <input
+          type="text" inputMode="decimal"
+          value={raw}
+          onChange={e=>setRaw(e.target.value)}
+          onBlur={e=>commit(e.target.value)}
+          onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
+          onFocus={e=>e.target.select()}
+          style={{
+            width:'100%', boxSizing:'border-box',
+            padding: unit ? '9px 44px 9px 12px' : '9px 12px',
+            border: warn ? '1.5px solid #f59e0b' : '1.5px solid #e2e8f0',
+            borderRadius:'8px',
+            fontSize:'0.9rem', fontWeight:500, color:'#1e293b',
+            background: warn ? '#fffbeb' : 'white',
+            fontFamily: DS.fontMono,
+            outline:'none',
+            transition:'border-color 0.15s, box-shadow 0.15s',
+          }}
+          onFocusCapture={e=>{ e.target.style.borderColor='#3b82f6'; e.target.style.boxShadow='0 0 0 3px rgba(59,130,246,0.12)'; }}
+          onBlurCapture={e=>{ e.target.style.borderColor=warn?'#f59e0b':'#e2e8f0'; e.target.style.boxShadow='none'; }}
+        />
+        {unit&&<span style={{ position:'absolute', right:'12px', top:'50%', transform:'translateY(-50%)', fontSize:'0.75rem', color:'#94a3b8', fontWeight:600, pointerEvents:'none' }}>{unit}</span>}
+      </div>
+      {note&&<p style={{ fontSize:'0.67rem', color: warn?'#d97706':'#94a3b8', margin:'3px 0 0', fontStyle:'italic' }}>{note}</p>}
+    </div>
+  );
+};
+
+// Composant : Select stylé
+const ProSelect = ({ label, value, onChange, options, icon }) => (
+  <div>
+    <label style={{ display:'block', fontSize:'0.72rem', fontWeight:600, color:'#475569', marginBottom:'4px', letterSpacing:'0.03em', textTransform:'uppercase' }}>
+      {icon&&<span style={{marginRight:'5px'}}>{icon}</span>}{label}
+    </label>
+    <div style={{ position:'relative' }}>
+      <select value={value} onChange={e=>onChange(e.target.value)}
+        style={{ width:'100%', boxSizing:'border-box', padding:'9px 36px 9px 12px', border:'1.5px solid #e2e8f0', borderRadius:'8px', fontSize:'0.88rem', fontWeight:500, color:'#1e293b', background:'white', appearance:'none', cursor:'pointer', outline:'none' }}>
+        {options.map(o => <option key={o.v||o} value={o.v||o}>{o.l||o}</option>)}
+      </select>
+      <span style={{ position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', color:'#94a3b8', pointerEvents:'none', fontSize:'10px' }}>▼</span>
+    </div>
+  </div>
+);
+
+// Composant : Alerte (danger / warning / info / success)
+const ProAlert = ({ type='info', title, children, icon }) => {
+  const cfg = {
+    danger:  { bg:'#fff1f2', border:'#fca5a5', title:'#991b1b', text:'#dc2626', icon: icon||'🚨' },
+    warning: { bg:'#fffbeb', border:'#fcd34d', title:'#92400e', text:'#d97706', icon: icon||'⚠️' },
+    success: { bg:'#f0fdf4', border:'#86efac', title:'#14532d', text:'#16a34a', icon: icon||'✅' },
+    info:    { bg:'#eff6ff', border:'#93c5fd', title:'#1e3a8a', text:'#2563eb', icon: icon||'💡' },
+  }[type];
+  return (
+    <div style={{ background:cfg.bg, border:`1.5px solid ${cfg.border}`, borderRadius:'10px', padding:'12px 14px' }}>
+      <div style={{ display:'flex', alignItems:'flex-start', gap:'10px' }}>
+        <span style={{ fontSize:'1.1rem', marginTop:'1px', flexShrink:0 }}>{cfg.icon}</span>
+        <div>
+          {title&&<div style={{ fontSize:'0.8rem', fontWeight:700, color:cfg.title, marginBottom:'4px' }}>{title}</div>}
+          <div style={{ fontSize:'0.78rem', color:cfg.text, lineHeight:1.6 }}>{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Composant : Carte de résultat KPI
+const KPICard = ({ label, value, unit, sub, color='#2563eb', bg='#eff6ff', icon, big }) => (
+  <div style={{ background:bg, borderRadius:'12px', padding: big?'16px 20px':'12px 16px', borderLeft:`4px solid ${color}`, display:'flex', flexDirection:'column', gap:'2px' }}>
+    {icon&&<span style={{ fontSize:'1.2rem', marginBottom:'2px' }}>{icon}</span>}
+    <div style={{ fontSize: big?'2rem':'1.5rem', fontWeight:800, color, fontFamily:DS.fontMono, lineHeight:1 }}>{value}</div>
+    <div style={{ fontSize:'0.7rem', fontWeight:600, color, opacity:0.8 }}>{unit}</div>
+    <div style={{ fontSize:'0.72rem', color:'#475569', fontWeight:500 }}>{label}</div>
+    {sub&&<div style={{ fontSize:'0.65rem', color:'#94a3b8', marginTop:'2px' }}>{sub}</div>}
+  </div>
+);
+
+// Composant : Section header stylé
+const SectionHead = ({ icon, title, color='#2563eb', sub }) => (
+  <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px', paddingBottom:'10px', borderBottom:`2px solid ${color}22` }}>
+    <span style={{ fontSize:'1.3rem' }}>{icon}</span>
+    <div>
+      <div style={{ fontSize:'0.9rem', fontWeight:700, color:'#1e293b' }}>{title}</div>
+      {sub&&<div style={{ fontSize:'0.7rem', color:'#94a3b8' }}>{sub}</div>}
+    </div>
+  </div>
+);
+
+// Composant : Card conteneur pro
+const ProCard = ({ children, style={} }) => (
+  <div style={{ background:'white', borderRadius:'14px', boxShadow:'0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)', border:'1px solid #f1f5f9', padding:'20px 22px', ...style }}>
+    {children}
+  </div>
+);
+
+// Composant : Séparateur section
+const Divider = ({ label, color='#e2e8f0' }) => (
+  <div style={{ display:'flex', alignItems:'center', gap:'10px', margin:'4px 0' }}>
+    <div style={{ flex:1, height:'1px', background:color }}/>
+    {label&&<span style={{ fontSize:'0.65rem', fontWeight:600, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', whiteSpace:'nowrap' }}>{label}</span>}
+    {label&&<div style={{ flex:1, height:'1px', background:color }}/>}
+  </div>
+);
+
+// ════════════════════════════════════════════════════════════════
+// NPSHd CALCULATOR — Design Pro
+// ════════════════════════════════════════════════════════════════
 const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
   const [inputData, setInputData] = useState({
     suction_type: 'flooded',
@@ -3440,1089 +3579,733 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
     pipe_material: 'pvc',
     pipe_length: 50,
     suction_fittings: [],
-    npsh_required: 3.5  // Nouveau champ pour NPSH requis
+    npsh_required: 3.5,
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleInputChange = (field, value) => {
-    setInputData(prev => ({ ...prev, [field]: value }));
-  };
+  const set = (k, v) => setInputData(p => ({ ...p, [k]: v }));
 
-  const addFitting = () => {
-    setInputData(prev => ({
-      ...prev,
-      suction_fittings: [...prev.suction_fittings, { fitting_type: 'elbow_90', quantity: 1 }]
-    }));
-  };
+  const addFitting = () => setInputData(p => ({ ...p, suction_fittings: [...p.suction_fittings, { fitting_type: 'elbow_90', quantity: 1 }] }));
+  const removeFitting = i => setInputData(p => ({ ...p, suction_fittings: p.suction_fittings.filter((_, j) => j !== i) }));
+  const updFitting = (i, k, v) => setInputData(p => ({ ...p, suction_fittings: p.suction_fittings.map((f, j) => j===i ? {...f,[k]:v} : f) }));
 
-  const removeFitting = (index) => {
-    setInputData(prev => ({
-      ...prev,
-      suction_fittings: prev.suction_fittings.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateFitting = (index, field, value) => {
-    setInputData(prev => ({
-      ...prev,
-      suction_fittings: prev.suction_fittings.map((fitting, i) => 
-        i === index ? { ...fitting, [field]: value } : fitting
-      )
-    }));
-  };
-
-  const calculateNPSHd = async () => {
+  const calc = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/calculate-npshd`, inputData);
-      setResult(response.data);
-    } catch (error) {
-      console.error('Erreur calcul NPSHd:', error);
-      alert('Erreur lors du calcul NPSHd: ' + (error.response?.data?.detail || error.message));
-    } finally {
-      setLoading(false);
-    }
+      const res = await axios.post(`${API}/calculate-npshd`, inputData);
+      setResult(res.data);
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
+  const isFlooded = inputData.suction_type === 'flooded';
+  const vWarn = result && parseFloat(result.velocity) > 1.5;
+  const cavRisk = result?.cavitation_risk;
+
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">🟦 Calcul NPSHd (Net Positive Suction Head Available)</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Paramètres principaux */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-gray-700">Paramètres Principaux</h3>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type d'Aspiration
-                </label>
-                <select
-                  value={inputData.suction_type}
-                  onChange={(e) => handleInputChange('suction_type', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="flooded">Aspiration en charge</option>
-                  <option value="suction_lift">Aspiration en dépression</option>
-                </select>
+    <div style={{ display:'flex', flexDirection:'column', gap:'16px', fontFamily:DS.fontHead }}>
+
+      {/* ── Bandeau titre ── */}
+      <div style={{ background:'linear-gradient(135deg, #1e3a8a, #2563eb)', borderRadius:'14px', padding:'18px 24px', color:'white' }}>
+        <div style={{ fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.12em', opacity:0.7, textTransform:'uppercase', marginBottom:'3px' }}>Module Hydraulique</div>
+        <div style={{ fontSize:'1.25rem', fontWeight:800, marginBottom:'2px' }}>🔷 Calcul NPSHd</div>
+        <div style={{ fontSize:'0.75rem', opacity:0.6 }}>Net Positive Suction Head Available — Prévention de la cavitation · ISO 9906</div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
+
+        {/* ── Colonne gauche : formulaire ── */}
+        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+
+          {/* Config aspiration */}
+          <ProCard>
+            <SectionHead icon="⚙️" title="Configuration d'aspiration" color="#2563eb" sub="Type et géométrie de l'installation"/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+              <ProSelect label="Type d'aspiration" value={inputData.suction_type} icon="🔧"
+                onChange={v=>set('suction_type',v)}
+                options={[{v:'flooded',l:'① En charge (réservoir surélevé)'},{v:'suction_lift',l:'③ En dépression (aspiration montante)'}]}/>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+                <ProInput label={isFlooded?'Hauteur eau / pompe':'Hauteur de levée'} value={inputData.hasp}
+                  onChange={v=>set('hasp',v)} unit="m" icon="📐"
+                  note={isFlooded?'Eau au-dessus de la pompe':'Pompe au-dessus de l\'eau'}
+                  warn={!isFlooded && inputData.hasp > 6}/>
+                <ProInput label="Débit de pompage" value={inputData.flow_rate}
+                  onChange={v=>set('flow_rate',v)} unit="m³/h" icon="💧"/>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hauteur d'Aspiration Hasp (m)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.hasp}
-                  onChange={(e) => handleInputChange('hasp', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
-                />
-                <style jsx>{`
-                  input[type="text" inputMode="decimal"]::-webkit-outer-spin-button,
-                  input[type="text" inputMode="decimal"]::-webkit-inner-spin-button {
-                    -webkit-appearance: none;
-                    margin: 0;
-                  }
-                  input[type="text" inputMode="decimal"] {
-                    -moz-appearance: textfield;
-                  }
-                `}</style>
-                <p className="text-xs text-gray-500 mt-1">
-                  {inputData.suction_type === 'flooded' ? 'Hauteur de fluide au-dessus de la pompe' : 'Hauteur de dénivelé à aspirer'}
-                </p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Débit (m³/h)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.flow_rate}
-                  onChange={(e) => handleInputChange('flow_rate', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type de Fluide
-                </label>
-                <select
-                  value={inputData.fluid_type}
-                  onChange={(e) => handleInputChange('fluid_type', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {fluids.map(fluid => (
-                    <option key={fluid.id} value={fluid.id}>{fluid.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Température (°C)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.temperature}
-                  onChange={(e) => handleInputChange('temperature', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  NPSH Requis (m) - Données Constructeur
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  step="0.1"
-                  value={inputData.npsh_required}
-                  onChange={(e) => handleInputChange('npsh_required', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Ex: 3.5"
-                />
-              </div>
+              {!isFlooded && inputData.hasp > 6 && (
+                <ProAlert type="warning" title="Hauteur d'aspiration élevée">
+                  Hasp &gt; 6m augmente fortement le risque de cavitation. La hauteur maximale théorique est 10.3m (eau à 20°C). Recommandation : Hasp ≤ 5m.
+                </ProAlert>
+              )}
             </div>
-          </div>
-          
-          {/* Tuyauterie */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-gray-700">Tuyauterie d'Aspiration</h3>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Diamètre (mm)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.pipe_diameter}
-                  onChange={(e) => handleInputChange('pipe_diameter', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Matériau
-                </label>
-                <select
-                  value={inputData.pipe_material}
-                  onChange={(e) => handleInputChange('pipe_material', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {pipeMaterials.map(material => (
-                    <option key={material.id} value={material.id}>{material.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Longueur (m)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.pipe_length}
-                  onChange={(e) => handleInputChange('pipe_length', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+          </ProCard>
+
+          {/* Fluide */}
+          <ProCard>
+            <SectionHead icon="🧪" title="Fluide pompé" color="#7c3aed" sub="Propriétés physico-chimiques"/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+              <ProSelect label="Type de fluide" value={inputData.fluid_type} icon="💧"
+                onChange={v=>set('fluid_type',v)}
+                options={fluids.map(f=>({v:f.id,l:f.name}))}/>
+              <ProInput label="Température" value={inputData.temperature}
+                onChange={v=>set('temperature',v)} unit="°C" icon="🌡️"
+                warn={inputData.temperature > 60}
+                note={inputData.temperature > 60 ? 'Température élevée ↑ pression vapeur → risque cavitation accru' : 'La température influe sur Pv et ρ'}/>
+              {inputData.temperature > 60 && (
+                <ProAlert type="danger" title="Température critique">
+                  Au-delà de 60°C, la pression de vapeur augmente significativement. Vérifiez la compatibilité des matériaux et le NPSHd calculé avec une marge supplémentaire (+1m).
+                </ProAlert>
+              )}
             </div>
-          </div>
-        </div>
-        
-        {/* Raccords */}
-        <div className="mt-6">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-medium text-gray-700">Raccords d'Aspiration</h3>
-            <button
-              onClick={addFitting}
-              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-            >
-              + Ajouter Raccord
-            </button>
-          </div>
-          
-          <div className="space-y-2">
-            {inputData.suction_fittings.map((fitting, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <select
-                  value={fitting.fitting_type}
-                  onChange={(e) => updateFitting(index, 'fitting_type', e.target.value)}
-                  className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {fittings.map(f => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
-                  ))}
-                </select>
-                <input
-                  type="text" inputMode="decimal"
-                  value={fitting.quantity}
-                  onChange={(e) => updateFitting(index, 'quantity', parseInt(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  min="1"
-                  className="w-20 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <button
-                  onClick={() => removeFitting(index)}
-                  className="bg-red-600 text-white px-2 py-1 rounded text-sm hover:bg-red-700"
-                >
-                  ✕
-                </button>
+          </ProCard>
+
+          {/* Tuyauterie aspiration */}
+          <ProCard>
+            <SectionHead icon="🔩" title="Tuyauterie d'aspiration" color="#059669" sub="Diamètre, longueur, matériau"/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+                <ProInput label="Diamètre DN" value={inputData.pipe_diameter}
+                  onChange={v=>set('pipe_diameter',v)} unit="mm" icon="⌀"
+                  warn={inputData.pipe_diameter < 50}
+                  note={inputData.pipe_diameter < 50 ? 'DN trop faible → vitesse excessive' : ''}/>
+                <ProInput label="Longueur" value={inputData.pipe_length}
+                  onChange={v=>set('pipe_length',v)} unit="m" icon="📏"
+                  warn={inputData.pipe_length > 20}
+                  note={inputData.pipe_length > 20 ? 'Long. élev. → pertes de charge importantes' : ''}/>
               </div>
-            ))}
-          </div>
-        </div>
-        
-        <div className="mt-6">
-          <button
-            onClick={calculateNPSHd}
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
-          >
-            {loading ? 'Calcul en cours...' : 'Calculer NPSHd'}
+              <ProSelect label="Matériau" value={inputData.pipe_material} icon="🏗️"
+                onChange={v=>set('pipe_material',v)}
+                options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
+              <ProInput label="NPSHr constructeur" value={inputData.npsh_required}
+                onChange={v=>set('npsh_required',v)} unit="m" icon="📋"
+                note="Valeur fournie par le fabricant de la pompe"/>
+            </div>
+          </ProCard>
+
+          {/* Raccords */}
+          <ProCard>
+            <SectionHead icon="🔗" title="Raccords d'aspiration" color="#d97706" sub="Pertes de charge singulières"/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+              {inputData.suction_fittings.map((f, i) => (
+                <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 70px 32px', gap:'6px', alignItems:'center' }}>
+                  <select value={f.fitting_type} onChange={e=>updFitting(i,'fitting_type',e.target.value)}
+                    style={{ padding:'7px 10px', border:'1.5px solid #e2e8f0', borderRadius:'7px', fontSize:'0.8rem', background:'white', outline:'none' }}>
+                    {fittings.map(ft=><option key={ft.id} value={ft.id}>{ft.name}</option>)}
+                  </select>
+                  <input type="text" inputMode="decimal" value={f.quantity}
+                    onChange={e=>updFitting(i,'quantity',parseInt(e.target.value)||1)}
+                    onFocus={e=>e.target.select()}
+                    style={{ padding:'7px 10px', border:'1.5px solid #e2e8f0', borderRadius:'7px', fontSize:'0.85rem', fontFamily:DS.fontMono, textAlign:'center', outline:'none' }}/>
+                  <button onClick={()=>removeFitting(i)}
+                    style={{ width:'32px', height:'34px', background:'#fff1f2', border:'1px solid #fca5a5', borderRadius:'7px', color:'#dc2626', cursor:'pointer', fontWeight:700, fontSize:'0.9rem' }}>×</button>
+                </div>
+              ))}
+              <button onClick={addFitting}
+                style={{ padding:'8px', background:'#eff6ff', border:'1.5px dashed #93c5fd', borderRadius:'8px', color:'#2563eb', cursor:'pointer', fontWeight:600, fontSize:'0.8rem', marginTop:'2px' }}>
+                + Ajouter raccord
+              </button>
+            </div>
+          </ProCard>
+
+          {/* Bouton calcul */}
+          <button onClick={calc} disabled={loading}
+            style={{ padding:'14px', background: loading?'#94a3b8':'linear-gradient(135deg,#1d4ed8,#2563eb)', color:'white', border:'none', borderRadius:'10px', fontWeight:700, fontSize:'1rem', cursor:loading?'not-allowed':'pointer', fontFamily:DS.fontHead, boxShadow:'0 4px 12px rgba(37,99,235,0.3)', transition:'all 0.2s' }}>
+            {loading ? '⏳ Calcul en cours…' : '🔷 Calculer NPSHd'}
           </button>
         </div>
-      </div>
-      
-      {/* Résultats */}
-      {result && (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900">Résultats NPSHd</h3>
-          
-          {result.warnings && result.warnings.length > 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <h4 className="font-medium text-yellow-800 mb-2">⚠️ Avertissements</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
-                {result.warnings.map((warning, index) => (
-                  <li key={index}>• {warning}</li>
-                ))}
-              </ul>
+
+        {/* ── Colonne droite : résultats ── */}
+        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+
+          {/* Aperçu instantané */}
+          <ProCard style={{ background:'linear-gradient(135deg,#f8fafc,#eff6ff)' }}>
+            <SectionHead icon="📊" title="Données saisies" color="#64748b" sub="Récapitulatif en temps réel"/>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', fontSize:'0.8rem', color:'#475569' }}>
+              {[
+                ['Config', isFlooded?'En charge':'En dépression'],
+                ['Hasp', `${inputData.hasp} m`],
+                ['Débit', `${inputData.flow_rate} m³/h`],
+                ['DN asp.', `${inputData.pipe_diameter} mm`],
+                ['Longueur', `${inputData.pipe_length} m`],
+                ['NPSHr', `${inputData.npsh_required} m`],
+                ['Fluide', inputData.fluid_type],
+                ['T°', `${inputData.temperature}°C`],
+              ].map(([l,v]) => (
+                <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'5px 8px', background:'white', borderRadius:'6px', border:'1px solid #e2e8f0' }}>
+                  <span style={{ color:'#94a3b8', fontWeight:500 }}>{l}</span>
+                  <span style={{ fontWeight:700, color:'#1e293b', fontFamily:DS.fontMono }}>{v}</span>
+                </div>
+              ))}
             </div>
+          </ProCard>
+
+          {!result && (
+            <ProCard style={{ textAlign:'center', padding:'40px 20px', color:'#94a3b8' }}>
+              <div style={{ fontSize:'3rem', marginBottom:'12px' }}>🔷</div>
+              <div style={{ fontSize:'0.9rem', fontWeight:600, marginBottom:'4px', color:'#64748b' }}>En attente de calcul</div>
+              <div style={{ fontSize:'0.75rem' }}>Renseignez les paramètres et cliquez sur Calculer</div>
+            </ProCard>
           )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-700 border-b pb-2">Paramètres Calculés</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Pression atmosphérique:</span>
-                  <span className="font-medium">{(result.atmospheric_pressure / 1000).toFixed(1)} kPa</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Vitesse:</span>
-                  <span className="font-medium">{result.velocity?.toFixed(2)} m/s</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Nombre de Reynolds:</span>
-                  <span className="font-medium">{result.reynolds_number?.toFixed(0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Facteur de friction:</span>
-                  <span className="font-medium">{result.friction_factor?.toFixed(4)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Pression vapeur:</span>
-                  <span className="font-medium">{(result.fluid_properties.vapor_pressure / 1000).toFixed(1)} kPa</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-700 border-b pb-2">Pertes de Charge</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Pertes linéaires:</span>
-                  <span className="font-medium">{result.linear_head_loss?.toFixed(2)} m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Pertes singulières:</span>
-                  <span className="font-medium">{result.singular_head_loss?.toFixed(2)} m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Pertes totales:</span>
-                  <span className="font-medium">{result.total_head_loss?.toFixed(2)} m</span>
-                </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span className="font-semibold">NPSHd:</span>
-                  <span className="font-bold text-blue-600">{result.npshd?.toFixed(2)} m</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Section Comparaison NPSH et Analyse de Cavitation */}
-          <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Analyse de Cavitation</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <h4 className="font-medium text-gray-700 border-b pb-2">Comparaison NPSH</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>NPSH Requis (constructeur):</span>
-                    <span className="font-medium">{result.npsh_required?.toFixed(2)} m</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>NPSHd Calculé:</span>
-                    <span className="font-medium">{result.npshd?.toFixed(2)} m</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="font-semibold">Marge de sécurité:</span>
-                    <span className={`font-bold ${result.npsh_margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {result.npsh_margin?.toFixed(2)} m
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <h4 className="font-medium text-gray-700 border-b pb-2">Statut de Cavitation</h4>
-                <div className="text-center">
-                  <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
-                    result.cavitation_risk ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                  }`}>
-                    {result.cavitation_risk ? '🚨 RISQUE DE CAVITATION' : '✅ AUCUN RISQUE'}
-                  </div>
-                  <div className="mt-2 text-sm text-gray-600">
-                    {result.cavitation_risk ? 
-                      'Des corrections sont nécessaires' : 
-                      'Installation sécurisée'
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Recommandations de correction */}
-            {result.recommendations && result.recommendations.length > 0 && (
-              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-800 mb-3">💡 Recommandations de Correction</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  {result.recommendations.map((recommendation, index) => (
-                    <li key={index} className="leading-relaxed">
-                      {recommendation}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+
+          {result && (<>
+            {/* Alerte cavitation */}
+            {cavRisk ? (
+              <ProAlert type="danger" title="⛔ RISQUE DE CAVITATION DÉTECTÉ">
+                NPSHd ({result.npshd?.toFixed(2)}m) &lt; NPSHr ({result.npsh_required?.toFixed(2)}m). Marge = <strong>{result.npsh_margin?.toFixed(2)}m</strong>.
+                La pompe est en danger — corriger l'installation immédiatement.
+              </ProAlert>
+            ) : (
+              <ProAlert type="success" title="✅ Installation sécurisée">
+                NPSHd ({result.npshd?.toFixed(2)}m) &gt; NPSHr ({result.npsh_required?.toFixed(2)}m). Marge = <strong>+{result.npsh_margin?.toFixed(2)}m</strong>. Aucun risque de cavitation.
+              </ProAlert>
             )}
-          </div>
-          
-          {/* Schéma d'Installation Dynamique */}
-          <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Schéma d'Installation Dynamique</h3>
-            
-            <div className="flex justify-center">
-              <svg width="600" height="400" viewBox="0 0 600 400" className="border border-gray-200 rounded-lg">
-                {/* Fond */}
-                <rect width="600" height="400" fill="#f8fafc" />
-                
-                {/* Configuration dynamique selon le type d'aspiration */}
-                {(() => {
-                  const isFlooded = inputData.suction_type === 'flooded';
-                  const reservoirY = isFlooded ? 150 : 250;
-                  const reservoirHeight = isFlooded ? 100 : 80;
-                  const pumpY = isFlooded ? 280 : 180;
-                  const waterLevel = reservoirY + 20;
-                  
-                  // Calcul de la hauteur dynamique
-                  const heightScale = Math.min(Math.max(inputData.hasp * 15, 30), 120);
-                  const actualPumpY = isFlooded ? waterLevel + heightScale : waterLevel - heightScale;
-                  
-                  return (
-                    <>
-                      {/* Réservoir */}
-                      <rect 
-                        x="50" 
-                        y={reservoirY} 
-                        width="180" 
-                        height={reservoirHeight} 
-                        fill="#e5e7eb" 
-                        stroke="#6b7280" 
-                        strokeWidth="2"
-                      />
-                      
-                      {/* Niveau d'eau */}
-                      <rect 
-                        x="55" 
-                        y={waterLevel} 
-                        width="170" 
-                        height={reservoirHeight - 25} 
-                        fill="#3b82f6" 
-                        opacity="0.6"
-                      />
-                      
-                      {/* Étiquette du réservoir */}
-                      <text x="140" y={reservoirY - 10} textAnchor="middle" className="text-sm font-medium" fill="#1f2937">
-                        Réservoir
-                      </text>
-                      
-                      {/* Ligne d'eau */}
-                      <line x1="50" y1={waterLevel} x2="230" y2={waterLevel} stroke="#1d4ed8" strokeWidth="2" strokeDasharray="5,5" />
-                      <text x="240" y={waterLevel + 5} className="text-xs font-medium" fill="#1d4ed8">
-                        Niveau d'eau
-                      </text>
-                      
-                      {/* Tuyauterie d'aspiration */}
-                      <line 
-                        x1="230" 
-                        y1={waterLevel} 
-                        x2="350" 
-                        y2={actualPumpY + 25} 
-                        stroke="#4b5563" 
-                        strokeWidth="6"
-                      />
-                      <circle cx="230" cy={waterLevel} r="3" fill="#4b5563" />
-                      
-                      {/* Pompe - Position dynamique */}
-                      <rect 
-                        x="350" 
-                        y={actualPumpY} 
-                        width="70" 
-                        height="50" 
-                        fill="#10b981" 
-                        stroke="#059669" 
-                        strokeWidth="2"
-                        rx="5"
-                      />
-                      <text x="385" y={actualPumpY + 30} textAnchor="middle" className="text-xs font-bold" fill="white">
-                        POMPE
-                      </text>
-                      
-                      {/* Tuyauterie de refoulement */}
-                      <line 
-                        x1="420" 
-                        y1={actualPumpY + 25} 
-                        x2="500" 
-                        y2={actualPumpY + 25} 
-                        stroke="#4b5563" 
-                        strokeWidth="6"
-                      />
-                      <line 
-                        x1="500" 
-                        y1={actualPumpY + 25} 
-                        x2="500" 
-                        y2="120" 
-                        stroke="#4b5563" 
-                        strokeWidth="6"
-                      />
-                      
-                      {/* Sortie */}
-                      <rect x="495" y="115" width="10" height="10" fill="#10b981" />
-                      <text x="510" y="125" className="text-xs font-medium" fill="#10b981">
-                        Sortie
-                      </text>
-                      
-                      {/* Cotes dynamiques - Hauteur d'aspiration */}
-                      <defs>
-                        <marker id="arrowRed" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-                          <polygon points="0 0, 8 3, 0 6" fill="#ef4444" />
-                        </marker>
-                        <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-                          <polygon points="0 0, 8 3, 0 6" fill="#059669" />
-                        </marker>
-                      </defs>
-                      
-                      {/* Cote hauteur */}
-                      <line 
-                        x1="30" 
-                        y1={waterLevel} 
-                        x2="30" 
-                        y2={actualPumpY + 25} 
-                        stroke="#ef4444" 
-                        strokeWidth="1"
-                        markerEnd="url(#arrowRed)"
-                      />
-                      <line 
-                        x1="30" 
-                        y1={actualPumpY + 25} 
-                        x2="30" 
-                        y2={waterLevel} 
-                        stroke="#ef4444" 
-                        strokeWidth="1"
-                        markerEnd="url(#arrowRed)"
-                      />
-                      
-                      <text 
-                        x="15" 
-                        y={(waterLevel + actualPumpY + 25) / 2} 
-                        textAnchor="middle" 
-                        className="text-xs font-bold" 
-                        fill="#ef4444"
-                      >
-                        {inputData.hasp.toFixed(1)}m
-                      </text>
-                      
-                      <text 
-                        x="15" 
-                        y={(waterLevel + actualPumpY + 25) / 2 + 15} 
-                        textAnchor="middle" 
-                        className="text-xs" 
-                        fill="#ef4444"
-                      >
-                        {isFlooded ? '(en charge)' : '(dépression)'}
-                      </text>
-                      
-                      {/* Flèche de débit */}
-                      <line 
-                        x1="280" 
-                        y1={waterLevel + 10} 
-                        x2="320" 
-                        y2={actualPumpY + 15} 
-                        stroke="#059669" 
-                        strokeWidth="3"
-                        markerEnd="url(#arrowGreen)"
-                      />
-                      <text 
-                        x="300" 
-                        y={(waterLevel + actualPumpY) / 2} 
-                        textAnchor="middle" 
-                        className="text-xs font-bold" 
-                        fill="#059669"
-                      >
-                        {inputData.flow_rate} m³/h
-                      </text>
-                      
-                      {/* Informations techniques */}
-                      <rect x="450" y="30" width="140" height="100" fill="white" stroke="#d1d5db" strokeWidth="1" rx="5" />
-                      <text x="460" y="45" className="text-xs font-bold" fill="#1f2937">Paramètres:</text>
-                      <text x="460" y="60" className="text-xs" fill="#4b5563">⌀ {inputData.pipe_diameter}mm</text>
-                      <text x="460" y="75" className="text-xs" fill="#4b5563">L: {inputData.pipe_length}m</text>
-                      <text x="460" y="90" className="text-xs" fill="#4b5563">T: {inputData.temperature}°C</text>
-                      <text x="460" y="105" className="text-xs" fill="#4b5563">
-                        NPSH req: {inputData.npsh_required}m
-                      </text>
-                      {result && (
-                        <text x="460" y="120" className="text-xs font-bold" fill="#10b981">
-                          V: {result.velocity?.toFixed(2)}m/s
-                        </text>
-                      )}
-                      
-                      {/* Indicateur de risque */}
-                      {result && (
-                        <circle 
-                          cx="570" 
-                          cy="50" 
-                          r="8" 
-                          fill={result.cavitation_risk ? "#ef4444" : "#10b981"}
-                        />
-                      )}
-                      {result && (
-                        <text 
-                          x="570" 
-                          y="55" 
-                          textAnchor="middle" 
-                          className="text-xs font-bold" 
-                          fill="white"
-                        >
-                          {result.cavitation_risk ? "!" : "✓"}
-                        </text>
-                      )}
-                    </>
-                  );
-                })()}
-              </svg>
+
+            {/* KPIs principaux */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+              <KPICard big icon="🔷" label="NPSHd calculé" value={result.npshd?.toFixed(2)} unit="m"
+                color={cavRisk?'#dc2626':'#16a34a'} bg={cavRisk?'#fff1f2':'#f0fdf4'}
+                sub={`NPSHr = ${result.npsh_required?.toFixed(2)} m`}/>
+              <KPICard big icon="📐" label="Marge de sécurité" value={(result.npsh_margin>=0?'+':'')+result.npsh_margin?.toFixed(2)} unit="m"
+                color={cavRisk?'#dc2626':result.npsh_margin<1?'#d97706':'#16a34a'}
+                bg={cavRisk?'#fff1f2':result.npsh_margin<1?'#fffbeb':'#f0fdf4'}
+                sub="Min. recommandé : +0.5m"/>
+              <KPICard label="Vitesse aspiration" value={result.velocity?.toFixed(2)} unit="m/s"
+                color={vWarn?'#d97706':'#2563eb'} bg={vWarn?'#fffbeb':'#eff6ff'} icon={vWarn?'⚠️':'💧'}
+                sub={vWarn?'Vitesse élevée !':'Max rec. 1.5 m/s'}/>
+              <KPICard label="Pertes de charge" value={result.total_head_loss?.toFixed(2)} unit="m"
+                color="#7c3aed" bg="#faf5ff" icon="📉"
+                sub={`Linéaires : ${result.linear_head_loss?.toFixed(2)}m`}/>
             </div>
-            
-            <div className="mt-4 text-sm text-gray-600 text-center">
-              <p className="font-medium">
-                Schéma dynamique - Position de la pompe ajustée selon le type d'aspiration et la hauteur
-              </p>
-              <p className="text-xs mt-1">
-                {inputData.suction_type === 'flooded' ? 
-                  '🔵 Configuration "en charge" : Pompe sous le niveau d\'eau' : 
-                  '🔴 Configuration "dépression" : Pompe au-dessus du niveau d\'eau'
-                }
-              </p>
-            </div>
-          </div>
+
+            {/* Détail technique */}
+            <ProCard>
+              <SectionHead icon="🔬" title="Détail du calcul" color="#475569" sub="Paramètres intermédiaires"/>
+              <div style={{ display:'flex', flexDirection:'column', gap:'6px', fontSize:'0.8rem' }}>
+                {[
+                  ['Pression atm.', `${(result.atmospheric_pressure/1000).toFixed(1)} kPa`],
+                  ['Pression vapeur', `${(result.fluid_properties?.vapor_pressure/1000).toFixed(2)} kPa`],
+                  ['Densité fluide', `${result.fluid_properties?.density?.toFixed(0)} kg/m³`],
+                  ['Reynolds', `${result.reynolds_number?.toFixed(0)}`],
+                  ['Coeff. friction λ', `${result.friction_factor?.toFixed(4)}`],
+                  ['Pertes linéaires', `${result.linear_head_loss?.toFixed(2)} m`],
+                  ['Pertes singulières', `${result.singular_head_loss?.toFixed(2)} m`],
+                ].map(([l,v]) => (
+                  <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid #f1f5f9' }}>
+                    <span style={{ color:'#64748b' }}>{l}</span>
+                    <span style={{ fontWeight:700, color:'#1e293b', fontFamily:DS.fontMono }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </ProCard>
+
+            {/* Warnings */}
+            {result.warnings?.length > 0 && (
+              <ProAlert type="warning" title="Avertissements">
+                <ul style={{ margin:0, paddingLeft:'14px', display:'flex', flexDirection:'column', gap:'3px' }}>
+                  {result.warnings.map((w,i) => <li key={i}>{w}</li>)}
+                </ul>
+              </ProAlert>
+            )}
+
+            {/* Recommandations */}
+            {result.recommendations?.length > 0 && (
+              <ProAlert type="info" title="Recommandations de correction">
+                <ul style={{ margin:0, paddingLeft:'14px', display:'flex', flexDirection:'column', gap:'3px' }}>
+                  {result.recommendations.map((r,i) => <li key={i}>{r}</li>)}
+                </ul>
+              </ProAlert>
+            )}
+          </>)}
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-// Component pour Tab 2 - Calcul HMT
+// ════════════════════════════════════════════════════════════════
+// HMT CALCULATOR — Design Pro
+// ════════════════════════════════════════════════════════════════
 const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
   const [inputData, setInputData] = useState({
     installation_type: 'surface',
     suction_type: 'flooded',
     hasp: 3.0,
-    discharge_height: 25.0,
+    discharge_height: 25,
     useful_pressure: 0,
+    flow_rate: 50,
+    fluid_type: 'water',
+    temperature: 20,
     suction_pipe_diameter: 100,
-    discharge_pipe_diameter: 80,
     suction_pipe_length: 10,
-    discharge_pipe_length: 50,
     suction_pipe_material: 'pvc',
+    discharge_pipe_diameter: 80,
+    discharge_pipe_length: 50,
     discharge_pipe_material: 'pvc',
     suction_fittings: [],
     discharge_fittings: [],
-    fluid_type: 'water',
-    temperature: 20,
-    flow_rate: 50
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleInputChange = (field, value) => {
-    setInputData(prev => ({ ...prev, [field]: value }));
-  };
+  const set = (k, v) => setInputData(p => ({...p,[k]:v}));
+  const addF = side => setInputData(p => ({...p,[`${side}_fittings`]:[...p[`${side}_fittings`],{fitting_type:'elbow_90',quantity:1}]}));
+  const remF = (side,i) => setInputData(p => ({...p,[`${side}_fittings`]:p[`${side}_fittings`].filter((_,j)=>j!==i)}));
+  const updF = (side,i,k,v) => setInputData(p => ({...p,[`${side}_fittings`]:p[`${side}_fittings`].map((f,j)=>j===i?{...f,[k]:v}:f)}));
 
-  const addFitting = (type) => {
-    setInputData(prev => ({
-      ...prev,
-      [`${type}_fittings`]: [...prev[`${type}_fittings`], { fitting_type: 'elbow_90', quantity: 1 }]
-    }));
-  };
-
-  const removeFitting = (type, index) => {
-    setInputData(prev => ({
-      ...prev,
-      [`${type}_fittings`]: prev[`${type}_fittings`].filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateFitting = (type, index, field, value) => {
-    setInputData(prev => ({
-      ...prev,
-      [`${type}_fittings`]: prev[`${type}_fittings`].map((fitting, i) => 
-        i === index ? { ...fitting, [field]: value } : fitting
-      )
-    }));
-  };
-
-  const calculateHMT = async () => {
+  const calc = async () => {
     setLoading(true);
-    try {
-      const response = await axios.post(`${API}/calculate-hmt`, inputData);
-      setResult(response.data);
-    } catch (error) {
-      console.error('Erreur calcul HMT:', error);
-      alert('Erreur lors du calcul HMT: ' + (error.response?.data?.detail || error.message));
-    } finally {
-      setLoading(false);
-    }
+    try { const r = await axios.post(`${API}/calculate-hmt`, inputData); setResult(r.data); }
+    catch(e) { console.error(e); } finally { setLoading(false); }
   };
+
+  const RaccordsSection = ({ side, label, color }) => (
+    <div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px' }}>
+        <span style={{ fontSize:'0.72rem', fontWeight:700, color, textTransform:'uppercase', letterSpacing:'0.05em' }}>{label}</span>
+        <button onClick={()=>addF(side)}
+          style={{ padding:'4px 10px', background:color+'18', border:`1px solid ${color}44`, borderRadius:'6px', color, cursor:'pointer', fontWeight:600, fontSize:'0.72rem' }}>
+          + Ajouter
+        </button>
+      </div>
+      {inputData[`${side}_fittings`].map((f,i) => (
+        <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 60px 30px', gap:'6px', marginBottom:'5px', alignItems:'center' }}>
+          <select value={f.fitting_type} onChange={e=>updF(side,i,'fitting_type',e.target.value)}
+            style={{ padding:'6px 9px', border:'1.5px solid #e2e8f0', borderRadius:'6px', fontSize:'0.78rem', outline:'none' }}>
+            {fittings.map(ft=><option key={ft.id} value={ft.id}>{ft.name}</option>)}
+          </select>
+          <input type="text" inputMode="decimal" value={f.quantity}
+            onChange={e=>updF(side,i,'quantity',parseInt(e.target.value)||1)} onFocus={e=>e.target.select()}
+            style={{ padding:'6px', border:'1.5px solid #e2e8f0', borderRadius:'6px', fontSize:'0.82rem', textAlign:'center', fontFamily:DS.fontMono, outline:'none' }}/>
+          <button onClick={()=>remF(side,i)}
+            style={{ width:'30px', height:'30px', background:'#fff1f2', border:'1px solid #fca5a5', borderRadius:'6px', color:'#dc2626', cursor:'pointer', fontWeight:700 }}>×</button>
+        </div>
+      ))}
+    </div>
+  );
+
+  const va = result?.velocity_suction; const vr = result?.velocity_discharge;
+  const vaWarn = va && parseFloat(va) > 1.5; const vrWarn = vr && parseFloat(vr) > 3;
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">🟩 Calcul HMT (Hauteur Manométrique Totale)</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Paramètres généraux */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-gray-700">Paramètres Généraux</h3>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type d'Installation
-                </label>
-                <select
-                  value={inputData.installation_type}
-                  onChange={(e) => handleInputChange('installation_type', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="surface">Installation en surface</option>
-                  <option value="submersible">Installation submersible</option>
-                </select>
+    <div style={{ display:'flex', flexDirection:'column', gap:'16px', fontFamily:DS.fontHead }}>
+
+      {/* Bandeau */}
+      <div style={{ background:'linear-gradient(135deg,#065f46,#059669)', borderRadius:'14px', padding:'18px 24px', color:'white' }}>
+        <div style={{ fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.12em', opacity:0.7, textTransform:'uppercase', marginBottom:'3px' }}>Module Hydraulique</div>
+        <div style={{ fontSize:'1.25rem', fontWeight:800, marginBottom:'2px' }}>🔶 Calcul HMT</div>
+        <div style={{ fontSize:'0.75rem', opacity:0.6 }}>Hauteur Manométrique Totale — Darcy-Weisbach · Colebrook-White · NF EN 806</div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
+
+        {/* Gauche */}
+        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+
+          {/* Installation */}
+          <ProCard>
+            <SectionHead icon="🏗️" title="Type d'installation" color="#059669"/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <ProSelect label="Installation" value={inputData.installation_type} icon="⚙️"
+                  onChange={v=>set('installation_type',v)}
+                  options={[{v:'surface',l:'En surface'},{v:'forage',l:'Forage/Puits'},{v:'relevage',l:'Relevage'}]}/>
+                <ProSelect label="Type aspiration" value={inputData.suction_type} icon="🔧"
+                  onChange={v=>set('suction_type',v)}
+                  options={[{v:'flooded',l:'En charge'},{v:'suction_lift',l:'En dépression'}]}/>
               </div>
-              
-              {inputData.installation_type === 'surface' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Type d'Aspiration
-                    </label>
-                    <select
-                      value={inputData.suction_type}
-                      onChange={(e) => handleInputChange('suction_type', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="flooded">Aspiration en charge</option>
-                      <option value="suction_lift">Aspiration en dépression</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Hauteur d'Aspiration (m)
-                    </label>
-                    <input
-                      type="text" inputMode="decimal"
-                      value={inputData.hasp}
-                      onChange={(e) => handleInputChange('hasp', parseFloat(e.target.value))}
-                      onFocus={e=>e.target.select()}
-                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </>
-              )}
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hauteur de Refoulement (m)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.discharge_height}
-                  onChange={(e) => handleInputChange('discharge_height', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
+                <ProInput label="Hasp" value={inputData.hasp} onChange={v=>set('hasp',v)} unit="m"
+                  warn={inputData.suction_type!=='flooded'&&inputData.hasp>6}/>
+                <ProInput label="H. refoulement" value={inputData.discharge_height} onChange={v=>set('discharge_height',v)} unit="m"/>
+                <ProInput label="P. utile" value={inputData.useful_pressure} onChange={v=>set('useful_pressure',v)} unit="bar"
+                  note="0 si réseau libre"/>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Pression Utile (bar)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.useful_pressure}
-                  onChange={(e) => handleInputChange('useful_pressure', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">Pression de refoulement requise</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Débit (m³/h)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.flow_rate}
-                  onChange={(e) => handleInputChange('flow_rate', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type de Fluide
-                </label>
-                <select
-                  value={inputData.fluid_type}
-                  onChange={(e) => handleInputChange('fluid_type', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {fluids.map(fluid => (
-                    <option key={fluid.id} value={fluid.id}>{fluid.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Température (°C)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.temperature}
-                  onChange={(e) => handleInputChange('temperature', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+              <ProInput label="Débit" value={inputData.flow_rate} onChange={v=>set('flow_rate',v)} unit="m³/h" icon="💧"/>
             </div>
-          </div>
-          
-          {/* Tuyauteries */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-gray-700">Tuyauteries</h3>
-            
-            <div className="space-y-3">
-              {inputData.installation_type === 'surface' && (
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-2">Aspiration</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-xs text-blue-700 mb-1">Diamètre (mm)</label>
-                      <input
-                        type="text" inputMode="decimal"
-                        value={inputData.suction_pipe_diameter}
-                        onChange={(e) => handleInputChange('suction_pipe_diameter', parseFloat(e.target.value))}
-                        onFocus={e=>e.target.select()}
-                        onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                        className="w-full p-1 border border-blue-300 rounded text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-blue-700 mb-1">Longueur (m)</label>
-                      <input
-                        type="text" inputMode="decimal"
-                        value={inputData.suction_pipe_length}
-                        onChange={(e) => handleInputChange('suction_pipe_length', parseFloat(e.target.value))}
-                        onFocus={e=>e.target.select()}
-                        onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                        className="w-full p-1 border border-blue-300 rounded text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-blue-700 mb-1">Matériau</label>
-                      <select
-                        value={inputData.suction_pipe_material}
-                        onChange={(e) => handleInputChange('suction_pipe_material', e.target.value)}
-                        className="w-full p-1 border border-blue-300 rounded text-sm"
-                      >
-                        {pipeMaterials.map(material => (
-                          <option key={material.id} value={material.id}>{material.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div className="bg-green-50 p-3 rounded-lg">
-                <h4 className="font-medium text-green-800 mb-2">Refoulement</h4>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-xs text-green-700 mb-1">Diamètre (mm)</label>
-                    <input
-                      type="text" inputMode="decimal"
-                      value={inputData.discharge_pipe_diameter}
-                      onChange={(e) => handleInputChange('discharge_pipe_diameter', parseFloat(e.target.value))}
-                      onFocus={e=>e.target.select()}
-                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                      className="w-full p-1 border border-green-300 rounded text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-green-700 mb-1">Longueur (m)</label>
-                    <input
-                      type="text" inputMode="decimal"
-                      value={inputData.discharge_pipe_length}
-                      onChange={(e) => handleInputChange('discharge_pipe_length', parseFloat(e.target.value))}
-                      onFocus={e=>e.target.select()}
-                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                      className="w-full p-1 border border-green-300 rounded text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-green-700 mb-1">Matériau</label>
-                    <select
-                      value={inputData.discharge_pipe_material}
-                      onChange={(e) => handleInputChange('discharge_pipe_material', e.target.value)}
-                      className="w-full p-1 border border-green-300 rounded text-sm"
-                    >
-                      {pipeMaterials.map(material => (
-                        <option key={material.id} value={material.id}>{material.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
+          </ProCard>
+
+          {/* Fluide */}
+          <ProCard>
+            <SectionHead icon="🧪" title="Fluide" color="#7c3aed"/>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+              <ProSelect label="Type de fluide" value={inputData.fluid_type} onChange={v=>set('fluid_type',v)}
+                options={fluids.map(f=>({v:f.id,l:f.name}))}/>
+              <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C"
+                warn={inputData.temperature>60}/>
             </div>
-          </div>
+          </ProCard>
+
+          {/* Tuyauterie aspiration */}
+          <ProCard>
+            <SectionHead icon="🔵" title="Tuyauterie aspiration" color="#2563eb" sub={`DN${inputData.suction_pipe_diameter} — ${inputData.suction_pipe_length}m`}/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <ProInput label="Diamètre DN" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} unit="mm" warn={inputData.suction_pipe_diameter<50}/>
+                <ProInput label="Longueur" value={inputData.suction_pipe_length} onChange={v=>set('suction_pipe_length',v)} unit="m"/>
+              </div>
+              <ProSelect label="Matériau" value={inputData.suction_pipe_material} onChange={v=>set('suction_pipe_material',v)}
+                options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
+              <RaccordsSection side="suction" label="Raccords aspiration" color="#2563eb"/>
+            </div>
+          </ProCard>
+
+          {/* Tuyauterie refoulement */}
+          <ProCard>
+            <SectionHead icon="🟢" title="Tuyauterie refoulement" color="#059669" sub={`DN${inputData.discharge_pipe_diameter} — ${inputData.discharge_pipe_length}m`}/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <ProInput label="Diamètre DN" value={inputData.discharge_pipe_diameter} onChange={v=>set('discharge_pipe_diameter',v)} unit="mm"/>
+                <ProInput label="Longueur" value={inputData.discharge_pipe_length} onChange={v=>set('discharge_pipe_length',v)} unit="m"/>
+              </div>
+              <ProSelect label="Matériau" value={inputData.discharge_pipe_material} onChange={v=>set('discharge_pipe_material',v)}
+                options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
+              <RaccordsSection side="discharge" label="Raccords refoulement" color="#059669"/>
+            </div>
+          </ProCard>
+
+          <button onClick={calc} disabled={loading}
+            style={{ padding:'14px', background:loading?'#94a3b8':'linear-gradient(135deg,#065f46,#059669)', color:'white', border:'none', borderRadius:'10px', fontWeight:700, fontSize:'1rem', cursor:loading?'not-allowed':'pointer', fontFamily:DS.fontHead, boxShadow:'0 4px 12px rgba(5,150,105,0.3)' }}>
+            {loading ? '⏳ Calcul en cours…' : '🔶 Calculer HMT'}
+          </button>
         </div>
-        
-        {/* Raccords */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Raccords aspiration */}
-          {inputData.installation_type === 'surface' && (
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="font-medium text-gray-700">Raccords Aspiration</h4>
-                <button
-                  onClick={() => addFitting('suction')}
-                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-                >
-                  + Ajouter
-                </button>
-              </div>
-              
-              <div className="space-y-2">
-                {inputData.suction_fittings.map((fitting, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <select
-                      value={fitting.fitting_type}
-                      onChange={(e) => updateFitting('suction', index, 'fitting_type', e.target.value)}
-                      className="flex-1 p-1 border border-gray-300 rounded text-sm"
-                    >
-                      {fittings.map(f => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="text" inputMode="decimal"
-                      value={fitting.quantity}
-                      onChange={(e) => updateFitting('suction', index, 'quantity', parseInt(e.target.value))}
-                      onFocus={e=>e.target.select()}
-                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                      min="1"
-                      className="w-16 p-1 border border-gray-300 rounded text-sm"
-                    />
-                    <button
-                      onClick={() => removeFitting('suction', index)}
-                      className="bg-red-600 text-white px-2 py-1 rounded text-sm hover:bg-red-700"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Raccords refoulement */}
-          <div>
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-medium text-gray-700">Raccords Refoulement</h4>
-              <button
-                onClick={() => addFitting('discharge')}
-                className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-              >
-                + Ajouter
-              </button>
-            </div>
-            
-            <div className="space-y-2">
-              {inputData.discharge_fittings.map((fitting, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <select
-                    value={fitting.fitting_type}
-                    onChange={(e) => updateFitting('discharge', index, 'fitting_type', e.target.value)}
-                    className="flex-1 p-1 border border-gray-300 rounded text-sm"
-                  >
-                    {fittings.map(f => (
-                      <option key={f.id} value={f.id}>{f.name}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="text" inputMode="decimal"
-                    value={fitting.quantity}
-                    onChange={(e) => updateFitting('discharge', index, 'quantity', parseInt(e.target.value))}
-                    onFocus={e=>e.target.select()}
-                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                    min="1"
-                    className="w-16 p-1 border border-gray-300 rounded text-sm"
-                  />
-                  <button
-                    onClick={() => removeFitting('discharge', index)}
-                    className="bg-red-600 text-white px-2 py-1 rounded text-sm hover:bg-red-700"
-                  >
-                    ✕
-                  </button>
+
+        {/* Droite : résultats */}
+        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+
+          {/* Aperçu data */}
+          <ProCard style={{ background:'linear-gradient(135deg,#f8fafc,#f0fdf4)' }}>
+            <SectionHead icon="📋" title="Récapitulatif" color="#64748b"/>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px', fontSize:'0.78rem' }}>
+              {[
+                ['Débit Q', `${inputData.flow_rate} m³/h`],
+                ['H. géo.', `${inputData.discharge_height} m`],
+                ['Hasp', `${inputData.hasp} m`],
+                ['P. utile', `${inputData.useful_pressure} bar`],
+                ['ASP DN', `${inputData.suction_pipe_diameter}mm — ${inputData.suction_pipe_length}m`],
+                ['REF DN', `${inputData.discharge_pipe_diameter}mm — ${inputData.discharge_pipe_length}m`],
+              ].map(([l,v])=>(
+                <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'5px 8px', background:'white', borderRadius:'5px', border:'1px solid #e2e8f0' }}>
+                  <span style={{ color:'#94a3b8', fontWeight:500 }}>{l}</span>
+                  <span style={{ fontWeight:700, color:'#1e293b', fontFamily:DS.fontMono, fontSize:'0.75rem' }}>{v}</span>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-        
-        <div className="mt-6">
-          <button
-            onClick={calculateHMT}
-            disabled={loading}
-            className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 font-medium"
-          >
-            {loading ? 'Calcul en cours...' : 'Calculer HMT'}
-          </button>
+          </ProCard>
+
+          {/* Alertes vitesse (avant calcul) */}
+          {inputData.flow_rate > 0 && (() => {
+            const va = inputData.flow_rate / 3.6 / (Math.PI * (inputData.suction_pipe_diameter/1000/2)**2);
+            const vr = inputData.flow_rate / 3.6 / (Math.PI * (inputData.discharge_pipe_diameter/1000/2)**2);
+            return <>
+              {va > 1.5 && <ProAlert type="warning" title="Vitesse aspiration élevée">Va ≈ {va.toFixed(2)} m/s &gt; 1.5 m/s recommandé. Augmentez le DN aspiration.</ProAlert>}
+              {vr > 3.0 && <ProAlert type="warning" title="Vitesse refoulement élevée">Vr ≈ {vr.toFixed(2)} m/s &gt; 3.0 m/s recommandé. Augmentez le DN refoulement.</ProAlert>}
+            </>;
+          })()}
+
+          {!result && (
+            <ProCard style={{ textAlign:'center', padding:'40px 20px', color:'#94a3b8' }}>
+              <div style={{ fontSize:'3rem', marginBottom:'12px' }}>🔶</div>
+              <div style={{ fontSize:'0.9rem', fontWeight:600, color:'#64748b', marginBottom:'4px' }}>En attente de calcul</div>
+              <div style={{ fontSize:'0.75rem' }}>Renseignez les données et cliquez sur Calculer HMT</div>
+            </ProCard>
+          )}
+
+          {result && (<>
+            {/* KPIs HMT */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+              <KPICard big icon="🔶" label="HMT totale" value={result.total_hmt?.toFixed(1)} unit="m"
+                color="#059669" bg="#f0fdf4"/>
+              <KPICard big icon="⚡" label="Puissance absorbée" value={result.absorbed_power?.toFixed(1)} unit="kW"
+                color="#7c3aed" bg="#faf5ff"/>
+              <KPICard label="Vitesse aspiration" value={result.velocity_suction?.toFixed(2)} unit="m/s"
+                color={vaWarn?'#d97706':'#2563eb'} bg={vaWarn?'#fffbeb':'#eff6ff'}
+                icon={vaWarn?'⚠️':'💧'} sub={vaWarn?'Trop élevée!':'≤ 1.5 m/s ✓'}/>
+              <KPICard label="Vitesse refoulement" value={result.velocity_discharge?.toFixed(2)} unit="m/s"
+                color={vrWarn?'#d97706':'#059669'} bg={vrWarn?'#fffbeb':'#f0fdf4'}
+                icon={vrWarn?'⚠️':'🟢'} sub={vrWarn?'Trop élevée!':'≤ 3.0 m/s ✓'}/>
+            </div>
+
+            {/* Décomposition HMT */}
+            <ProCard>
+              <SectionHead icon="📊" title="Décomposition de la HMT" color="#059669"/>
+              <div style={{ display:'flex', flexDirection:'column', gap:'5px', fontSize:'0.8rem' }}>
+                {[
+                  ['Hauteur géométrique', `${result.geometric_height?.toFixed(2)} m`, '#1e293b'],
+                  ['J. aspiration (linéaires)', `${result.suction_linear_loss?.toFixed(3)} m`, '#2563eb'],
+                  ['J. aspiration (singuliers)', `${result.suction_singular_loss?.toFixed(3)} m`, '#2563eb'],
+                  ['J. refoulement (linéaires)', `${result.discharge_linear_loss?.toFixed(3)} m`, '#059669'],
+                  ['J. refoulement (singuliers)', `${result.discharge_singular_loss?.toFixed(3)} m`, '#059669'],
+                  ['Pression utile converti', `${(result.useful_pressure_head||0).toFixed(2)} m`, '#7c3aed'],
+                ].map(([l,v,c])=>(
+                  <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid #f1f5f9' }}>
+                    <span style={{ color:'#64748b' }}>{l}</span>
+                    <span style={{ fontWeight:700, color:c, fontFamily:DS.fontMono }}>{v}</span>
+                  </div>
+                ))}
+                <div style={{ display:'flex', justifyContent:'space-between', padding:'8px', background:'#f0fdf4', borderRadius:'7px', marginTop:'4px', border:'1.5px solid #86efac' }}>
+                  <span style={{ fontWeight:700, color:'#065f46' }}>= HMT TOTALE</span>
+                  <span style={{ fontWeight:800, color:'#059669', fontFamily:DS.fontMono, fontSize:'1rem' }}>{result.total_hmt?.toFixed(2)} m</span>
+                </div>
+              </div>
+            </ProCard>
+
+            {/* Alertes résultats */}
+            {result.warnings?.length > 0 && (
+              <ProAlert type="warning" title="Avertissements">
+                <ul style={{ margin:0, paddingLeft:'14px' }}>
+                  {result.warnings.map((w,i)=><li key={i}>{w}</li>)}
+                </ul>
+              </ProAlert>
+            )}
+            {result.recommendations?.length > 0 && (
+              <ProAlert type="info" title="Recommandations">
+                <ul style={{ margin:0, paddingLeft:'14px' }}>
+                  {result.recommendations.map((r,i)=><li key={i}>{r}</li>)}
+                </ul>
+              </ProAlert>
+            )}
+          </>)}
         </div>
       </div>
-      
-      {/* Résultats */}
-      {result && (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900">Résultats HMT</h3>
-          
-          {result.warnings && result.warnings.length > 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <h4 className="font-medium text-yellow-800 mb-2">⚠️ Avertissements</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
-                {result.warnings.map((warning, index) => (
-                  <li key={index}>• {warning}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-700 border-b pb-2">Vitesses</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Aspiration:</span>
-                  <span className="font-medium">{result.suction_velocity?.toFixed(2)} m/s</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Refoulement:</span>
-                  <span className="font-medium">{result.discharge_velocity?.toFixed(2)} m/s</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-700 border-b pb-2">Pertes de Charge</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Aspiration:</span>
-                  <span className="font-medium">{result.suction_head_loss?.toFixed(2)} m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Refoulement:</span>
-                  <span className="font-medium">{result.discharge_head_loss?.toFixed(2)} m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total:</span>
-                  <span className="font-medium">{result.total_head_loss?.toFixed(2)} m</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-700 border-b pb-2">Hauteurs</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Hauteur statique:</span>
-                  <span className="font-medium">{result.static_head?.toFixed(2)} m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Pression utile:</span>
-                  <span className="font-medium">{result.useful_pressure_head?.toFixed(2)} m</span>
-                </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span className="font-semibold">HMT:</span>
-                  <span className="font-bold text-green-600">{result.hmt?.toFixed(2)} m</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+// ════════════════════════════════════════════════════════════════
+// PERFORMANCE ANALYSIS — Design Pro
+// ════════════════════════════════════════════════════════════════
+const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
+  const [inputData, setInputData] = useState({
+    flow_rate: 50,
+    hmt: 25,
+    pipe_diameter: 100,
+    fluid_type: 'water',
+    pipe_material: 'pvc',
+    temperature: 20,
+    pump_efficiency: 75,
+    motor_efficiency: 90,
+    power_input: null,
+    hydraulic_power: null,
+    starting_method: 'star_delta',
+    power_factor: 0.8,
+    cable_length: 50,
+    cable_material: 'copper',
+    voltage: '400V',
+  });
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const set = (k, v) => setInputData(p => ({...p,[k]:v}));
+
+  const calc = async () => {
+    setLoading(true);
+    try { const r = await axios.post(`${API}/analyze-performance`, inputData); setResult(r.data); }
+    catch(e) { console.error(e); } finally { setLoading(false); }
+  };
+
+  const effWarn = inputData.pump_efficiency < 60;
+  const effGood = inputData.pump_efficiency >= 75;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'16px', fontFamily:DS.fontHead }}>
+
+      {/* Bandeau */}
+      <div style={{ background:'linear-gradient(135deg,#92400e,#d97706)', borderRadius:'14px', padding:'18px 24px', color:'white' }}>
+        <div style={{ fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.12em', opacity:0.7, textTransform:'uppercase', marginBottom:'3px' }}>Module Analyse</div>
+        <div style={{ fontSize:'1.25rem', fontWeight:800, marginBottom:'2px' }}>📊 Analyse de Performance</div>
+        <div style={{ fontSize:'0.75rem', opacity:0.6 }}>Rendement · Puissance · Courbes · Câblage électrique · IEC 60034</div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
+
+        {/* Gauche */}
+        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+
+          {/* Hydraulique */}
+          <ProCard>
+            <SectionHead icon="💧" title="Paramètres hydrauliques" color="#2563eb"/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <ProInput label="Débit Q" value={inputData.flow_rate} onChange={v=>set('flow_rate',v)} unit="m³/h" icon="💧"/>
+                <ProInput label="HMT" value={inputData.hmt} onChange={v=>set('hmt',v)} unit="m" icon="📐"/>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <ProInput label="DN tuyauterie" value={inputData.pipe_diameter} onChange={v=>set('pipe_diameter',v)} unit="mm"/>
+                <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C"/>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <ProSelect label="Fluide" value={inputData.fluid_type} onChange={v=>set('fluid_type',v)}
+                  options={fluids.map(f=>({v:f.id,l:f.name}))}/>
+                <ProSelect label="Matériau" value={inputData.pipe_material} onChange={v=>set('pipe_material',v)}
+                  options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
+              </div>
+            </div>
+          </ProCard>
+
+          {/* Rendements */}
+          <ProCard>
+            <SectionHead icon="⚡" title="Rendements & Puissance" color="#d97706" sub="IEC 60034 — IE2/IE3"/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <ProInput label="η pompe" value={inputData.pump_efficiency} onChange={v=>set('pump_efficiency',v)} unit="%" icon="🔄"
+                  warn={effWarn}
+                  note={effWarn?'Rendement faible — pompe dégradée?':effGood?'Bon rendement ✓':'Rendement moyen'}/>
+                <ProInput label="η moteur" value={inputData.motor_efficiency} onChange={v=>set('motor_efficiency',v)} unit="%" icon="🔌"/>
+              </div>
+              {effWarn && <ProAlert type="warning" title="Rendement pompe faible">
+                ηp &lt; 60% indique une pompe hors de son point de fonctionnement optimal ou usée. Vérifiez l'impulseur et les joints d'étanchéité.
+              </ProAlert>}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <ProInput label="P1 absorbée" value={inputData.power_input||''} onChange={v=>set('power_input',v||null)} unit="kW"
+                  note="Optionnel — mesure réelle"/>
+                <ProInput label="P2 hydraulique" value={inputData.hydraulic_power||''} onChange={v=>set('hydraulic_power',v||null)} unit="kW"
+                  note="Optionnel — mesure réelle"/>
+              </div>
+            </div>
+          </ProCard>
+
+          {/* Électrique */}
+          <ProCard>
+            <SectionHead icon="⚡" title="Paramètres électriques" color="#7c3aed" sub="Câblage & démarrage"/>
+            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <ProSelect label="Méthode démarrage" value={inputData.starting_method} onChange={v=>set('starting_method',v)}
+                  options={[{v:'direct',l:'Direct (DOL)'},{v:'star_delta',l:'Étoile-Triangle'},{v:'soft_starter',l:'Démarreur progressif'},{v:'vfd',l:'Variateur (VFD)'}]}/>
+                <ProSelect label="Tension réseau" value={inputData.voltage} onChange={v=>set('voltage',v)}
+                  options={['400V','230V','380V','660V'].map(v=>({v,l:v+' — 50Hz'}))}/>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
+                <ProInput label="cos φ" value={inputData.power_factor} onChange={v=>set('power_factor',v)} icon="φ"
+                  note="0.7 → 0.9 typique"/>
+                <ProInput label="Long. câble" value={inputData.cable_length} onChange={v=>set('cable_length',v)} unit="m"/>
+                <ProSelect label="Matériau" value={inputData.cable_material} onChange={v=>set('cable_material',v)}
+                  options={[{v:'copper',l:'Cuivre'},{v:'aluminum',l:'Aluminium'}]}/>
+              </div>
+            </div>
+          </ProCard>
+
+          <button onClick={calc} disabled={loading}
+            style={{ padding:'14px', background:loading?'#94a3b8':'linear-gradient(135deg,#92400e,#d97706)', color:'white', border:'none', borderRadius:'10px', fontWeight:700, fontSize:'1rem', cursor:loading?'not-allowed':'pointer', boxShadow:'0 4px 12px rgba(217,119,6,0.3)' }}>
+            {loading ? '⏳ Analyse en cours…' : '📊 Analyser Performance'}
+          </button>
+        </div>
+
+        {/* Droite */}
+        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+
+          {/* Indicateur rendement en temps réel */}
+          <ProCard>
+            <SectionHead icon="🎯" title="Indicateur rendement" color="#d97706" sub="Mise à jour en temps réel"/>
+            {(()=>{
+              const eff = inputData.pump_efficiency;
+              const color = eff >= 75 ? '#16a34a' : eff >= 60 ? '#d97706' : '#dc2626';
+              const label = eff >= 75 ? 'Excellent' : eff >= 60 ? 'Moyen' : 'Faible';
+              return (
+                <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ fontSize:'0.75rem', color:'#64748b' }}>η pompe</span>
+                    <span style={{ fontSize:'1.2rem', fontWeight:800, color, fontFamily:DS.fontMono }}>{eff}%</span>
+                  </div>
+                  <div style={{ height:'10px', background:'#f1f5f9', borderRadius:'99px', overflow:'hidden' }}>
+                    <div style={{ width:`${eff}%`, height:'100%', background:`linear-gradient(90deg, #dc2626, #d97706 50%, #16a34a)`, transition:'width 0.4s ease', borderRadius:'99px' }}/>
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.65rem', color:'#94a3b8' }}>
+                    <span>0%</span><span style={{color}}>◀ {label} ▶</span><span>100%</span>
+                  </div>
+                  {/* Puissance hydraulique estimée */}
+                  {(()=>{
+                    const ph = (inputData.flow_rate * 9.81 * 1000 * inputData.hmt) / (3600 * 1000);
+                    const pa = ph / (inputData.pump_efficiency/100 * inputData.motor_efficiency/100);
+                    return (
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px', marginTop:'4px' }}>
+                        <div style={{ padding:'8px', background:'#eff6ff', borderRadius:'7px', textAlign:'center' }}>
+                          <div style={{ fontSize:'1.1rem', fontWeight:800, color:'#2563eb', fontFamily:DS.fontMono }}>{ph.toFixed(2)}</div>
+                          <div style={{ fontSize:'0.65rem', color:'#2563eb' }}>kW hydraulique Ph</div>
+                        </div>
+                        <div style={{ padding:'8px', background:'#faf5ff', borderRadius:'7px', textAlign:'center' }}>
+                          <div style={{ fontSize:'1.1rem', fontWeight:800, color:'#7c3aed', fontFamily:DS.fontMono }}>{pa.toFixed(2)}</div>
+                          <div style={{ fontSize:'0.65rem', color:'#7c3aed' }}>kW absorbée Pa</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
+          </ProCard>
+
+          {!result && (
+            <ProCard style={{ textAlign:'center', padding:'40px 20px', color:'#94a3b8' }}>
+              <div style={{ fontSize:'3rem', marginBottom:'12px' }}>📊</div>
+              <div style={{ fontSize:'0.9rem', fontWeight:600, color:'#64748b', marginBottom:'4px' }}>En attente d'analyse</div>
+              <div style={{ fontSize:'0.75rem' }}>Renseignez les données et cliquez sur Analyser Performance</div>
+            </ProCard>
+          )}
+
+          {result && (<>
+            {/* KPIs */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+              <KPICard big icon="⚡" label="Puissance absorbée" value={result.absorbed_power?.toFixed(2)} unit="kW"
+                color="#7c3aed" bg="#faf5ff"/>
+              <KPICard big icon="🔄" label="Rendement global" value={result.overall_efficiency?.toFixed(1)} unit="%"
+                color={result.overall_efficiency>=60?'#16a34a':'#dc2626'}
+                bg={result.overall_efficiency>=60?'#f0fdf4':'#fff1f2'}/>
+              <KPICard label="Courant nominal" value={result.nominal_current?.toFixed(1)} unit="A"
+                color="#d97706" bg="#fffbeb" icon="⚡"/>
+              <KPICard label="Section câble" value={result.cable_section} unit="mm²"
+                color="#059669" bg="#f0fdf4" icon="🔌"/>
+            </div>
+
+            {/* Détail électrique */}
+            <ProCard>
+              <SectionHead icon="🔌" title="Analyse électrique" color="#7c3aed"/>
+              <div style={{ display:'flex', flexDirection:'column', gap:'5px', fontSize:'0.8rem' }}>
+                {[
+                  ['Puissance hydraulique Ph', `${result.hydraulic_power?.toFixed(3)} kW`, '#2563eb'],
+                  ['Puissance mécanique Pm', `${result.mechanical_power?.toFixed(3)} kW`, '#059669'],
+                  ['Puissance absorbée P1', `${result.absorbed_power?.toFixed(2)} kW`, '#7c3aed'],
+                  ['Courant nominal In', `${result.nominal_current?.toFixed(1)} A`, '#d97706'],
+                  ['Courant démarrage Id', result.starting_current?`${result.starting_current?.toFixed(0)} A`:'—', '#dc2626'],
+                  ['Section câble recommandée', `${result.cable_section} mm²`, '#059669'],
+                  ['Chute de tension', `${result.voltage_drop?.toFixed(2)} V (${result.voltage_drop_percent?.toFixed(1)}%)`, result.voltage_drop_percent>3?'#dc2626':'#1e293b'],
+                ].map(([l,v,c])=>(
+                  <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid #f1f5f9' }}>
+                    <span style={{ color:'#64748b' }}>{l}</span>
+                    <span style={{ fontWeight:700, color:c, fontFamily:DS.fontMono }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              {result.voltage_drop_percent > 3 && (
+                <ProAlert type="danger" title="Chute de tension excessive" style={{marginTop:'10px'}}>
+                  ΔU = {result.voltage_drop_percent?.toFixed(1)}% &gt; 3% autorisé (NF C 15-100). Augmentez la section de câble ou réduisez la longueur.
+                </ProAlert>
+              )}
+            </ProCard>
+
+            {/* Recommendations */}
+            {result.recommendations?.length > 0 && (
+              <ProAlert type="info" title="Recommandations d'optimisation">
+                <ul style={{ margin:0, paddingLeft:'14px', lineHeight:1.7 }}>
+                  {result.recommendations.map((r,i)=><li key={i}>{r}</li>)}
+                </ul>
+              </ProAlert>
+            )}
+
+            {/* Alertes */}
+            {result.warnings?.length > 0 && (
+              <ProAlert type="warning" title="Points d'attention">
+                <ul style={{ margin:0, paddingLeft:'14px' }}>
+                  {result.warnings.map((w,i)=><li key={i}>{w}</li>)}
+                </ul>
+              </ProAlert>
+            )}
+          </>)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 // Component pour Tab Expert - Analyse Complète Professionnelle
 const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
@@ -7821,749 +7604,6 @@ const ExpertInstallationSchema = ({ inputData, results, pipeMaterials, fluids })
 
 
 // Component pour Tab 3 - Analyse de Performance
-const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
-  const [inputData, setInputData] = useState({
-    flow_rate: 50,
-    hmt: 25,
-    pipe_diameter: 100,
-    fluid_type: 'water',
-    pipe_material: 'pvc',
-    pump_efficiency: 75,
-    motor_efficiency: 90,
-    absorbed_power: null,
-    hydraulic_power: null,
-    starting_method: 'star_delta',
-    power_factor: 0.8,
-    cable_length: 50,
-    cable_material: 'copper',
-    cable_section: null,
-    voltage: 400
-  });
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const chartRef = useRef(null);
-  const chartInstance = useRef(null);
-  const powerChartRef = useRef(null);
-  const powerChartInstance = useRef(null);
-
-  const handleInputChange = (field, value) => {
-    setInputData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const calculatePerformance = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API}/calculate-performance`, inputData);
-      setResult(response.data);
-      updateChart(response.data);
-      updatePowerChart(response.data);
-    } catch (error) {
-      console.error('Erreur analyse performance:', error);
-      alert('Erreur lors de l\'analyse de performance: ' + (error.response?.data?.detail || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updatePowerChart = (data) => {
-    if (!powerChartRef.current) return;
-
-    const ctx = powerChartRef.current.getContext('2d');
-    
-    if (powerChartInstance.current) {
-      powerChartInstance.current.destroy();
-    }
-
-    const curves = data.performance_curves;
-    const bestPoint = curves.best_operating_point;
-    
-    powerChartInstance.current = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: curves.flow,
-        datasets: [
-          {
-            label: 'Puissance Absorbée (kW)',
-            data: curves.power,
-            borderColor: '#f59e0b',
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-            borderWidth: 3,
-            pointRadius: 0,
-            pointHoverRadius: 8,
-            tension: 0.4,
-            fill: false
-          },
-          {
-            label: 'Point de Fonctionnement',
-            data: curves.flow.map((f, index) => {
-              if (Math.abs(f - bestPoint.flow) < 0.1) {
-                return curves.power[index];
-              }
-              return null;
-            }),
-            borderColor: '#000000',
-            backgroundColor: '#000000',
-            borderWidth: 4,
-            pointRadius: 8,
-            pointHoverRadius: 12,
-            showLine: false
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        scales: {
-          x: {
-            display: true,
-            title: {
-              display: true,
-              text: 'Débit (m³/h)',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            },
-            grid: {
-              color: 'rgba(0, 0, 0, 0.1)'
-            }
-          },
-          y: {
-            display: true,
-            title: {
-              display: true,
-              text: 'Puissance Absorbée (kW)',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            },
-            grid: {
-              color: 'rgba(0, 0, 0, 0.1)'
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              font: {
-                size: 12,
-                weight: 'bold'
-              },
-              usePointStyle: true
-            }
-          },
-          title: {
-            display: true,
-            text: 'Courbe de Puissance Absorbée',
-            font: {
-              size: 16,
-              weight: 'bold'
-            }
-          },
-          tooltip: {
-            callbacks: {
-              afterLabel: function(context) {
-                const datasetLabel = context.dataset.label;
-                
-                if (datasetLabel.includes('Puissance')) {
-                  return `Puissance au point de fonctionnement: ${bestPoint.power?.toFixed(2)} kW`;
-                } else if (datasetLabel.includes('Point')) {
-                  return `Point de fonctionnement saisi: Q=${bestPoint.flow}m³/h, P=${bestPoint.power?.toFixed(2)}kW`;
-                }
-                return '';
-              }
-            }
-          }
-        }
-      }
-    });
-  };
-
-  const updateChart = (data) => {
-    if (!chartRef.current) return;
-
-    const ctx = chartRef.current.getContext('2d');
-    
-    if (chartInstance.current) {
-      chartInstance.current.destroy();
-    }
-
-    const curves = data.performance_curves;
-    const bestPoint = curves.best_operating_point;
-    
-    // Trouver l'index du point de fonctionnement dans les courbes
-    const operatingPointIndex = curves.flow.findIndex(f => Math.abs(f - bestPoint.flow) < 0.1);
-    
-    chartInstance.current = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: curves.flow,
-        datasets: [
-          {
-            label: 'HMT Pompe (m)',
-            data: curves.hmt,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderWidth: 3,
-            pointRadius: 0,
-            pointHoverRadius: 8,
-            tension: 0.4,
-            fill: false,
-            yAxisID: 'y'
-          },
-          {
-            label: 'Pertes de Charge Réseau (m)',
-            data: curves.head_loss,
-            borderColor: '#ef4444',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            borderWidth: 3,
-            pointRadius: 0,
-            pointHoverRadius: 8,
-            tension: 0.4,
-            fill: false,
-            yAxisID: 'y'
-          },
-          {
-            label: 'Rendement (%)',
-            data: curves.efficiency,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 8,
-            tension: 0.4,
-            fill: false,
-            yAxisID: 'y1'
-          },
-          {
-            label: 'Point de Fonctionnement',
-            data: curves.flow.map((f, index) => {
-              if (Math.abs(f - bestPoint.flow) < 0.1) {
-                return curves.hmt[index];
-              }
-              return null;
-            }),
-            borderColor: '#000000',
-            backgroundColor: '#000000',
-            borderWidth: 4,
-            pointRadius: 8,
-            pointHoverRadius: 12,
-            showLine: false,
-            yAxisID: 'y'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        scales: {
-          x: {
-            display: true,
-            title: {
-              display: true,
-              text: 'Débit (m³/h)',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            },
-            grid: {
-              color: 'rgba(0, 0, 0, 0.1)'
-            }
-          },
-          y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            title: {
-              display: true,
-              text: 'HMT (m)',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            },
-            grid: {
-              color: 'rgba(0, 0, 0, 0.1)'
-            }
-          },
-          y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            title: {
-              display: true,
-              text: 'Rendement (%)',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            },
-            min: 0,
-            max: 100,
-            grid: {
-              drawOnChartArea: false,
-            },
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              font: {
-                size: 12,
-                weight: 'bold'
-              },
-              usePointStyle: true
-            }
-          },
-          title: {
-            display: true,
-            text: 'Courbes de Performance Hydraulique Q/H',
-            font: {
-              size: 16,
-              weight: 'bold'
-            }
-          },
-          tooltip: {
-            callbacks: {
-              afterLabel: function(context) {
-                const flowValue = curves.flow[context.dataIndex];
-                const datasetLabel = context.dataset.label;
-                
-                if (datasetLabel.includes('HMT')) {
-                  return `Point de croisement: Q=${bestPoint.flow}m³/h, H=${bestPoint.hmt}m`;
-                } else if (datasetLabel.includes('Pertes')) {
-                  return `Point de croisement: Q=${bestPoint.flow}m³/h, H=${bestPoint.hmt}m`;
-                } else if (datasetLabel.includes('Rendement')) {
-                  return `Rendement au point de fonctionnement: ${bestPoint.efficiency?.toFixed(1)}%`;
-                } else if (datasetLabel.includes('Point')) {
-                  return `Point de fonctionnement saisi: Q=${bestPoint.flow}m³/h, H=${bestPoint.hmt}m`;
-                }
-                return '';
-              }
-            }
-          }
-        }
-      }
-    });
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">🟨 Analyse de Performance & Calculs Électriques</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Paramètres hydrauliques */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-gray-700">Paramètres Hydrauliques</h3>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Débit (m³/h)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.flow_rate}
-                  onChange={(e) => handleInputChange('flow_rate', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  HMT (m)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.hmt}
-                  onChange={(e) => handleInputChange('hmt', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Diamètre de tuyauterie (mm)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.pipe_diameter}
-                  onChange={(e) => handleInputChange('pipe_diameter', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type de fluide
-                </label>
-                <select
-                  value={inputData.fluid_type}
-                  onChange={(e) => handleInputChange('fluid_type', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {fluids.map(fluid => (
-                    <option key={fluid.id} value={fluid.id}>{fluid.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Matériau de tuyauterie
-                </label>
-                <select
-                  value={inputData.pipe_material}
-                  onChange={(e) => handleInputChange('pipe_material', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {pipeMaterials.map(material => (
-                    <option key={material.id} value={material.id}>{material.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-          
-          {/* Paramètres électriques */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-gray-700">Paramètres Électriques</h3>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rendement pompe (%)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.pump_efficiency}
-                  onChange={(e) => handleInputChange('pump_efficiency', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rendement moteur (%)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.motor_efficiency}
-                  onChange={(e) => handleInputChange('motor_efficiency', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Puissance absorbée P1 (kW) - Optionnel
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.absorbed_power || ''}
-                  onChange={(e) => handleInputChange('absorbed_power', e.target.value ? parseFloat(e.target.value) : null)}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Puissance hydraulique P2 (kW) - Optionnel
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.hydraulic_power || ''}
-                  onChange={(e) => handleInputChange('hydraulic_power', e.target.value ? parseFloat(e.target.value) : null)}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Méthode de démarrage
-                </label>
-                <select
-                  value={inputData.starting_method}
-                  onChange={(e) => handleInputChange('starting_method', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="star_delta">Étoile-Triangle</option>
-                  <option value="direct_on_line">Démarrage direct</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Facteur de puissance (cos φ)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  step="0.01"
-                  min="0.1"
-                  max="1"
-                  value={inputData.power_factor}
-                  onChange={(e) => handleInputChange('power_factor', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Longueur de câble (m)
-                </label>
-                <input
-                  type="text" inputMode="decimal"
-                  value={inputData.cable_length}
-                  onChange={(e) => handleInputChange('cable_length', parseFloat(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Matériau de câble
-                </label>
-                <select
-                  value={inputData.cable_material}
-                  onChange={(e) => handleInputChange('cable_material', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="copper">Cuivre</option>
-                  <option value="aluminum">Aluminium</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tension (V)
-                </label>
-                <select
-                  value={inputData.voltage}
-                  onChange={(e) => handleInputChange('voltage', parseInt(e.target.value))}
-                  onFocus={e=>e.target.select()}
-                  onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value={230}>230V</option>
-                  <option value={400}>400V</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="mt-6">
-          <button
-            onClick={calculatePerformance}
-            disabled={loading}
-            className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 disabled:opacity-50 font-medium"
-          >
-            {loading ? 'Analyse en cours...' : 'Analyser Performance'}
-          </button>
-        </div>
-      </div>
-      
-      {/* Résultats */}
-      {result && (
-        <>
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Résultats Analyse de Performance</h3>
-            
-            {result.warnings && result.warnings.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                <h4 className="font-medium text-yellow-800 mb-2">⚠️ Avertissements</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
-                  {result.warnings.map((warning, index) => (
-                    <li key={index}>• {warning}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {result.recommendations && result.recommendations.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h4 className="font-medium text-blue-800 mb-2">💡 Recommandations</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  {result.recommendations.map((recommendation, index) => (
-                    <li key={index}>• {recommendation}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-700 border-b pb-2">Données Hydrauliques</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Vitesse:</span>
-                    <span className="font-medium">{result.velocity?.toFixed(2)} m/s</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Nombre de Reynolds:</span>
-                    <span className="font-medium">{result.reynolds_number?.toFixed(0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Régime d'écoulement:</span>
-                    <span className="font-medium">{result.reynolds_number > 4000 ? 'Turbulent' : result.reynolds_number > 2300 ? 'Transitoire' : 'Laminaire'}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-700 border-b pb-2">Rendements</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Rendement pompe:</span>
-                    <span className="font-medium">{result.pump_efficiency?.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Rendement moteur:</span>
-                    <span className="font-medium">{result.motor_efficiency?.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="font-semibold">Rendement global:</span>
-                    <span className="font-bold">{result.overall_efficiency?.toFixed(1)}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Affichage des alertes */}
-            {result.alerts && result.alerts.length > 0 && (
-              <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <h4 className="font-medium text-orange-800 mb-2">🔔 Alertes Techniques</h4>
-                <ul className="text-sm text-orange-700 space-y-1">
-                  {result.alerts.map((alert, index) => (
-                    <li key={index}>• {alert}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-700 border-b pb-2">Calculs Électriques</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Courant nominal:</span>
-                    <span className="font-medium">{result.nominal_current?.toFixed(1)} A</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Courant démarrage:</span>
-                    <span className="font-medium">{result.starting_current?.toFixed(1)} A</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Section de câble:</span>
-                    <span className="font-medium">{result.recommended_cable_section?.toFixed(1)} mm²</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Méthode démarrage:</span>
-                    <span className="font-medium">{result.electrical_data?.starting_method === 'star_delta' ? 'Étoile-Triangle' : 'Direct'}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-700 border-b pb-2">Puissances</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Puissance hydraulique:</span>
-                    <span className="font-medium">{result.power_calculations?.hydraulic_power?.toFixed(2)} kW</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Puissance absorbée:</span>
-                    <span className="font-medium">{result.power_calculations?.absorbed_power?.toFixed(2)} kW</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tension:</span>
-                    <span className="font-medium">{result.electrical_data?.voltage} V</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Facteur de puissance:</span>
-                    <span className="font-medium">{result.electrical_data?.power_factor}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Meilleur point de fonctionnement */}
-          {result.performance_curves && result.performance_curves.best_operating_point && (
-            <div className="mt-6 pt-4 border-t">
-              <h4 className="font-medium text-gray-700 mb-3">🎯 Point de Fonctionnement (Valeurs Saisies)</h4>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="font-bold text-blue-800">{inputData.flow_rate}</div>
-                    <div className="text-blue-600">Débit (m³/h)</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-bold text-blue-800">{inputData.hmt}</div>
-                    <div className="text-blue-600">HMT (m)</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-bold text-blue-800">{inputData.pump_efficiency}</div>
-                    <div className="text-blue-600">Rendement (%)</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-bold text-blue-800">{result.performance_curves.best_operating_point.power?.toFixed(2)}</div>
-                    <div className="text-blue-600">Puissance (kW)</div>
-                  </div>
-                </div>
-                <div className="mt-3 text-center text-xs text-blue-600">
-                  Calculé avec formule P2 = ((Q × HMT) / (η × 367)) × 100 et pertes Darcy-Weisbach
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Graphiques des courbes de performance */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Courbes de Performance Hydraulique</h3>
-            <canvas ref={chartRef} className="w-full h-96"></canvas>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Courbe de Puissance Absorbée</h3>
-            <canvas ref={powerChartRef} className="w-full h-64"></canvas>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
 
 
 
@@ -10807,6 +9847,5 @@ function App() {
     </div>
   );
 }
-
 
 export default App;
