@@ -9395,558 +9395,860 @@ const WaterHammerCalculator = () => {
 // ════════════════════════════════════════════════════════════════
 
 // ── Base de données Grundfos extraite des PDF techniques ──────────────
+
+// ══════════════════════════════════════════════════════════════════════
+// BASE DE DONNÉES POMPES GRUNDFOS — COURBES Q/H RÉELLES
+// Source : Databooklets CR 50Hz 2026 + SP 50Hz 2025 (points lus sur courbes)
+//
+// Structure par modèle :
+//   curve_qh : [[Q,H], ...] — points lus sur la courbe Q/H du 1er étage (stage)
+//              Pour SP : c'est le H par étage. Total = stages × H_stage(Q)
+//              Pour CR : points extraits directement pour chaque modèle (stages implicites)
+//   curve_eta: [[Q,η%], ...] — courbe de rendement (commune à la famille)
+//   H_stage   (SP uniquement) : H par étage = f(Q)
+// ══════════════════════════════════════════════════════════════════════
+
+// ── Utilitaires d'interpolation ───────────────────────────────────────
+// Interpolation linéaire entre 2 points
+const lerp = (x, x0, x1, y0, y1) => y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+
+// Interpolation sur tableau de points [[x,y]] trié par x croissant
+const interpolate = (pts, x) => {
+  if (!pts || pts.length === 0) return null;
+  if (x <= pts[0][0]) return pts[0][1];
+  if (x >= pts[pts.length-1][0]) return pts[pts.length-1][1];
+  for (let i = 0; i < pts.length-1; i++) {
+    if (x >= pts[i][0] && x <= pts[i+1][0]) {
+      return lerp(x, pts[i][0], pts[i+1][0], pts[i][1], pts[i+1][1]);
+    }
+  }
+  return null;
+};
+
+// Calcule HMT réelle, rendement, et puissance au débit Q
+const calcAtQ = (pump, Q) => {
+  // HMT via courbe
+  const H = interpolate(pump.curve_qh, Q);
+  if (H === null || H <= 0) return null;
+  // Rendement via courbe eta
+  const eta = pump.curve_eta ? interpolate(pump.curve_eta, Q) : pump.eta_bep;
+  // Puissance hydraulique
+  const Ph = (Q * 9.81 * 1000 * H) / 3600000; // kW
+  const Pa = eta > 0 ? Ph / (eta/100) : null;
+  return { H: parseFloat(H.toFixed(1)), eta: parseFloat(eta.toFixed(1)), Ph: parseFloat(Ph.toFixed(3)), Pa: parseFloat((Pa||0).toFixed(3)) };
+};
+
+// ── Courbes par étage (stage curves) pour familles SP ─────────────────
+// Points lus sur les graphiques Q/H des databooklets
+// Format : [Q m³/h, H_1étage m]
+
+const SP_STAGE_CURVES = {
+  // SP 1A — 1 étage → Q_max ≈ 1.5 m³/h. H/stage ≈ 9m à 0 m³/h, 4m à 1.5m³/h
+  'SP 1A': {
+    qh1: [[0,9.5],[0.3,9.2],[0.6,8.8],[0.9,8.2],[1.2,7.2],[1.5,5.5],[1.7,3.0]],
+    eta: [[0,0],[0.3,15],[0.6,28],[0.9,38],[1.2,39],[1.5,36],[1.7,28]],
+    Q_max:1.5, eta_bep:39, Q_bep:1.2
+  },
+  // SP 2A — Q_max ≈ 2.5 m³/h. H/stage ≈ 8m à Q=0, 5.5m à 2m³/h
+  'SP 2A': {
+    qh1: [[0,8.5],[0.5,8.2],[1.0,7.8],[1.5,7.2],[2.0,6.2],[2.5,4.8],[2.8,3.0]],
+    eta: [[0,0],[0.5,20],[1.0,35],[1.5,48],[2.0,51],[2.5,50],[2.8,44]],
+    Q_max:2.5, eta_bep:51, Q_bep:2.0
+  },
+  // SP 3A — Q_max ≈ 3.5 m³/h. H/stage ≈ 8.5m à Q=0
+  'SP 3A': {
+    qh1: [[0,9.0],[0.5,8.8],[1.0,8.5],[1.5,8.0],[2.0,7.5],[2.5,6.8],[3.0,5.8],[3.5,4.2],[3.8,2.5]],
+    eta: [[0,0],[0.5,18],[1.0,32],[1.5,44],[2.0,54],[2.5,57],[3.0,58],[3.5,55],[3.8,48]],
+    Q_max:3.5, eta_bep:58, Q_bep:2.5
+  },
+  // SP 5A — Q_max ≈ 6.4 m³/h. H/stage ≈ 10m à Q=0 (lu sur courbe SP 5A)
+  'SP 5A': {
+    qh1: [[0,10.2],[0.8,10.0],[1.6,9.7],[2.4,9.2],[3.2,8.6],[4.0,7.8],[4.8,6.8],[5.6,5.5],[6.4,3.5]],
+    eta: [[0,0],[0.8,22],[1.6,38],[2.4,50],[3.2,56],[4.0,60],[4.8,61],[5.6,60],[6.4,55]],
+    Q_max:6.4, eta_bep:61, Q_bep:4.8
+  },
+  // SP 7 — Q_max ≈ 9 m³/h. H/stage ≈ 6.3m @ Q=0 (lu courbe SP 7 → 100 stages = 630m à Q=0)
+  'SP 7': {
+    qh1: [[0,6.2],[1,6.1],[2,5.9],[3,5.7],[4,5.4],[5,5.0],[6,4.5],[7,3.8],[8,2.9],[9,1.6]],
+    eta: [[0,0],[1,25],[2,42],[3,54],[4,62],[5,67],[6,69],[7,69],[8,67],[9,62]],
+    Q_max:9.0, eta_bep:69, Q_bep:6.0
+  },
+  // SP 9 — Q_max ≈ 13 m³/h. H/stage ≈ 8.3m @ Q=0
+  'SP 9': {
+    qh1: [[0,8.5],[1,8.4],[2,8.2],[3,8.0],[4,7.8],[5,7.4],[6,7.0],[7,6.5],[8,5.8],[9,5.0],[10,4.0],[11,2.8],[12,1.5]],
+    eta: [[0,0],[2,28],[4,46],[5,54],[6,62],[7,68],[8,70],[9,71],[10,70],[11,67],[12,62]],
+    Q_max:13.0, eta_bep:71, Q_bep:9.0
+  },
+  // SP 11 — Q_max ≈ 16.5 m³/h. H/stage ≈ 8.5m @ Q=0
+  'SP 11': {
+    qh1: [[0,8.8],[2,8.6],[4,8.3],[6,7.9],[8,7.4],[10,6.8],[12,6.0],[14,5.0],[15,4.2],[16.5,2.5]],
+    eta: [[0,0],[3,30],[6,50],[8,60],[10,68],[12,70],[14,70],[16,66],[16.5,62]],
+    Q_max:16.5, eta_bep:70, Q_bep:12.0
+  },
+  // SP 14 — Q_max ≈ 20 m³/h. H/stage ≈ 9m @ Q=0
+  'SP 14': {
+    qh1: [[0,9.2],[2,9.0],[4,8.8],[6,8.5],[8,8.1],[10,7.6],[12,7.0],[14,6.2],[16,5.2],[18,4.0],[20,2.2]],
+    eta: [[0,0],[4,35],[8,58],[10,64],[12,68],[14,70],[16,70],[18,67],[20,62]],
+    Q_max:20.0, eta_bep:70, Q_bep:14.0
+  },
+  // SP 18 — Q_max ≈ 27 m³/h. 6". H/stage ≈ 9.2m @ Q=0
+  'SP 18': {
+    qh1: [[0,9.5],[3,9.3],[6,9.0],[9,8.7],[12,8.3],[15,7.7],[18,7.0],[21,6.1],[24,5.0],[27,3.5]],
+    eta: [[0,0],[5,38],[10,60],[15,72],[18,77],[21,78],[24,77],[27,73]],
+    Q_max:27.0, eta_bep:78, Q_bep:20.0
+  },
+  // SP 32 — Q_max ≈ 45 m³/h. 6". H/stage ≈ 10m @ Q=0
+  'SP 32': {
+    qh1: [[0,10.5],[5,10.2],[10,9.8],[15,9.3],[20,8.6],[25,7.8],[30,6.8],[35,5.6],[40,4.2],[45,2.5]],
+    eta: [[0,0],[10,45],[20,66],[25,74],[30,78],[35,79],[40,77],[45,72]],
+    Q_max:45.0, eta_bep:79, Q_bep:32.0
+  },
+  // SP 46 — Q_max ≈ 60 m³/h. 6". H/stage ≈ 11.5m @ Q=0
+  'SP 46': {
+    qh1: [[0,12.0],[5,11.8],[10,11.4],[15,11.0],[20,10.4],[25,9.7],[30,8.9],[35,8.0],[40,6.9],[50,4.8],[60,2.0]],
+    eta: [[0,0],[10,42],[20,64],[30,74],[40,76],[50,74],[60,68]],
+    Q_max:60.0, eta_bep:76, Q_bep:40.0
+  },
+  // SP 60 — Q_max ≈ 80 m³/h. 6". H/stage ≈ 10m @ Q=0
+  'SP 60': {
+    qh1: [[0,10.5],[10,10.2],[20,9.7],[30,9.0],[40,8.2],[50,7.2],[60,6.0],[70,4.5],[80,2.5]],
+    eta: [[0,0],[15,45],[30,65],[45,74],[60,77],[70,76],[80,70]],
+    Q_max:80.0, eta_bep:77, Q_bep:60.0
+  },
+  // SP 77 — Q_max ≈ 95 m³/h. 8". H/stage ≈ 10.5m @ Q=0
+  'SP 77': {
+    qh1: [[0,11.0],[10,10.8],[20,10.4],[30,9.9],[40,9.3],[50,8.5],[60,7.5],[70,6.3],[80,4.8],[90,3.0],[95,2.0]],
+    eta: [[0,0],[20,48],[40,66],[60,75],[70,78],[80,78],[90,74],[95,70]],
+    Q_max:95.0, eta_bep:78, Q_bep:75.0
+  },
+  // SP 95 — Q_max ≈ 120 m³/h. 8". H/stage ≈ 10.7m
+  'SP 95': {
+    qh1: [[0,11.2],[15,11.0],[30,10.6],[45,10.1],[60,9.4],[75,8.5],[90,7.3],[100,6.2],[110,4.8],[120,3.0]],
+    eta: [[0,0],[25,48],[50,66],[75,76],[90,79],[100,79],[110,76],[120,70]],
+    Q_max:120.0, eta_bep:79, Q_bep:90.0
+  },
+  // SP 125 — Q_max ≈ 160 m³/h. 10"
+  'SP 125': {
+    qh1: [[0,11.5],[20,11.2],[40,10.8],[60,10.2],[80,9.5],[100,8.5],[120,7.2],[140,5.6],[150,4.5],[160,3.0]],
+    eta: [[0,0],[30,46],[60,64],[90,74],[110,78],[130,79],[150,76],[160,70]],
+    Q_max:160.0, eta_bep:79, Q_bep:120.0
+  },
+  // SP 160 — Q_max ≈ 210 m³/h. 10"
+  'SP 160': {
+    qh1: [[0,12.0],[25,11.8],[50,11.3],[75,10.7],[100,9.9],[125,9.0],[150,7.8],[175,6.3],[200,4.5],[210,3.2]],
+    eta: [[0,0],[40,46],[80,64],[120,74],[150,79],[175,80],[200,77],[210,72]],
+    Q_max:210.0, eta_bep:80, Q_bep:160.0
+  },
+  // SP 215 — Q_max ≈ 280 m³/h. 10"
+  'SP 215': {
+    qh1: [[0,13.5],[30,13.2],[60,12.8],[90,12.2],[120,11.4],[150,10.4],[180,9.2],[210,7.7],[240,6.0],[260,4.5],[280,2.5]],
+    eta: [[0,0],[50,46],[100,64],[150,75],[190,82],[220,83],[250,81],[280,74]],
+    Q_max:280.0, eta_bep:83, Q_bep:210.0
+  },
+};
+
+// ── Courbes Q/H directes pour familles CR ─────────────────────────────
+// Format : curve_qh = [[Q, H_totale], ...] pour chaque modèle spécifique
+// Eta curve = courbe commune à la famille (par Q d'1 étage, identique à toutes les versions)
+
+const CR_ETA_CURVES = {
+  // CR 1 — η BEP ≈ 42% @ Q=1.4 m³/h (lu sur graphique)
+  'CR 1': [[0,0],[0.3,16],[0.6,28],[0.9,36],[1.2,40],[1.5,42],[1.8,42],[2.0,40],[2.2,36]],
+  // CR 3 — η BEP ≈ 54% @ Q=3.0 m³/h
+  'CR 3': [[0,0],[0.5,18],[1.0,32],[1.5,42],[2.0,50],[2.5,53],[3.0,54],[3.5,52],[4.0,49],[4.5,44]],
+  // CR 5 — η BEP ≈ 62% @ Q=5.5 m³/h (lu sur courbe CR 5)
+  'CR 5': [[0,0],[1,22],[2,38],[3,50],[4,58],[5,62],[6,64],[7,63],[8,60],[8.5,56]],
+  // CR 10 — η BEP ≈ 68% @ Q=8.5 m³/h (lu sur courbe CR 10)
+  'CR 10': [[0,0],[1.5,25],[3,42],[5,56],[6,62],[7,66],[8,68],[9,68],[10,66],[11,63],[12,58]],
+  // CR 15 — η BEP ≈ 72% @ Q=13 m³/h
+  'CR 15': [[0,0],[2,28],[5,50],[8,62],[10,68],[12,71],[13,72],[15,71],[17,68],[18.5,63]],
+  // CR 20 — η BEP ≈ 73% @ Q=18 m³/h
+  'CR 20': [[0,0],[3,28],[6,48],[9,60],[12,68],[15,72],[18,73],[20,73],[22,71],[24,67]],
+  // CR 32 — η BEP ≈ 76% @ Q=28 m³/h
+  'CR 32': [[0,0],[5,35],[10,52],[15,62],[20,70],[25,74],[28,76],[32,76],[36,74],[40,70]],
+  // CR 45 — η BEP ≈ 78% @ Q=40 m³/h
+  'CR 45': [[0,0],[8,38],[15,56],[22,66],[30,73],[36,76],[40,78],[45,78],[50,76],[55,72]],
+  // CR 64 — η BEP ≈ 78% @ Q=52 m³/h
+  'CR 64': [[0,0],[10,38],[20,56],[30,66],[40,73],[48,77],[52,78],[60,78],[65,76],[72,70]],
+  // CR 95+ — η BEP ≈ 80%+
+  'CR 95':  [[0,0],[15,40],[30,58],[50,70],[70,77],[85,80],[90,80],[100,78],[110,73]],
+  'CR 125': [[0,0],[20,40],[40,58],[70,72],[95,79],[110,81],[120,81],[135,79],[145,74]],
+  'CR 155': [[0,0],[25,40],[50,58],[90,72],[125,80],[145,82],[155,82],[165,80],[180,74]],
+  'CR 215': [[0,0],[35,40],[70,60],[120,74],[170,81],[195,83],[210,83],[230,80],[250,74]],
+  'CR 255': [[0,0],[40,40],[80,60],[140,73],[200,81],[230,83],[250,83],[270,80],[290,74]],
+};
+
+// ── H par étage pour familles CR ─────────────────────────────────────
+// Points lus sur courbe de 1 étage (ex : CR 5 stage 1 ≈ 9.2m à Q=0, 8.2m à Q=5, etc.)
+const CR_STAGE_QH = {
+  // CR 1 — 1 étage ≈ 6.4m à Q=0, 3m à Q=2.2
+  'CR 1': [[0,6.6],[0.3,6.5],[0.6,6.4],[0.9,6.2],[1.2,5.9],[1.5,5.5],[1.8,5.0],[2.0,4.5],[2.2,3.8]],
+  // CR 3 — 1 étage ≈ 8m à Q=0, 5m à Q=4.5
+  'CR 3': [[0,8.2],[0.5,8.1],[1.0,8.0],[1.5,7.8],[2.0,7.5],[2.5,7.1],[3.0,6.6],[3.5,6.0],[4.0,5.2],[4.5,4.2]],
+  // CR 5 — 1 étage ≈ 9.5m à Q=0, 6m à Q=8.5 (lu sur courbe CR5)
+  'CR 5': [[0,9.6],[1,9.5],[2,9.3],[3,9.0],[4,8.6],[5,8.1],[6,7.4],[7,6.5],[8,5.4],[8.5,4.5]],
+  // CR 10 — 1 étage ≈ 10.5m à Q=0 (lu sur courbe CR10)
+  'CR 10': [[0,10.8],[1,10.7],[2,10.6],[3,10.4],[4,10.2],[5,9.9],[6,9.5],[7,9.0],[8,8.4],[9,7.7],[10,6.8],[11,5.8],[12,4.5]],
+  // CR 15 — 1 étage ≈ 10.5m
+  'CR 15': [[0,10.8],[2,10.6],[4,10.4],[6,10.1],[8,9.7],[10,9.2],[12,8.5],[14,7.6],[16,6.5],[17,5.8],[18.5,4.5]],
+  // CR 20 — 1 étage ≈ 11m
+  'CR 20': [[0,11.2],[3,11.0],[6,10.7],[9,10.3],[12,9.8],[15,9.1],[18,8.2],[20,7.5],[22,6.6],[24,5.4]],
+  // CR 32 — 1 étage ≈ 8.8m
+  'CR 32': [[0,9.0],[5,8.8],[10,8.5],[15,8.1],[20,7.5],[25,6.8],[30,5.9],[35,4.8],[40,3.5]],
+  // CR 45 — 1 étage ≈ 9.0m
+  'CR 45': [[0,9.2],[5,9.0],[10,8.8],[15,8.5],[20,8.0],[25,7.4],[30,6.7],[35,5.8],[40,4.8],[45,3.5],[55,1.5]],
+  // CR 64 — 1 étage ≈ 8.5m
+  'CR 64': [[0,8.7],[8,8.5],[16,8.2],[24,7.8],[32,7.2],[40,6.5],[48,5.6],[56,4.5],[64,3.2],[72,1.8]],
+  // CR 95 — 1 étage ≈ 10.5m
+  'CR 95':  [[0,10.8],[12,10.5],[24,10.1],[36,9.6],[48,8.9],[60,8.0],[72,7.0],[84,5.7],[96,4.2],[110,2.5]],
+  // CR 125 — 1 étage ≈ 11m
+  'CR 125': [[0,11.2],[15,11.0],[30,10.6],[45,10.1],[60,9.4],[80,8.4],[100,7.1],[120,5.5],[135,4.0],[145,2.5]],
+  // CR 155 — 1 étage ≈ 9.5m
+  'CR 155': [[0,9.8],[20,9.5],[40,9.1],[60,8.6],[80,7.9],[100,7.0],[120,5.9],[140,4.6],[160,3.0],[180,1.5]],
+  // CR 215 — 1 étage ≈ 11.5m
+  'CR 215': [[0,11.8],[25,11.5],[50,11.0],[80,10.3],[110,9.4],[140,8.3],[170,7.0],[200,5.4],[220,4.0],[250,2.0]],
+  // CR 255 — 1 étage ≈ 9.5m
+  'CR 255': [[0,9.8],[30,9.5],[60,9.1],[90,8.6],[120,7.9],[150,7.0],[180,5.9],[210,4.6],[250,3.0],[290,1.0]],
+};
+
+// ── Fonction : obtenir courbe Q/H complète d'un modèle ───────────────
+const getPumpCurveQH = (pump) => {
+  const n = pump.stages;
+  if (pump.serie === 'SP') {
+    const family = pump.sp_family;
+    const sc = SP_STAGE_CURVES[family];
+    if (!sc) return null;
+    // Courbe totale = H_1stage(Q) × n_stages
+    return sc.qh1.map(([q, h]) => [q, parseFloat((h * n).toFixed(1))]);
+  } else {
+    // CR : H_1stage(Q) × n_stages
+    const family = pump.cr_family;
+    const sc = CR_STAGE_QH[family];
+    if (!sc) return null;
+    return sc.map(([q, h]) => [q, parseFloat((h * n).toFixed(1))]);
+  }
+};
+
+const getPumpEtaCurve = (pump) => {
+  if (pump.serie === 'SP') {
+    const sc = SP_STAGE_CURVES[pump.sp_family];
+    return sc ? sc.eta : null;
+  } else {
+    return CR_ETA_CURVES[pump.cr_family] || null;
+  }
+};
+
+// Calcule HMT et eta au Q demandé pour une pompe
+const getPumpAtQ = (pump, Q) => {
+  const qh = getPumpCurveQH(pump);
+  const eta_curve = getPumpEtaCurve(pump);
+  if (!qh) return null;
+  const H = interpolate(qh, Q);
+  if (H === null || H <= 0) return null;
+  const eta = eta_curve ? interpolate(eta_curve, Q) : pump.eta_bep;
+  const Ph = (Q * 9.81 * 1000 * H) / 3600000;
+  const Pa = eta > 0 ? Ph / (eta / 100) : null;
+  const Q_max_real = qh[qh.length-1][0];
+  return {
+    H: parseFloat(H.toFixed(2)),
+    eta: parseFloat((eta||0).toFixed(1)),
+    Ph: parseFloat(Ph.toFixed(3)),
+    Pa: parseFloat((Pa||0).toFixed(2)),
+    Q_max_real
+  };
+};
+
+// ── BASE DE DONNÉES COMPLÈTE ──────────────────────────────────────────
 const PUMP_DB = [
+  // ════ CR 1 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-2',  stages:2,  P_kw:0.37, IP:55, conn:'G 1/2',       pn:16, DN_mm:25,  temp_max:120, code:'92900962', prix_ht:1395, app:'Domestique,surpression légère', Q_nom:1.5, H_nom:13 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-3',  stages:3,  P_kw:0.37, IP:55, conn:'G 1/2',       pn:16, DN_mm:25,  temp_max:120, code:'92900963', prix_ht:1446, app:'Domestique,surpression', Q_nom:1.5, H_nom:19 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-4',  stages:4,  P_kw:0.37, IP:55, conn:'G 1/2',       pn:16, DN_mm:25,  temp_max:120, code:'92900965', prix_ht:1497, app:'Domestique,surpression', Q_nom:1.5, H_nom:25 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-5',  stages:5,  P_kw:0.37, IP:55, conn:'G 1/2',       pn:16, DN_mm:25,  temp_max:120, code:'92900969', prix_ht:1547, app:'Domestique,surpression', Q_nom:1.5, H_nom:32 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-6',  stages:6,  P_kw:0.37, IP:55, conn:'G 1/2',       pn:16, DN_mm:25,  temp_max:120, code:'92900970', prix_ht:1598, app:'Surpression,irrigation', Q_nom:1.5, H_nom:38 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-8',  stages:8,  P_kw:0.55, IP:55, conn:'G 1/2',       pn:16, DN_mm:25,  temp_max:120, code:'92900974', prix_ht:1724, app:'Surpression,irrigation', Q_nom:1.5, H_nom:50 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-10', stages:10, P_kw:0.55, IP:55, conn:'G 1/2',       pn:16, DN_mm:25,  temp_max:120, code:'92900978', prix_ht:1837, app:'Surpression,industrie', Q_nom:1.5, H_nom:63 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-13', stages:13, P_kw:0.75, IP:55, conn:'G 1/2',       pn:16, DN_mm:25,  temp_max:120, code:'92900983', prix_ht:2162, app:'Surpression,industrie', Q_nom:1.5, H_nom:82 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-15', stages:15, P_kw:0.75, IP:55, conn:'G 1/2',       pn:25, DN_mm:25,  temp_max:120, code:'92900986', prix_ht:2319, app:'Industrie,HTB', Q_nom:1.5, H_nom:95 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-19', stages:19, P_kw:1.1,  IP:55, conn:'G 1/2',       pn:25, DN_mm:25,  temp_max:120, code:'92901383', prix_ht:2755, app:'Industrie,HTB', Q_nom:1.5, H_nom:120 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-25', stages:25, P_kw:1.5,  IP:55, conn:'G 1/2',       pn:25, DN_mm:25,  temp_max:120, code:'92901384', prix_ht:2913, app:'Industrie,HTB', Q_nom:1.5, H_nom:158 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-30', stages:30, P_kw:1.5,  IP:55, conn:'G 1/2',       pn:25, DN_mm:25,  temp_max:120, code:'92901385', prix_ht:3076, app:'Industrie,HTB', Q_nom:1.5, H_nom:190 },
 
-  // ════ GRUNDFOS CR — Multicellulaire verticale en ligne ════
-  // CR 1 : Q 0~2.2 m³/h | H par étage ≈ 6.5m | Connexion G1/2 | PN 16/25
-  { brand:'Grundfos', serie:'CR', model:'CR 1-2',  Q_min:0, Q_max:2.2, Q_bep:1.2, H_bep:13,  H_max:16,  stages:2,  P_kw:0.37, eta_bep:42, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:'92900962', prix_ht:1395, fluide:'Eau claire/glycol', app:'Domestique,industrie,HVAC', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 1-3',  Q_min:0, Q_max:2.2, Q_bep:1.2, H_bep:20,  H_max:24,  stages:3,  P_kw:0.37, eta_bep:45, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:'92900963', prix_ht:1446, fluide:'Eau claire/glycol', app:'Domestique,industrie', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 1-4',  Q_min:0, Q_max:2.2, Q_bep:1.2, H_bep:26,  H_max:32,  stages:4,  P_kw:0.37, eta_bep:46, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:'92900965', prix_ht:1497, fluide:'Eau claire/glycol', app:'Domestique,industrie', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 1-6',  Q_min:0, Q_max:2.2, Q_bep:1.2, H_bep:39,  H_max:47,  stages:6,  P_kw:0.37, eta_bep:48, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:'92900970', prix_ht:1598, fluide:'Eau claire/glycol', app:'Domestique,industrie', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 1-9',  Q_min:0, Q_max:2.2, Q_bep:1.2, H_bep:59,  H_max:70,  stages:9,  P_kw:0.55, eta_bep:50, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:'92900977', prix_ht:1758, fluide:'Eau claire/glycol', app:'Domestique,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 1-12', Q_min:0, Q_max:2.2, Q_bep:1.2, H_bep:78,  H_max:94,  stages:12, P_kw:0.75, eta_bep:52, IP:55, conn:'G 1/2', pn:25, DN_mm:25, temp_max:120, code:'92900982', prix_ht:2089, fluide:'Eau claire/glycol', app:'Industrie,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 1-19', Q_min:0, Q_max:2.2, Q_bep:1.2, H_bep:124, H_max:148, stages:19, P_kw:1.1,  eta_bep:53, IP:55, conn:'G 1/2', pn:25, DN_mm:25, temp_max:120, code:'92901383', prix_ht:2755, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 1-25', Q_min:0, Q_max:2.2, Q_bep:1.2, H_bep:163, H_max:195, stages:25, P_kw:1.5,  eta_bep:53, IP:55, conn:'G 1/2', pn:25, DN_mm:25, temp_max:120, code:'92901384', prix_ht:2913, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 1-33', Q_min:0, Q_max:2.2, Q_bep:1.2, H_bep:215, H_max:258, stages:33, P_kw:2.2,  eta_bep:52, IP:55, conn:'G 1/2', pn:25, DN_mm:25, temp_max:120, code:'92901385', prix_ht:3076, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
+  // ════ CR 3 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-2',  stages:2,  P_kw:0.37, IP:55, conn:'G 1',         pn:16, DN_mm:32,  temp_max:120, code:'96509003', prix_ht:1480, app:'Domestique,HVAC,irrigation', Q_nom:3.0, H_nom:16 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-3',  stages:3,  P_kw:0.37, IP:55, conn:'G 1',         pn:16, DN_mm:32,  temp_max:120, code:'96509004', prix_ht:1535, app:'Irrigation,HVAC', Q_nom:3.0, H_nom:24 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-4',  stages:4,  P_kw:0.55, IP:55, conn:'G 1',         pn:16, DN_mm:32,  temp_max:120, code:'96509005', prix_ht:1645, app:'Irrigation,surpression', Q_nom:3.0, H_nom:32 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-5',  stages:5,  P_kw:0.55, IP:55, conn:'G 1',         pn:16, DN_mm:32,  temp_max:120, code:'96509006', prix_ht:1720, app:'Irrigation,surpression', Q_nom:3.0, H_nom:40 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-7',  stages:7,  P_kw:0.75, IP:55, conn:'G 1',         pn:16, DN_mm:32,  temp_max:120, code:'96509007', prix_ht:1820, app:'Surpression,industrie', Q_nom:3.0, H_nom:56 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-9',  stages:9,  P_kw:1.1,  IP:55, conn:'G 1',         pn:16, DN_mm:32,  temp_max:120, code:'96509009', prix_ht:2020, app:'Surpression,industrie', Q_nom:3.0, H_nom:72 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-12', stages:12, P_kw:1.5,  IP:55, conn:'G 1',         pn:25, DN_mm:32,  temp_max:120, code:'96509012', prix_ht:2350, app:'Industrie', Q_nom:3.0, H_nom:96 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-17', stages:17, P_kw:2.2,  IP:55, conn:'G 1',         pn:25, DN_mm:32,  temp_max:120, code:'96509017', prix_ht:2920, app:'Industrie,HTB', Q_nom:3.0, H_nom:136 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-23', stages:23, P_kw:3.0,  IP:55, conn:'G 1',         pn:25, DN_mm:32,  temp_max:120, code:'96509023', prix_ht:3480, app:'Industrie,HTB', Q_nom:3.0, H_nom:184 },
 
-  // CR 3 : Q 0~4.5 m³/h | H par étage ≈ 8m
-  { brand:'Grundfos', serie:'CR', model:'CR 3-2',  Q_min:0, Q_max:4.5, Q_bep:2.8, H_bep:16,  H_max:20,  stages:2,  P_kw:0.37, eta_bep:50, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:'96509003', prix_ht:1480, fluide:'Eau claire/glycol', app:'Domestique,irrigation,HVAC', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 3-3',  Q_min:0, Q_max:4.5, Q_bep:2.8, H_bep:24,  H_max:30,  stages:3,  P_kw:0.37, eta_bep:52, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:'96509004', prix_ht:1535, fluide:'Eau claire/glycol', app:'Domestique,irrigation', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 3-5',  Q_min:0, Q_max:4.5, Q_bep:2.8, H_bep:40,  H_max:50,  stages:5,  P_kw:0.55, eta_bep:54, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:'96509005', prix_ht:1645, fluide:'Eau claire/glycol', app:'Irrigation,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 3-7',  Q_min:0, Q_max:4.5, Q_bep:2.8, H_bep:56,  H_max:70,  stages:7,  P_kw:0.75, eta_bep:56, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:'96509007', prix_ht:1820, fluide:'Eau claire/glycol', app:'Irrigation,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 3-9',  Q_min:0, Q_max:4.5, Q_bep:2.8, H_bep:72,  H_max:90,  stages:9,  P_kw:1.1,  eta_bep:57, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:'96509009', prix_ht:2020, fluide:'Eau claire/glycol', app:'Surpression,industrie', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 3-12', Q_min:0, Q_max:4.5, Q_bep:2.8, H_bep:96,  H_max:120, stages:12, P_kw:1.5,  eta_bep:58, IP:55, conn:'G 1', pn:25, DN_mm:32, temp_max:120, code:'96509012', prix_ht:2350, fluide:'Eau claire/glycol', app:'Industrie', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 3-17', Q_min:0, Q_max:4.5, Q_bep:2.8, H_bep:136, H_max:170, stages:17, P_kw:2.2,  eta_bep:58, IP:55, conn:'G 1', pn:25, DN_mm:32, temp_max:120, code:'96509017', prix_ht:2920, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 3-23', Q_min:0, Q_max:4.5, Q_bep:2.8, H_bep:184, H_max:230, stages:23, P_kw:3.0,  eta_bep:58, IP:55, conn:'G 1', pn:25, DN_mm:32, temp_max:120, code:'96509023', prix_ht:3480, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
+  // ════ CR 5 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-2',  stages:2,  P_kw:0.37, IP:55, conn:'G 1 1/4',     pn:16, DN_mm:40,  temp_max:120, code:'96513002', prix_ht:1580, app:'Industrie,HVAC', Q_nom:5.5, H_nom:19 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-3',  stages:3,  P_kw:0.55, IP:55, conn:'G 1 1/4',     pn:16, DN_mm:40,  temp_max:120, code:'96513003', prix_ht:1680, app:'Industrie,HVAC,irrigation', Q_nom:5.5, H_nom:28 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-4',  stages:4,  P_kw:0.75, IP:55, conn:'G 1 1/4',     pn:16, DN_mm:40,  temp_max:120, code:'96513004', prix_ht:1780, app:'Industrie,surpression', Q_nom:5.5, H_nom:38 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-5',  stages:5,  P_kw:0.75, IP:55, conn:'G 1 1/4',     pn:16, DN_mm:40,  temp_max:120, code:'96513005', prix_ht:1880, app:'Industrie,HVAC', Q_nom:5.5, H_nom:47 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-7',  stages:7,  P_kw:1.1,  IP:55, conn:'G 1 1/4',     pn:16, DN_mm:40,  temp_max:120, code:'96513007', prix_ht:2080, app:'Industrie,surpression', Q_nom:5.5, H_nom:65 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-9',  stages:9,  P_kw:1.5,  IP:55, conn:'G 1 1/4',     pn:16, DN_mm:40,  temp_max:120, code:'96513009', prix_ht:2280, app:'Industrie,surpression', Q_nom:5.5, H_nom:84 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-12', stages:12, P_kw:2.2,  IP:55, conn:'G 1 1/4',     pn:25, DN_mm:40,  temp_max:120, code:'96513012', prix_ht:2680, app:'Industrie,HTB', Q_nom:5.5, H_nom:112 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-16', stages:16, P_kw:3.0,  IP:55, conn:'G 1 1/4',     pn:25, DN_mm:40,  temp_max:120, code:'96513016', prix_ht:3280, app:'Industrie,HTB', Q_nom:5.5, H_nom:149 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-22', stages:22, P_kw:4.0,  IP:55, conn:'G 1 1/4',     pn:25, DN_mm:40,  temp_max:120, code:'96513022', prix_ht:4200, app:'Industrie,HTB', Q_nom:5.5, H_nom:205 },
 
-  // CR 5 : Q 0~7.2 m³/h | H par étage ≈ 9.5m
-  { brand:'Grundfos', serie:'CR', model:'CR 5-3',  Q_min:0, Q_max:7.2, Q_bep:4.5, H_bep:28,  H_max:36,  stages:3,  P_kw:0.55, eta_bep:58, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:'96513003', prix_ht:1680, fluide:'Eau claire/glycol', app:'Industrie,HVAC,irrigation', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 5-5',  Q_min:0, Q_max:7.2, Q_bep:4.5, H_bep:47,  H_max:60,  stages:5,  P_kw:0.75, eta_bep:60, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:'96513005', prix_ht:1880, fluide:'Eau claire/glycol', app:'Industrie,HVAC', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 5-8',  Q_min:0, Q_max:7.2, Q_bep:4.5, H_bep:75,  H_max:96,  stages:8,  P_kw:1.5,  eta_bep:61, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:'96513008', prix_ht:2280, fluide:'Eau claire/glycol', app:'Industrie,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 5-10', Q_min:0, Q_max:7.2, Q_bep:4.5, H_bep:94,  H_max:120, stages:10, P_kw:1.5,  eta_bep:62, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:'96513010', prix_ht:2520, fluide:'Eau claire/glycol', app:'Industrie,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 5-13', Q_min:0, Q_max:7.2, Q_bep:4.5, H_bep:122, H_max:156, stages:13, P_kw:2.2,  eta_bep:62, IP:55, conn:'G 1 1/4', pn:25, DN_mm:40, temp_max:120, code:'96513013', prix_ht:2980, fluide:'Eau claire/glycol', app:'Industrie', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 5-18', Q_min:0, Q_max:7.2, Q_bep:4.5, H_bep:169, H_max:216, stages:18, P_kw:3.0,  eta_bep:62, IP:55, conn:'G 1 1/4', pn:25, DN_mm:40, temp_max:120, code:'96513018', prix_ht:3560, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 5-24', Q_min:0, Q_max:7.2, Q_bep:4.5, H_bep:226, H_max:288, stages:24, P_kw:4.0,  eta_bep:62, IP:55, conn:'G 1 1/4', pn:25, DN_mm:40, temp_max:120, code:'96513024', prix_ht:4200, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
+  // ════ CR 10 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-1', stages:1,  P_kw:0.75, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50,  temp_max:120, code:'96517001', prix_ht:2180, app:'Industrie,bâtiment', Q_nom:9.0, H_nom:11 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-2', stages:2,  P_kw:1.1,  IP:55, conn:'DN 50 flange', pn:16, DN_mm:50,  temp_max:120, code:'96517002', prix_ht:2480, app:'Industrie,bâtiment', Q_nom:9.0, H_nom:21 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-3', stages:3,  P_kw:1.5,  IP:55, conn:'DN 50 flange', pn:16, DN_mm:50,  temp_max:120, code:'96517003', prix_ht:2650, app:'Industrie,bâtiment,HVAC', Q_nom:9.0, H_nom:32 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-4', stages:4,  P_kw:1.5,  IP:55, conn:'DN 50 flange', pn:16, DN_mm:50,  temp_max:120, code:'96517004', prix_ht:2920, app:'Industrie,surpression', Q_nom:9.0, H_nom:42 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-5', stages:5,  P_kw:2.2,  IP:55, conn:'DN 50 flange', pn:16, DN_mm:50,  temp_max:120, code:'96517005', prix_ht:3140, app:'Industrie,surpression', Q_nom:9.0, H_nom:53 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-7', stages:7,  P_kw:3.0,  IP:55, conn:'DN 50 flange', pn:16, DN_mm:50,  temp_max:120, code:'96517007', prix_ht:3780, app:'Industrie,HTB', Q_nom:9.0, H_nom:74 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-9', stages:9,  P_kw:4.0,  IP:55, conn:'DN 50 flange', pn:16, DN_mm:50,  temp_max:120, code:'96517009', prix_ht:4280, app:'Industrie,HTB', Q_nom:9.0, H_nom:95 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-12',stages:12, P_kw:5.5,  IP:55, conn:'DN 50 flange', pn:25, DN_mm:50,  temp_max:120, code:'96517012', prix_ht:5100, app:'Industrie,HTB', Q_nom:9.0, H_nom:127 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-14',stages:14, P_kw:7.5,  IP:55, conn:'DN 50 flange', pn:25, DN_mm:50,  temp_max:120, code:'96517014', prix_ht:6200, app:'Industrie,HTB', Q_nom:9.0, H_nom:148 },
 
-  // CR 10 : Q 0~12 m³/h | H par étage ≈ 9.5m
-  { brand:'Grundfos', serie:'CR', model:'CR 10-1', Q_min:0, Q_max:12,  Q_bep:9,   H_bep:10,  H_max:14,  stages:1,  P_kw:0.75, eta_bep:62, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:'96517001', prix_ht:2180, fluide:'Eau claire/glycol', app:'Industrie,bâtiment', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 10-3', Q_min:0, Q_max:12,  Q_bep:9,   H_bep:30,  H_max:42,  stages:3,  P_kw:1.5,  eta_bep:65, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:'96517003', prix_ht:2650, fluide:'Eau claire/glycol', app:'Industrie,bâtiment,HVAC', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 10-5', Q_min:0, Q_max:12,  Q_bep:9,   H_bep:50,  H_max:70,  stages:5,  P_kw:2.2,  eta_bep:67, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:'96517005', prix_ht:3140, fluide:'Eau claire/glycol', app:'Industrie,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 10-9', Q_min:0, Q_max:12,  Q_bep:9,   H_bep:90,  H_max:126, stages:9,  P_kw:4.0,  eta_bep:68, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:'96517009', prix_ht:4280, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 10-12',Q_min:0, Q_max:12,  Q_bep:9,   H_bep:120, H_max:168, stages:12, P_kw:5.5,  eta_bep:68, IP:55, conn:'DN 50 flange', pn:25, DN_mm:50, temp_max:120, code:'96517012', prix_ht:5100, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 10-15',Q_min:0, Q_max:12,  Q_bep:9,   H_bep:150, H_max:210, stages:15, P_kw:7.5,  eta_bep:68, IP:55, conn:'DN 50 flange', pn:25, DN_mm:50, temp_max:120, code:'96517015', prix_ht:6200, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
+  // ════ CR 15 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-1', stages:1,  P_kw:0.75, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65,  temp_max:120, code:'96520001', prix_ht:2800, app:'Industrie,bâtiment', Q_nom:14.0, H_nom:11 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-2', stages:2,  P_kw:1.5,  IP:55, conn:'DN 65 flange', pn:16, DN_mm:65,  temp_max:120, code:'96520002', prix_ht:3200, app:'Industrie,bâtiment,HVAC', Q_nom:14.0, H_nom:21 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-3', stages:3,  P_kw:2.2,  IP:55, conn:'DN 65 flange', pn:16, DN_mm:65,  temp_max:120, code:'96520003', prix_ht:3700, app:'Industrie,surpression', Q_nom:14.0, H_nom:32 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-5', stages:5,  P_kw:3.0,  IP:55, conn:'DN 65 flange', pn:16, DN_mm:65,  temp_max:120, code:'96520005', prix_ht:4600, app:'Industrie,surpression', Q_nom:14.0, H_nom:53 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-7', stages:7,  P_kw:4.0,  IP:55, conn:'DN 65 flange', pn:16, DN_mm:65,  temp_max:120, code:'96520007', prix_ht:5500, app:'Industrie,HTB', Q_nom:14.0, H_nom:74 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-10',stages:10, P_kw:7.5,  IP:55, conn:'DN 65 flange', pn:25, DN_mm:65,  temp_max:120, code:'96520010', prix_ht:7200, app:'Industrie,HTB', Q_nom:14.0, H_nom:106 },
 
-  // CR 15 : Q 0~18.5 m³/h | H par étage ≈ 10m
-  { brand:'Grundfos', serie:'CR', model:'CR 15-2', Q_min:0, Q_max:18.5, Q_bep:14,  H_bep:20,  H_max:30,  stages:2,  P_kw:1.5,  eta_bep:68, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:'96520002', prix_ht:3200, fluide:'Eau claire/glycol', app:'Industrie,bâtiment,HVAC', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 15-4', Q_min:0, Q_max:18.5, Q_bep:14,  H_bep:40,  H_max:60,  stages:4,  P_kw:3.0,  eta_bep:70, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:'96520004', prix_ht:4100, fluide:'Eau claire/glycol', app:'Industrie,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 15-6', Q_min:0, Q_max:18.5, Q_bep:14,  H_bep:60,  H_max:90,  stages:6,  P_kw:4.0,  eta_bep:71, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:'96520006', prix_ht:4900, fluide:'Eau claire/glycol', app:'Industrie,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 15-9', Q_min:0, Q_max:18.5, Q_bep:14,  H_bep:90,  H_max:135, stages:9,  P_kw:7.5,  eta_bep:72, IP:55, conn:'DN 65 flange', pn:25, DN_mm:65, temp_max:120, code:'96520009', prix_ht:6400, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 15-12',Q_min:0, Q_max:18.5, Q_bep:14,  H_bep:120, H_max:180, stages:12, P_kw:9.2,  eta_bep:72, IP:55, conn:'DN 65 flange', pn:25, DN_mm:65, temp_max:120, code:'96520012', prix_ht:7600, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
+  // ════ CR 20 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-2', stages:2,  P_kw:2.2,  IP:55, conn:'DN 80 flange', pn:16, DN_mm:80,  temp_max:120, code:'96524002', prix_ht:4200, app:'Industrie,bâtiment,HVAC', Q_nom:18.0, H_nom:22 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-3', stages:3,  P_kw:3.0,  IP:55, conn:'DN 80 flange', pn:16, DN_mm:80,  temp_max:120, code:'96524003', prix_ht:4900, app:'Industrie,bâtiment', Q_nom:18.0, H_nom:33 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-5', stages:5,  P_kw:5.5,  IP:55, conn:'DN 80 flange', pn:16, DN_mm:80,  temp_max:120, code:'96524005', prix_ht:6100, app:'Industrie,surpression', Q_nom:18.0, H_nom:55 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-7', stages:7,  P_kw:7.5,  IP:55, conn:'DN 80 flange', pn:16, DN_mm:80,  temp_max:120, code:'96524007', prix_ht:7400, app:'Industrie,HTB', Q_nom:18.0, H_nom:77 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-10',stages:10, P_kw:11.0, IP:55, conn:'DN 80 flange', pn:25, DN_mm:80,  temp_max:120, code:'96524010', prix_ht:9800, app:'Industrie,HTB', Q_nom:18.0, H_nom:110 },
 
-  // CR 20 : Q 0~24 m³/h | H par étage ≈ 10m
-  { brand:'Grundfos', serie:'CR', model:'CR 20-2', Q_min:0, Q_max:24,  Q_bep:18,  H_bep:20,  H_max:32,  stages:2,  P_kw:2.2,  eta_bep:70, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:'96524002', prix_ht:4200, fluide:'Eau claire/glycol', app:'Industrie,bâtiment,HVAC', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 20-3', Q_min:0, Q_max:24,  Q_bep:18,  H_bep:30,  H_max:48,  stages:3,  P_kw:3.0,  eta_bep:71, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:'96524003', prix_ht:4900, fluide:'Eau claire/glycol', app:'Industrie,bâtiment', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 20-5', Q_min:0, Q_max:24,  Q_bep:18,  H_bep:50,  H_max:80,  stages:5,  P_kw:5.5,  eta_bep:72, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:'96524005', prix_ht:6100, fluide:'Eau claire/glycol', app:'Industrie,surpression', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 20-8', Q_min:0, Q_max:24,  Q_bep:18,  H_bep:80,  H_max:128, stages:8,  P_kw:9.2,  eta_bep:73, IP:55, conn:'DN 80 flange', pn:25, DN_mm:80, temp_max:120, code:'96524008', prix_ht:8200, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 20-11',Q_min:0, Q_max:24,  Q_bep:18,  H_bep:110, H_max:176, stages:11, P_kw:11,   eta_bep:73, IP:55, conn:'DN 80 flange', pn:25, DN_mm:80, temp_max:120, code:'96524011', prix_ht:9800, fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
+  // ════ CR 32 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-2', stages:2,  P_kw:3.0,  IP:55, conn:'DN 100 flange',pn:16, DN_mm:100, temp_max:120, code:'96530002', prix_ht:6200, app:'Industrie,collectivités', Q_nom:30.0, H_nom:17 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-3', stages:3,  P_kw:4.0,  IP:55, conn:'DN 100 flange',pn:16, DN_mm:100, temp_max:120, code:'96530003', prix_ht:7200, app:'Industrie,collectivités', Q_nom:30.0, H_nom:26 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-5', stages:5,  P_kw:5.5,  IP:55, conn:'DN 100 flange',pn:16, DN_mm:100, temp_max:120, code:'96530005', prix_ht:8800, app:'Industrie,collectivités', Q_nom:30.0, H_nom:43 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-7', stages:7,  P_kw:7.5,  IP:55, conn:'DN 100 flange',pn:16, DN_mm:100, temp_max:120, code:'96530007', prix_ht:10500,app:'Industrie,collectivités', Q_nom:30.0, H_nom:60 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-10',stages:10, P_kw:11.0, IP:55, conn:'DN 100 flange',pn:25, DN_mm:100, temp_max:120, code:'96530010', prix_ht:13500,app:'Industrie,HTB', Q_nom:30.0, H_nom:85 },
 
-  // CR 32 : Q 0~40 m³/h | H par étage ≈ 8.5m
-  { brand:'Grundfos', serie:'CR', model:'CR 32-2', Q_min:0, Q_max:40,  Q_bep:30,  H_bep:17,  H_max:27,  stages:2,  P_kw:3.0,  eta_bep:73, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96530002', prix_ht:6200, fluide:'Eau claire/glycol', app:'Industrie,bâtiment,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 32-4', Q_min:0, Q_max:40,  Q_bep:30,  H_bep:34,  H_max:54,  stages:4,  P_kw:5.5,  eta_bep:74, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96530004', prix_ht:7800, fluide:'Eau claire/glycol', app:'Industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 32-6', Q_min:0, Q_max:40,  Q_bep:30,  H_bep:51,  H_max:81,  stages:6,  P_kw:7.5,  eta_bep:75, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96530006', prix_ht:9400, fluide:'Eau claire/glycol', app:'Industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 32-8', Q_min:0, Q_max:40,  Q_bep:30,  H_bep:68,  H_max:108, stages:8,  P_kw:11,   eta_bep:76, IP:55, conn:'DN 100 flange', pn:25, DN_mm:100, temp_max:120, code:'96530008', prix_ht:11200,fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
+  // ════ CR 45 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-2', stages:2,  P_kw:5.5,  IP:55, conn:'DN 100 flange',pn:16, DN_mm:100, temp_max:120, code:'96536002', prix_ht:8400, app:'Industrie,collectivités', Q_nom:42.0, H_nom:18 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-3', stages:3,  P_kw:7.5,  IP:55, conn:'DN 100 flange',pn:16, DN_mm:100, temp_max:120, code:'96536003', prix_ht:10200,app:'Industrie,collectivités', Q_nom:42.0, H_nom:27 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-5', stages:5,  P_kw:11.0, IP:55, conn:'DN 100 flange',pn:16, DN_mm:100, temp_max:120, code:'96536005', prix_ht:12800,app:'Industrie,collectivités', Q_nom:42.0, H_nom:45 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-7', stages:7,  P_kw:15.0, IP:55, conn:'DN 100 flange',pn:25, DN_mm:100, temp_max:120, code:'96536007', prix_ht:15400,app:'Industrie,HTB', Q_nom:42.0, H_nom:63 },
 
-  // CR 45 : Q 0~55 m³/h | H par étage ≈ 8.5m
-  { brand:'Grundfos', serie:'CR', model:'CR 45-2', Q_min:0, Q_max:55,  Q_bep:42,  H_bep:17,  H_max:28,  stages:2,  P_kw:5.5,  eta_bep:75, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96536002', prix_ht:8400, fluide:'Eau claire/glycol', app:'Industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 45-3', Q_min:0, Q_max:55,  Q_bep:42,  H_bep:25,  H_max:42,  stages:3,  P_kw:7.5,  eta_bep:76, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96536003', prix_ht:10200,fluide:'Eau claire/glycol', app:'Industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 45-5', Q_min:0, Q_max:55,  Q_bep:42,  H_bep:42,  H_max:70,  stages:5,  P_kw:11,   eta_bep:77, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96536005', prix_ht:12800,fluide:'Eau claire/glycol', app:'Industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 45-7', Q_min:0, Q_max:55,  Q_bep:42,  H_bep:59,  H_max:98,  stages:7,  P_kw:15,   eta_bep:77, IP:55, conn:'DN 100 flange', pn:25, DN_mm:100, temp_max:120, code:'96536007', prix_ht:15400,fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
+  // ════ CR 64 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-2', stages:2,  P_kw:7.5,  IP:55, conn:'DN 125 flange',pn:16, DN_mm:125, temp_max:120, code:'96540002', prix_ht:11200,app:'Industrie,collectivités', Q_nom:58.0, H_nom:17 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-3', stages:3,  P_kw:11.0, IP:55, conn:'DN 125 flange',pn:16, DN_mm:125, temp_max:120, code:'96540003', prix_ht:13600,app:'Industrie,collectivités', Q_nom:58.0, H_nom:25 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-4', stages:4,  P_kw:15.0, IP:55, conn:'DN 125 flange',pn:16, DN_mm:125, temp_max:120, code:'96540004', prix_ht:16400,app:'Industrie,collectivités', Q_nom:58.0, H_nom:34 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-6', stages:6,  P_kw:22.0, IP:55, conn:'DN 125 flange',pn:25, DN_mm:125, temp_max:120, code:'96540006', prix_ht:21000,app:'Industrie,HTB', Q_nom:58.0, H_nom:51 },
 
-  // CR 64 : Q 0~72 m³/h
-  { brand:'Grundfos', serie:'CR', model:'CR 64-2', Q_min:0, Q_max:72,  Q_bep:58,  H_bep:16,  H_max:28,  stages:2,  P_kw:7.5,  eta_bep:76, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:'96540002', prix_ht:11200,fluide:'Eau claire/glycol', app:'Industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 64-3', Q_min:0, Q_max:72,  Q_bep:58,  H_bep:24,  H_max:42,  stages:3,  P_kw:11,   eta_bep:77, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:'96540003', prix_ht:13600,fluide:'Eau claire/glycol', app:'Industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 64-4', Q_min:0, Q_max:72,  Q_bep:58,  H_bep:32,  H_max:56,  stages:4,  P_kw:15,   eta_bep:77, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:'96540004', prix_ht:16400,fluide:'Eau claire/glycol', app:'Industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 64-6', Q_min:0, Q_max:72,  Q_bep:58,  H_bep:48,  H_max:84,  stages:6,  P_kw:22,   eta_bep:78, IP:55, conn:'DN 125 flange', pn:25, DN_mm:125, temp_max:120, code:'96540006', prix_ht:21000,fluide:'Eau claire/glycol', app:'Industrie,HTB', type:'Multicellulaire verticale' },
+  // ════ CR 95 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95',  model:'CR 95-1',  stages:1,  P_kw:5.5,  IP:55, conn:'DN 150 flange',pn:16, DN_mm:150, temp_max:120, code:'96543001', prix_ht:15800,app:'Collectivités,industrie lourde', Q_nom:90.0, H_nom:11 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95',  model:'CR 95-2',  stages:2,  P_kw:11.0, IP:55, conn:'DN 150 flange',pn:16, DN_mm:150, temp_max:120, code:'96543002', prix_ht:20400,app:'Collectivités,industrie lourde', Q_nom:90.0, H_nom:21 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95',  model:'CR 95-3',  stages:3,  P_kw:15.0, IP:55, conn:'DN 150 flange',pn:16, DN_mm:150, temp_max:120, code:'96543003', prix_ht:25600,app:'Collectivités,industrie lourde', Q_nom:90.0, H_nom:32 },
 
-  // CR 95, 125, 155, 185, 215, 255 — grandes CR
-  { brand:'Grundfos', serie:'CR', model:'CR 95-1',  Q_min:0, Q_max:110, Q_bep:90,  H_bep:10,  H_max:20,  stages:1,  P_kw:5.5,  eta_bep:78, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96543001', prix_ht:15800,fluide:'Eau claire/glycol', app:'Collectivités,industrie lourde', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 95-2',  Q_min:0, Q_max:110, Q_bep:90,  H_bep:20,  H_max:40,  stages:2,  P_kw:11,   eta_bep:79, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96543002', prix_ht:20400,fluide:'Eau claire/glycol', app:'Collectivités,industrie lourde', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 95-3',  Q_min:0, Q_max:110, Q_bep:90,  H_bep:30,  H_max:60,  stages:3,  P_kw:15,   eta_bep:80, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96543003', prix_ht:25600,fluide:'Eau claire/glycol', app:'Collectivités,industrie lourde', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 125-1', Q_min:0, Q_max:145, Q_bep:120, H_bep:10,  H_max:22,  stages:1,  P_kw:7.5,  eta_bep:80, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96547001', prix_ht:20000,fluide:'Eau claire/glycol', app:'Collectivités,grande industrie', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 125-2', Q_min:0, Q_max:145, Q_bep:120, H_bep:20,  H_max:44,  stages:2,  P_kw:15,   eta_bep:81, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96547002', prix_ht:28000,fluide:'Eau claire/glycol', app:'Collectivités,grande industrie', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 155-1', Q_min:0, Q_max:180, Q_bep:150, H_bep:9,   H_max:22,  stages:1,  P_kw:11,   eta_bep:81, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:'96551001', prix_ht:28000,fluide:'Eau claire/glycol', app:'Grande industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 155-2', Q_min:0, Q_max:180, Q_bep:150, H_bep:18,  H_max:44,  stages:2,  P_kw:22,   eta_bep:82, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:'96551002', prix_ht:38000,fluide:'Eau claire/glycol', app:'Grande industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 215-1', Q_min:0, Q_max:250, Q_bep:210, H_bep:10,  H_max:24,  stages:1,  P_kw:15,   eta_bep:82, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:'96555001', prix_ht:34000,fluide:'Eau claire/glycol', app:'Grande industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 255-1', Q_min:0, Q_max:290, Q_bep:250, H_bep:9,   H_max:22,  stages:1,  P_kw:18.5, eta_bep:83, IP:55, conn:'DN 250 flange', pn:16, DN_mm:250, temp_max:120, code:'96560001', prix_ht:40000,fluide:'Eau claire/glycol', app:'Grande industrie,collectivités', type:'Multicellulaire verticale' },
-  { brand:'Grundfos', serie:'CR', model:'CR 255-2', Q_min:0, Q_max:290, Q_bep:250, H_bep:18,  H_max:44,  stages:2,  P_kw:37,   eta_bep:83, IP:55, conn:'DN 250 flange', pn:16, DN_mm:250, temp_max:120, code:'96560002', prix_ht:55000,fluide:'Eau claire/glycol', app:'Grande industrie,collectivités', type:'Multicellulaire verticale' },
+  // ════ CR 125 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-1', stages:1,  P_kw:7.5,  IP:55, conn:'DN 150 flange',pn:16, DN_mm:150, temp_max:120, code:'96547001', prix_ht:20000,app:'Collectivités,grande industrie', Q_nom:120.0,H_nom:11 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-2', stages:2,  P_kw:15.0, IP:55, conn:'DN 150 flange',pn:16, DN_mm:150, temp_max:120, code:'96547002', prix_ht:28000,app:'Collectivités,grande industrie', Q_nom:120.0,H_nom:21 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-3', stages:3,  P_kw:22.0, IP:55, conn:'DN 150 flange',pn:25, DN_mm:150, temp_max:120, code:'96547003', prix_ht:38000,app:'Collectivités,grande industrie', Q_nom:120.0,H_nom:32 },
 
-  // ════ GRUNDFOS SP — Submersible pour forage (pompe immergée) ════
-  // SP 1A : Q 0~1.5 m³/h | 4" | Inox EN 1.4301
-  { brand:'Grundfos', serie:'SP', model:'SP 1A-9',  Q_min:0, Q_max:1.5, Q_bep:0.8, H_bep:52,  H_max:70,  stages:9,  P_kw:0.37, eta_bep:39, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30,  code:'09510K09', prix_ht:820,  fluide:'Eau souterraine', app:'Forage 4",eau potable,irrigation', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 1A-18', Q_min:0, Q_max:1.5, Q_bep:0.8, H_bep:104, H_max:140, stages:18, P_kw:0.55, eta_bep:40, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30,  code:'09510K18', prix_ht:980,  fluide:'Eau souterraine', app:'Forage 4",eau potable', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 1A-28', Q_min:0, Q_max:1.5, Q_bep:0.8, H_bep:162, H_max:218, stages:28, P_kw:0.75, eta_bep:40, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30,  code:'09510K28', prix_ht:1180, fluide:'Eau souterraine', app:'Forage 4",eau potable', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 1A-42', Q_min:0, Q_max:1.5, Q_bep:0.8, H_bep:243, H_max:327, stages:42, P_kw:1.1,  eta_bep:40, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30,  code:'09510K42', prix_ht:1450, fluide:'Eau souterraine', app:'Forage 4",eau potable', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 1A-57', Q_min:0, Q_max:1.5, Q_bep:0.8, H_bep:330, H_max:445, stages:57, P_kw:1.5,  eta_bep:39, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30,  code:'09510K57', prix_ht:1780, fluide:'Eau souterraine', app:'Forage 4",eau potable', type:'Submersible forage 4"', borehole_min:100 },
+  // ════ CR 155 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 155', model:'CR 155-1', stages:1,  P_kw:11.0, IP:55, conn:'DN 200 flange',pn:16, DN_mm:200, temp_max:120, code:'96551001', prix_ht:28000,app:'Grande industrie,collectivités', Q_nom:150.0,H_nom:10 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 155', model:'CR 155-2', stages:2,  P_kw:22.0, IP:55, conn:'DN 200 flange',pn:16, DN_mm:200, temp_max:120, code:'96551002', prix_ht:38000,app:'Grande industrie,collectivités', Q_nom:150.0,H_nom:20 },
 
-  // SP 2A : Q 0~2.5 m³/h | 4"
-  { brand:'Grundfos', serie:'SP', model:'SP 2A-6',  Q_min:0, Q_max:2.5, Q_bep:1.6, H_bep:42,  H_max:56,  stages:6,  P_kw:0.37, eta_bep:50, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30,  code:'09520K06', prix_ht:870,  fluide:'Eau souterraine', app:'Forage 4",irrigation,habitat', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 2A-13', Q_min:0, Q_max:2.5, Q_bep:1.6, H_bep:91,  H_max:122, stages:13, P_kw:0.75, eta_bep:51, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30,  code:'09520K13', prix_ht:1080, fluide:'Eau souterraine', app:'Forage 4",eau potable', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 2A-23', Q_min:0, Q_max:2.5, Q_bep:1.6, H_bep:161, H_max:216, stages:23, P_kw:1.1,  eta_bep:51, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30,  code:'09520K23', prix_ht:1380, fluide:'Eau souterraine', app:'Forage 4",eau potable', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 2A-40', Q_min:0, Q_max:2.5, Q_bep:1.6, H_bep:280, H_max:376, stages:40, P_kw:2.2,  eta_bep:51, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30,  code:'09520K40', prix_ht:1980, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
+  // ════ CR 215 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-1', stages:1,  P_kw:15.0, IP:55, conn:'DN 200 flange',pn:16, DN_mm:200, temp_max:120, code:'96555001', prix_ht:34000,app:'Grande industrie,collectivités', Q_nom:210.0,H_nom:12 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-2', stages:2,  P_kw:30.0, IP:55, conn:'DN 200 flange',pn:25, DN_mm:200, temp_max:120, code:'96555002', prix_ht:48000,app:'Grande industrie,collectivités', Q_nom:210.0,H_nom:23 },
 
-  // SP 3A : Q 0~3.5 m³/h | 4"
-  { brand:'Grundfos', serie:'SP', model:'SP 3A-6',  Q_min:0, Q_max:3.5, Q_bep:2.4, H_bep:42,  H_max:58,  stages:6,  P_kw:0.55, eta_bep:58, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30,  code:'09530K06', prix_ht:920,  fluide:'Eau souterraine', app:'Forage 4",irrigation', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 3A-12', Q_min:0, Q_max:3.5, Q_bep:2.4, H_bep:84,  H_max:116, stages:12, P_kw:1.1,  eta_bep:59, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30,  code:'09530K12', prix_ht:1240, fluide:'Eau souterraine', app:'Forage 4",eau potable', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 3A-22', Q_min:0, Q_max:3.5, Q_bep:2.4, H_bep:154, H_max:213, stages:22, P_kw:2.2,  eta_bep:59, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30,  code:'09530K22', prix_ht:1680, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 3A-33', Q_min:0, Q_max:3.5, Q_bep:2.4, H_bep:231, H_max:319, stages:33, P_kw:3.0,  eta_bep:59, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30,  code:'09530K33', prix_ht:2120, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
+  // ════ CR 255 ════
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 255', model:'CR 255-1', stages:1,  P_kw:18.5, IP:55, conn:'DN 250 flange',pn:16, DN_mm:250, temp_max:120, code:'96560001', prix_ht:40000,app:'Grande industrie,collectivités', Q_nom:250.0,H_nom:10 },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 255', model:'CR 255-2', stages:2,  P_kw:37.0, IP:55, conn:'DN 250 flange',pn:25, DN_mm:250, temp_max:120, code:'96560002', prix_ht:55000,app:'Grande industrie,collectivités', Q_nom:250.0,H_nom:19 },
 
-  // SP 5A : Q 0~6.4 m³/h | 4"
-  { brand:'Grundfos', serie:'SP', model:'SP 5A-6',  Q_min:0, Q_max:6.4, Q_bep:4.5, H_bep:42,  H_max:62,  stages:6,  P_kw:0.75, eta_bep:60, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30,  code:'09550K06', prix_ht:1050, fluide:'Eau souterraine', app:'Forage 4",irrigation,domestique', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 5A-12', Q_min:0, Q_max:6.4, Q_bep:4.5, H_bep:84,  H_max:124, stages:12, P_kw:1.5,  eta_bep:61, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30,  code:'09550K12', prix_ht:1480, fluide:'Eau souterraine', app:'Forage 4",eau potable', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 5A-21', Q_min:0, Q_max:6.4, Q_bep:4.5, H_bep:147, H_max:217, stages:21, P_kw:2.2,  eta_bep:61, IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30,  code:'09550K21', prix_ht:2050, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 5A-44', Q_min:0, Q_max:6.4, Q_bep:4.5, H_bep:308, H_max:455, stages:44, P_kw:5.5,  eta_bep:61, IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30,  code:'09550K44', prix_ht:4200, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
+  // ════ SP 1A — Submersible 4" ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-9',  stages:9,  P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09510K09', prix_ht:820,  app:'Forage 4",eau potable,domestique', borehole_min:100, Q_nom:0.8, H_nom:80 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-14', stages:14, P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09510K14', prix_ht:950,  app:'Forage 4",eau potable', borehole_min:100, Q_nom:0.8, H_nom:125 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-18', stages:18, P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09510K18', prix_ht:1050, app:'Forage 4",eau potable', borehole_min:100, Q_nom:0.8, H_nom:160 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-28', stages:28, P_kw:0.75, IP:68, conn:'Rp 1 1/4', pn:60, DN_mm:32, temp_max:30, code:'09510K28', prix_ht:1250, app:'Forage 4",eau potable,HTB', borehole_min:100, Q_nom:0.8, H_nom:248 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-42', stages:42, P_kw:1.1,  IP:68, conn:'Rp 1 1/4', pn:60, DN_mm:32, temp_max:30, code:'09510K42', prix_ht:1620, app:'Forage 4",HTB', borehole_min:100, Q_nom:0.8, H_nom:372 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-57', stages:57, P_kw:1.5,  IP:68, conn:'Rp 1 1/4', pn:60, DN_mm:32, temp_max:30, code:'09510K57', prix_ht:1980, app:'Forage 4",HTB', borehole_min:100, Q_nom:0.8, H_nom:505 },
 
-  // SP 7 : Q 0~10 m³/h | 4"
-  { brand:'Grundfos', serie:'SP', model:'SP 7-4',   Q_min:0, Q_max:10,  Q_bep:7,   H_bep:32,  H_max:50,  stages:4,  P_kw:1.1,  eta_bep:69, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30,  code:'09570K04', prix_ht:1380, fluide:'Eau souterraine', app:'Forage 4",agriculture,collectivités', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 7-8',   Q_min:0, Q_max:10,  Q_bep:7,   H_bep:64,  H_max:100, stages:8,  P_kw:2.2,  eta_bep:69, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30,  code:'09570K08', prix_ht:1960, fluide:'Eau souterraine', app:'Forage 4",agriculture', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 7-14',  Q_min:0, Q_max:10,  Q_bep:7,   H_bep:112, H_max:175, stages:14, P_kw:3.7,  eta_bep:69, IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30,  code:'09570K14', prix_ht:2800, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 7-23',  Q_min:0, Q_max:10,  Q_bep:7,   H_bep:184, H_max:287, stages:23, P_kw:5.5,  eta_bep:69, IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30,  code:'09570K23', prix_ht:4200, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
+  // ════ SP 2A ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-6',  stages:6,  P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09520K06', prix_ht:870,  app:'Forage 4",irrigation,habitat', borehole_min:100, Q_nom:1.6, H_nom:49 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-9',  stages:9,  P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09520K09', prix_ht:1020, app:'Forage 4",eau potable', borehole_min:100, Q_nom:1.6, H_nom:73 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-13', stages:13, P_kw:0.75, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09520K13', prix_ht:1180, app:'Forage 4",eau potable', borehole_min:100, Q_nom:1.6, H_nom:105 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-23', stages:23, P_kw:1.1,  IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09520K23', prix_ht:1480, app:'Forage 4",eau potable', borehole_min:100, Q_nom:1.6, H_nom:186 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-33', stages:33, P_kw:1.5,  IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09520K33', prix_ht:1850, app:'Forage 4",HTB', borehole_min:100, Q_nom:1.6, H_nom:267 },
 
-  // SP 9 : Q 0~13 m³/h | 4"
-  { brand:'Grundfos', serie:'SP', model:'SP 9-3',   Q_min:0, Q_max:13,  Q_bep:9,   H_bep:24,  H_max:40,  stages:3,  P_kw:1.1,  eta_bep:71, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30,  code:'09590K03', prix_ht:1520, fluide:'Eau souterraine', app:'Forage 4",agriculture,collectivités', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 9-6',   Q_min:0, Q_max:13,  Q_bep:9,   H_bep:48,  H_max:80,  stages:6,  P_kw:2.2,  eta_bep:71, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30,  code:'09590K06', prix_ht:2100, fluide:'Eau souterraine', app:'Forage 4",agriculture', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 9-10',  Q_min:0, Q_max:13,  Q_bep:9,   H_bep:80,  H_max:133, stages:10, P_kw:3.7,  eta_bep:71, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30,  code:'09590K10', prix_ht:2980, fluide:'Eau souterraine', app:'Forage 4",collectivités', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 9-18',  Q_min:0, Q_max:13,  Q_bep:9,   H_bep:144, H_max:239, stages:18, P_kw:5.5,  eta_bep:71, IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30,  code:'09590K18', prix_ht:4600, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
+  // ════ SP 3A ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-6',  stages:6,  P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09530K06', prix_ht:920,  app:'Forage 4",irrigation', borehole_min:100, Q_nom:2.4, H_nom:50 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-9',  stages:9,  P_kw:0.75, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09530K09', prix_ht:1080, app:'Forage 4",eau potable', borehole_min:100, Q_nom:2.4, H_nom:75 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-12', stages:12, P_kw:1.1,  IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09530K12', prix_ht:1240, app:'Forage 4",eau potable', borehole_min:100, Q_nom:2.4, H_nom:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-22', stages:22, P_kw:2.2,  IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09530K22', prix_ht:1780, app:'Forage 4",HTB', borehole_min:100, Q_nom:2.4, H_nom:183 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-33', stages:33, P_kw:3.0,  IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09530K33', prix_ht:2280, app:'Forage 4",HTB', borehole_min:100, Q_nom:2.4, H_nom:275 },
 
-  // SP 11 : Q 0~16.5 m³/h | 4"
-  { brand:'Grundfos', serie:'SP', model:'SP 11-3',  Q_min:0, Q_max:16.5, Q_bep:12,  H_bep:24,  H_max:42,  stages:3,  P_kw:1.5,  eta_bep:70, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09511K03', prix_ht:1780, fluide:'Eau souterraine', app:'Forage 4",agriculture,collectivités', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 11-6',  Q_min:0, Q_max:16.5, Q_bep:12,  H_bep:48,  H_max:84,  stages:6,  P_kw:3.0,  eta_bep:71, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09511K06', prix_ht:2480, fluide:'Eau souterraine', app:'Forage 4",agriculture', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 11-9',  Q_min:0, Q_max:16.5, Q_bep:12,  H_bep:72,  H_max:126, stages:9,  P_kw:4.0,  eta_bep:71, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09511K09', prix_ht:3200, fluide:'Eau souterraine', app:'Forage 4",collectivités', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 11-15', Q_min:0, Q_max:16.5, Q_bep:12,  H_bep:120, H_max:210, stages:15, P_kw:7.5,  eta_bep:71, IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09511K15', prix_ht:5200, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
+  // ════ SP 5A ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-6',  stages:6,  P_kw:0.75, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09550K06', prix_ht:1050, app:'Forage 4",irrigation,domestique', borehole_min:100, Q_nom:4.5, H_nom:56 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-8',  stages:8,  P_kw:0.75, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09550K08', prix_ht:1180, app:'Forage 4",irrigation', borehole_min:100, Q_nom:4.5, H_nom:75 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-12', stages:12, P_kw:1.1,  IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09550K12', prix_ht:1480, app:'Forage 4",eau potable', borehole_min:100, Q_nom:4.5, H_nom:112 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-17', stages:17, P_kw:1.5,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09550K17', prix_ht:1780, app:'Forage 4",eau potable', borehole_min:100, Q_nom:4.5, H_nom:159 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-21', stages:21, P_kw:2.2,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09550K21', prix_ht:2050, app:'Forage 4",eau potable', borehole_min:100, Q_nom:4.5, H_nom:197 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-25', stages:25, P_kw:2.2,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09550K25', prix_ht:2350, app:'Forage 4",HTB', borehole_min:100, Q_nom:4.5, H_nom:235 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-33', stages:33, P_kw:3.0,  IP:68, conn:'Rp 1 1/2', pn:60, DN_mm:40, temp_max:30, code:'09550K33', prix_ht:2980, app:'Forage 4",HTB', borehole_min:100, Q_nom:4.5, H_nom:310 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-44', stages:44, P_kw:4.0,  IP:68, conn:'Rp 1 1/2', pn:60, DN_mm:40, temp_max:30, code:'09550K44', prix_ht:3980, app:'Forage 4",HTB', borehole_min:100, Q_nom:4.5, H_nom:413 },
 
-  // SP 14 : Q 0~20 m³/h | 4"
-  { brand:'Grundfos', serie:'SP', model:'SP 14-3',  Q_min:0, Q_max:20,  Q_bep:15,  H_bep:24,  H_max:44,  stages:3,  P_kw:2.2,  eta_bep:70, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09514K03', prix_ht:2200, fluide:'Eau souterraine', app:'Forage 4",agriculture,collectivités', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 14-6',  Q_min:0, Q_max:20,  Q_bep:15,  H_bep:48,  H_max:88,  stages:6,  P_kw:4.0,  eta_bep:70, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09514K06', prix_ht:3200, fluide:'Eau souterraine', app:'Forage 4",collectivités', type:'Submersible forage 4"', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', model:'SP 14-9',  Q_min:0, Q_max:20,  Q_bep:15,  H_bep:72,  H_max:132, stages:9,  P_kw:5.5,  eta_bep:70, IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09514K09', prix_ht:4200, fluide:'Eau souterraine', app:'Forage 4",HTB', type:'Submersible forage 4"', borehole_min:100 },
+  // ════ SP 7 ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-3',  stages:3,  P_kw:0.55, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09570K03', prix_ht:1180, app:'Forage 4",agriculture,collectivités', borehole_min:100, Q_nom:6.0, H_nom:18 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-5',  stages:5,  P_kw:0.75, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09570K05', prix_ht:1380, app:'Forage 4",agriculture', borehole_min:100, Q_nom:6.0, H_nom:30 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-8',  stages:8,  P_kw:1.1,  IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09570K08', prix_ht:1780, app:'Forage 4",agriculture', borehole_min:100, Q_nom:6.0, H_nom:48 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-12', stages:12, P_kw:1.5,  IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09570K12', prix_ht:2180, app:'Forage 4",agriculture', borehole_min:100, Q_nom:6.0, H_nom:72 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-17', stages:17, P_kw:2.2,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09570K17', prix_ht:2780, app:'Forage 4",HTB', borehole_min:100, Q_nom:6.0, H_nom:102 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-23', stages:23, P_kw:3.0,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09570K23', prix_ht:3480, app:'Forage 4",HTB', borehole_min:100, Q_nom:6.0, H_nom:138 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-31', stages:31, P_kw:4.0,  IP:68, conn:'Rp 1 1/2', pn:60, DN_mm:40, temp_max:30, code:'09570K31', prix_ht:4480, app:'Forage 4",HTB', borehole_min:100, Q_nom:6.0, H_nom:186 },
 
-  // SP 18 : Q 0~27 m³/h | 6"
-  { brand:'Grundfos', serie:'SP', model:'SP 18-3',  Q_min:0, Q_max:27,  Q_bep:20,  H_bep:27,  H_max:50,  stages:3,  P_kw:3.0,  eta_bep:78, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:'09518K03', prix_ht:3400, fluide:'Eau souterraine', app:'Forage 6",agriculture,collectivités', type:'Submersible forage 6"', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', model:'SP 18-6',  Q_min:0, Q_max:27,  Q_bep:20,  H_bep:54,  H_max:100, stages:6,  P_kw:5.5,  eta_bep:78, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:'09518K06', prix_ht:4800, fluide:'Eau souterraine', app:'Forage 6",agriculture', type:'Submersible forage 6"', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', model:'SP 18-10', Q_min:0, Q_max:27,  Q_bep:20,  H_bep:90,  H_max:167, stages:10, P_kw:9.2,  eta_bep:78, IP:68, conn:'Rp 2 1/2', pn:40, DN_mm:65, temp_max:30, code:'09518K10', prix_ht:7200, fluide:'Eau souterraine', app:'Forage 6",HTB', type:'Submersible forage 6"', borehole_min:152 },
+  // ════ SP 9 ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-3',  stages:3,  P_kw:0.75, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09590K03', prix_ht:1380, app:'Forage 4",agriculture,collectivités', borehole_min:100, Q_nom:9.0, H_nom:24 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-5',  stages:5,  P_kw:1.1,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09590K05', prix_ht:1680, app:'Forage 4",agriculture', borehole_min:100, Q_nom:9.0, H_nom:40 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-7',  stages:7,  P_kw:1.5,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09590K07', prix_ht:1980, app:'Forage 4",agriculture', borehole_min:100, Q_nom:9.0, H_nom:56 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-10', stages:10, P_kw:2.2,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09590K10', prix_ht:2380, app:'Forage 4",collectivités', borehole_min:100, Q_nom:9.0, H_nom:80 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-14', stages:14, P_kw:3.0,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09590K14', prix_ht:3000, app:'Forage 4",HTB', borehole_min:100, Q_nom:9.0, H_nom:112 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-18', stages:18, P_kw:4.0,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09590K18', prix_ht:3680, app:'Forage 4",HTB', borehole_min:100, Q_nom:9.0, H_nom:144 },
 
-  // SP 32 : Q 0~45 m³/h | 6"
-  { brand:'Grundfos', serie:'SP', model:'SP 32-3',  Q_min:0, Q_max:45,  Q_bep:35,  H_bep:30,  H_max:56,  stages:3,  P_kw:5.5,  eta_bep:79, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:'09532K03', prix_ht:5200, fluide:'Eau souterraine', app:'Forage 6",irrigation,collectivités', type:'Submersible forage 6"', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', model:'SP 32-5',  Q_min:0, Q_max:45,  Q_bep:35,  H_bep:50,  H_max:93,  stages:5,  P_kw:9.2,  eta_bep:79, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:'09532K05', prix_ht:7400, fluide:'Eau souterraine', app:'Forage 6",agriculture', type:'Submersible forage 6"', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', model:'SP 32-8',  Q_min:0, Q_max:45,  Q_bep:35,  H_bep:80,  H_max:149, stages:8,  P_kw:15,   eta_bep:79, IP:68, conn:'Rp 3', pn:40, DN_mm:80, temp_max:30, code:'09532K08', prix_ht:11800,fluide:'Eau souterraine', app:'Forage 6",HTB', type:'Submersible forage 6"', borehole_min:152 },
+  // ════ SP 11 ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-3', stages:3,  P_kw:1.5,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09511K03', prix_ht:1680, app:'Forage 4",agriculture,collectivités', borehole_min:100, Q_nom:12.0, H_nom:25 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-5', stages:5,  P_kw:2.2,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09511K05', prix_ht:2180, app:'Forage 4",agriculture', borehole_min:100, Q_nom:12.0, H_nom:42 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-7', stages:7,  P_kw:3.0,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09511K07', prix_ht:2780, app:'Forage 4",collectivités', borehole_min:100, Q_nom:12.0, H_nom:59 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-10',stages:10, P_kw:4.0,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09511K10', prix_ht:3380, app:'Forage 4",HTB', borehole_min:100, Q_nom:12.0, H_nom:84 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-14',stages:14, P_kw:5.5,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09511K14', prix_ht:4380, app:'Forage 4",HTB', borehole_min:100, Q_nom:12.0, H_nom:117 },
 
-  // SP 46 : Q 0~60 m³/h | 6"
-  { brand:'Grundfos', serie:'SP', model:'SP 46-2',  Q_min:0, Q_max:60,  Q_bep:48,  H_bep:22,  H_max:44,  stages:2,  P_kw:5.5,  eta_bep:76, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:'09546K02', prix_ht:6400, fluide:'Eau souterraine', app:'Forage 6",irrigation,collectivités', type:'Submersible forage 6"', borehole_min:168 },
-  { brand:'Grundfos', serie:'SP', model:'SP 46-4',  Q_min:0, Q_max:60,  Q_bep:48,  H_bep:44,  H_max:88,  stages:4,  P_kw:9.2,  eta_bep:76, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:'09546K04', prix_ht:9200, fluide:'Eau souterraine', app:'Forage 6",agriculture', type:'Submersible forage 6"', borehole_min:168 },
-  { brand:'Grundfos', serie:'SP', model:'SP 46-7',  Q_min:0, Q_max:60,  Q_bep:48,  H_bep:77,  H_max:154, stages:7,  P_kw:15,   eta_bep:76, IP:68, conn:'Rp 4', pn:40, DN_mm:100, temp_max:30, code:'09546K07', prix_ht:14200,fluide:'Eau souterraine', app:'Forage 6",HTB', type:'Submersible forage 6"', borehole_min:168 },
+  // ════ SP 14 ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-3', stages:3,  P_kw:2.2,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09514K03', prix_ht:2200, app:'Forage 4",agriculture,collectivités', borehole_min:100, Q_nom:15.0, H_nom:26 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-5', stages:5,  P_kw:3.0,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09514K05', prix_ht:2780, app:'Forage 4",collectivités', borehole_min:100, Q_nom:15.0, H_nom:43 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-7', stages:7,  P_kw:4.0,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09514K07', prix_ht:3380, app:'Forage 4",HTB', borehole_min:100, Q_nom:15.0, H_nom:60 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-9', stages:9,  P_kw:5.5,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09514K09', prix_ht:4200, app:'Forage 4",HTB', borehole_min:100, Q_nom:15.0, H_nom:77 },
 
-  // SP 60 : Q 0~80 m³/h | 6"
-  { brand:'Grundfos', serie:'SP', model:'SP 60-3',  Q_min:0, Q_max:80,  Q_bep:65,  H_bep:30,  H_max:58,  stages:3,  P_kw:9.2,  eta_bep:77, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:'09560K03', prix_ht:9800, fluide:'Eau souterraine', app:'Forage 6",irrigation intensive,collectivités', type:'Submersible forage 6"', borehole_min:168 },
-  { brand:'Grundfos', serie:'SP', model:'SP 60-5',  Q_min:0, Q_max:80,  Q_bep:65,  H_bep:50,  H_max:97,  stages:5,  P_kw:15,   eta_bep:77, IP:68, conn:'Rp 4', pn:40, DN_mm:100, temp_max:30, code:'09560K05', prix_ht:14800,fluide:'Eau souterraine', app:'Forage 6",collectivités', type:'Submersible forage 6"', borehole_min:168 },
+  // ════ SP 18 (6") ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-3', stages:3,  P_kw:3.0,  IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:'09518K03', prix_ht:3200, app:'Forage 6",agriculture,collectivités', borehole_min:152, Q_nom:20.0, H_nom:27 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-5', stages:5,  P_kw:4.0,  IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:'09518K05', prix_ht:4200, app:'Forage 6",agriculture', borehole_min:152, Q_nom:20.0, H_nom:45 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-8', stages:8,  P_kw:7.5,  IP:68, conn:'Rp 2 1/2', pn:40, DN_mm:65, temp_max:30, code:'09518K08', prix_ht:6200, app:'Forage 6",collectivités', borehole_min:152, Q_nom:20.0, H_nom:72 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-10',stages:10, P_kw:9.2,  IP:68, conn:'Rp 2 1/2', pn:40, DN_mm:65, temp_max:30, code:'09518K10', prix_ht:7600, app:'Forage 6",HTB', borehole_min:152, Q_nom:20.0, H_nom:90 },
 
-  // SP 77 : Q 0~95 m³/h | 8"
-  { brand:'Grundfos', serie:'SP', model:'SP 77-3',  Q_min:0, Q_max:95,  Q_bep:80,  H_bep:30,  H_max:60,  stages:3,  P_kw:11,   eta_bep:78, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:'09577K03', prix_ht:14500,fluide:'Eau souterraine', app:'Forage 8",eau potable collectivités', type:'Submersible forage 8"', borehole_min:200 },
-  { brand:'Grundfos', serie:'SP', model:'SP 77-5',  Q_min:0, Q_max:95,  Q_bep:80,  H_bep:50,  H_max:100, stages:5,  P_kw:18.5, eta_bep:78, IP:68, conn:'Rp 5', pn:40, DN_mm:125, temp_max:30, code:'09577K05', prix_ht:21500,fluide:'Eau souterraine', app:'Forage 8",collectivités', type:'Submersible forage 8"', borehole_min:200 },
+  // ════ SP 32 (6") ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-3', stages:3,  P_kw:5.5,  IP:68, conn:'Rp 3',   pn:25, DN_mm:80, temp_max:30, code:'09532K03', prix_ht:5200, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152, Q_nom:35.0, H_nom:29 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-5', stages:5,  P_kw:9.2,  IP:68, conn:'Rp 3',   pn:25, DN_mm:80, temp_max:30, code:'09532K05', prix_ht:7400, app:'Forage 6",agriculture', borehole_min:152, Q_nom:35.0, H_nom:48 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-8', stages:8,  P_kw:15.0, IP:68, conn:'Rp 3',   pn:40, DN_mm:80, temp_max:30, code:'09532K08', prix_ht:11800,app:'Forage 6",HTB', borehole_min:152, Q_nom:35.0, H_nom:77 },
 
-  // SP 95 : Q 0~120 m³/h | 8"
-  { brand:'Grundfos', serie:'SP', model:'SP 95-3',  Q_min:0, Q_max:120, Q_bep:100, H_bep:30,  H_max:63,  stages:3,  P_kw:15,   eta_bep:79, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:'09595K03', prix_ht:18500,fluide:'Eau souterraine', app:'Forage 8",AEP,collectivités', type:'Submersible forage 8"', borehole_min:200 },
-  { brand:'Grundfos', serie:'SP', model:'SP 95-4',  Q_min:0, Q_max:120, Q_bep:100, H_bep:40,  H_max:84,  stages:4,  P_kw:22,   eta_bep:79, IP:68, conn:'Rp 5', pn:40, DN_mm:125, temp_max:30, code:'09595K04', prix_ht:25000,fluide:'Eau souterraine', app:'Forage 8",AEP', type:'Submersible forage 8"', borehole_min:200 },
+  // ════ SP 46 (6") ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-2', stages:2,  P_kw:5.5,  IP:68, conn:'Rp 4',   pn:25, DN_mm:100,temp_max:30, code:'09546K02', prix_ht:6400, app:'Forage 6",irrigation,collectivités', borehole_min:168, Q_nom:48.0, H_nom:22 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-4', stages:4,  P_kw:9.2,  IP:68, conn:'Rp 4',   pn:25, DN_mm:100,temp_max:30, code:'09546K04', prix_ht:9200, app:'Forage 6",agriculture', borehole_min:168, Q_nom:48.0, H_nom:44 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-7', stages:7,  P_kw:15.0, IP:68, conn:'Rp 4',   pn:40, DN_mm:100,temp_max:30, code:'09546K07', prix_ht:14200,app:'Forage 6",HTB', borehole_min:168, Q_nom:48.0, H_nom:77 },
 
-  // SP 125 : Q 0~160 m³/h | 10"
-  { brand:'Grundfos', serie:'SP', model:'SP 125-3', Q_min:0, Q_max:160, Q_bep:135, H_bep:30,  H_max:68,  stages:3,  P_kw:22,   eta_bep:79, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:'09512K03', prix_ht:28000,fluide:'Eau souterraine', app:'Forage 10",AEP,périmètre irrigué', type:'Submersible forage 10"', borehole_min:254 },
-  { brand:'Grundfos', serie:'SP', model:'SP 125-5', Q_min:0, Q_max:160, Q_bep:135, H_bep:50,  H_max:113, stages:5,  P_kw:37,   eta_bep:79, IP:68, conn:'Rp 6', pn:40, DN_mm:150, temp_max:30, code:'09512K05', prix_ht:42000,fluide:'Eau souterraine', app:'Forage 10",AEP', type:'Submersible forage 10"', borehole_min:254 },
+  // ════ SP 60 (6") ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-3', stages:3,  P_kw:9.2,  IP:68, conn:'Rp 4',   pn:25, DN_mm:100,temp_max:30, code:'09560K03', prix_ht:9800, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168, Q_nom:65.0, H_nom:29 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-5', stages:5,  P_kw:15.0, IP:68, conn:'Rp 4',   pn:40, DN_mm:100,temp_max:30, code:'09560K05', prix_ht:14800,app:'Forage 6",collectivités', borehole_min:168, Q_nom:65.0, H_nom:48 },
 
-  // SP 160 : Q 0~210 m³/h | 10"
-  { brand:'Grundfos', serie:'SP', model:'SP 160-3', Q_min:0, Q_max:210, Q_bep:175, H_bep:30,  H_max:74,  stages:3,  P_kw:30,   eta_bep:80, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:'09516K03', prix_ht:38000,fluide:'Eau souterraine', app:'Forage 10",grande AEP', type:'Submersible forage 10"', borehole_min:254 },
+  // ════ SP 77 (8") ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-3', stages:3,  P_kw:11.0, IP:68, conn:'Rp 5',   pn:25, DN_mm:125,temp_max:30, code:'09577K03', prix_ht:14500,app:'Forage 8",eau potable collectivités', borehole_min:200, Q_nom:80.0, H_nom:29 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-5', stages:5,  P_kw:18.5, IP:68, conn:'Rp 5',   pn:40, DN_mm:125,temp_max:30, code:'09577K05', prix_ht:21500,app:'Forage 8",collectivités', borehole_min:200, Q_nom:80.0, H_nom:48 },
 
-  // SP 215 : Q 0~280 m³/h | 10"
-  { brand:'Grundfos', serie:'SP', model:'SP 215-2', Q_min:0, Q_max:280, Q_bep:230, H_bep:22,  H_max:56,  stages:2,  P_kw:37,   eta_bep:83, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:'09521K02', prix_ht:52000,fluide:'Eau souterraine', app:'Forage 10",grande AEP,irrigation intensive', type:'Submersible forage 10"', borehole_min:254 },
+  // ════ SP 95 (8") ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-3', stages:3,  P_kw:15.0, IP:68, conn:'Rp 5',   pn:25, DN_mm:125,temp_max:30, code:'09595K03', prix_ht:18500,app:'Forage 8",AEP,collectivités', borehole_min:200, Q_nom:100.0,H_nom:30 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-5', stages:5,  P_kw:22.0, IP:68, conn:'Rp 5',   pn:40, DN_mm:125,temp_max:30, code:'09595K05', prix_ht:28000,app:'Forage 8",AEP', borehole_min:200, Q_nom:100.0,H_nom:50 },
+
+  // ════ SP 125 (10") ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-3',stages:3, P_kw:22.0, IP:68, conn:'Rp 6',   pn:25, DN_mm:150,temp_max:30, code:'09512K03', prix_ht:28000,app:'Forage 10",AEP,périmètre irrigué', borehole_min:254, Q_nom:135.0,H_nom:30 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-5',stages:5, P_kw:37.0, IP:68, conn:'Rp 6',   pn:40, DN_mm:150,temp_max:30, code:'09512K05', prix_ht:42000,app:'Forage 10",AEP', borehole_min:254, Q_nom:135.0,H_nom:50 },
+
+  // ════ SP 160 (10") ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-3',stages:3, P_kw:30.0, IP:68, conn:'Rp 6',   pn:25, DN_mm:150,temp_max:30, code:'09516K03', prix_ht:38000,app:'Forage 10",grande AEP', borehole_min:254, Q_nom:175.0,H_nom:33 },
+
+  // ════ SP 215 (10") ════
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-2',stages:2, P_kw:37.0, IP:68, conn:'Rp 6',   pn:25, DN_mm:150,temp_max:30, code:'09521K02', prix_ht:52000,app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254, Q_nom:230.0,H_nom:24 },
 ];
 
-// ── Composant : Sélection de pompes Pro ──────────────────────────────
+// ── Composant PumpSelector avec moteur courbes réelles ───────────────
 const PumpSelector = () => {
   const [Q, setQ] = useState(30);
   const [H, setH] = useState(25);
   const [serie, setSerie] = useState('all');
-  const [temp, setTemp] = useState(20);
   const [borehole, setBorehole] = useState(200);
-  const [incl_secours, setSecours] = useState(false);
+  const [temp, setTemp] = useState(20);
   const [results, setResults] = useState([]);
   const [selected, setSelected] = useState(null);
   const [searched, setSearched] = useState(false);
   const [sortBy, setSortBy] = useState('score');
+  const [showCurve, setShowCurve] = useState(false);
 
-  const series = ['all','CR','SP'];
-
-  // Algorithme de sélection
   const findPumps = () => {
-    const found = PUMP_DB
+    const scored = PUMP_DB
       .filter(p => {
         if (serie !== 'all' && p.serie !== serie) return false;
-        // Plage Q : pompe doit couvrir le débit demandé
-        if (Q < p.Q_min || Q > p.Q_max * 1.05) return false;
-        // Plage H : on vérifie que H est atteignable (H_max avec une marge)
-        if (H > p.H_max * 1.05) return false;
-        // Forage : contrainte diamètre
-        if (p.borehole_min && p.serie === 'SP' && borehole < p.borehole_min) return false;
-        // Température
+        if (p.borehole_min && borehole < p.borehole_min) return false;
         if (temp > p.temp_max) return false;
+        // Vérifier via courbe si Q/H est atteignable
+        const at = getPumpAtQ(p, Q);
+        if (!at) return false;
+        if (at.H <= 0) return false;
+        // Tolérance : H_courbe doit être entre 85% et 115% du H demandé
+        if (at.H < H * 0.85 || at.H > H * 1.25) return false;
         return true;
       })
       .map(p => {
-        // Score : proximité du BEP
-        const dQ = Math.abs(Q - p.Q_bep) / Math.max(p.Q_bep, 1);
-        const dH = Math.abs(H - p.H_bep) / Math.max(p.H_bep, 1);
-        const score = 100 - (dQ * 50 + dH * 50);
-        // Puissance hydraulique
-        const Ph = (Q * 9.81 * 1000 * H) / 3600000;
-        const eta_sys = p.eta_bep / 100;
-        const Pa = Ph / eta_sys;
-        // Marge H
-        const H_margin = ((p.H_max - H) / p.H_max * 100).toFixed(0);
-        return { ...p, score: Math.max(0, score), Ph: Ph.toFixed(2), Pa_calc: Pa.toFixed(2), H_margin };
+        const at = getPumpAtQ(p, Q);
+        const H_curve = at?.H || 0;
+        const eta_curve = at?.eta || 0;
+        const delta_H = Math.abs(H_curve - H) / H * 100; // % d'écart
+        // Score basé sur proximité HMT + rendement
+        const score_H = Math.max(0, 100 - delta_H * 3);
+        const score_eta = eta_curve;
+        const score = score_H * 0.6 + score_eta * 0.4;
+        return { ...p, at_Q: at, score: parseFloat(score.toFixed(1)), delta_H: parseFloat(delta_H.toFixed(1)) };
       })
-      .sort((a, b) => {
-        if (sortBy === 'score') return b.score - a.score;
-        if (sortBy === 'prix') return (a.prix_ht||0) - (b.prix_ht||0);
-        if (sortBy === 'eta') return b.eta_bep - a.eta_bep;
-        if (sortBy === 'P') return a.P_kw - b.P_kw;
+      .filter(p => p.score > 0)
+      .sort((a,b) => {
+        if (sortBy==='score') return b.score - a.score;
+        if (sortBy==='prix')  return (a.prix_ht||0)-(b.prix_ht||0);
+        if (sortBy==='eta')   return (b.at_Q?.eta||0)-(a.at_Q?.eta||0);
+        if (sortBy==='P')     return (a.at_Q?.Pa||0)-(b.at_Q?.Pa||0);
         return b.score - a.score;
       })
       .slice(0, 12);
-    setResults(found);
+    setResults(scored);
     setSelected(null);
     setSearched(true);
+    setShowCurve(false);
   };
 
-  const getMatchColor = score => score >= 80 ? '#16a34a' : score >= 55 ? '#d97706' : '#ef4444';
-  const getMatchLabel = score => score >= 80 ? '✅ Excellent' : score >= 55 ? '⚠️ Acceptable' : '❌ Hors BEP';
+  const getMatchColor = s => s >= 75?'#16a34a':s>=55?'#d97706':'#ef4444';
+  const getMatchLabel = s => s >= 75?'✅ Excellent':s>=55?'⚠️ Acceptable':'❌ Hors plage';
+
+  // Génère les points de courbe Q/H pour l'affichage graphique
+  const getCurvePoints = (pump) => {
+    const qh = getPumpCurveQH(pump);
+    if (!qh) return [];
+    return qh;
+  };
+
+  const SVGCurve = ({ pump, Q_target, H_target }) => {
+    const pts = getCurvePoints(pump);
+    const etaPts = getPumpEtaCurve(pump) || [];
+    if (!pts.length) return null;
+    const Q_max = pts[pts.length-1][0];
+    const H_max_curve = pts[0][1];
+    const eta_max = 100;
+    const W=500, H_svg=220, padL=50, padR=20, padT=15, padB=35;
+    const W_plot = W - padL - padR;
+    const H_plot = H_svg - padT - padB;
+    const xS = q => padL + (q/Q_max) * W_plot;
+    const yS = h => padT + H_plot - (h/H_max_curve) * H_plot;
+    const yE = e => padT + H_plot - (e/eta_max) * H_plot;
+    // Courbe Q/H
+    const dQH = pts.map(([q,h],i) => `${i===0?'M':'L'} ${xS(q)} ${yS(h)}`).join(' ');
+    // Courbe Eta
+    const dEta = etaPts.length ? etaPts.map(([q,e],i) => `${i===0?'M':'L'} ${xS(q)} ${yE(e)}`).join(' ') : '';
+    // Point de fonctionnement
+    const Hq = interpolate(pts, Q_target);
+    const eq = etaPts.length ? interpolate(etaPts, Q_target) : null;
+    const gridQ = [0, Q_max*0.25, Q_max*0.5, Q_max*0.75, Q_max].map(v=>parseFloat(v.toFixed(1)));
+    const gridH = [0, H_max_curve*0.25, H_max_curve*0.5, H_max_curve*0.75, H_max_curve].map(v=>parseFloat(v.toFixed(0)));
+    return (
+      <svg width="100%" viewBox={`0 0 ${W} ${H_svg}`} style={{ background:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0' }}>
+        {/* Grid */}
+        {gridQ.map(q=><line key={q} x1={xS(q)} y1={padT} x2={xS(q)} y2={padT+H_plot} stroke="#e2e8f0" strokeWidth="0.5"/>)}
+        {gridH.map(h=><line key={h} x1={padL} y1={yS(h)} x2={padL+W_plot} y2={yS(h)} stroke="#e2e8f0" strokeWidth="0.5"/>)}
+        {/* Labels axes */}
+        {gridQ.map(q=><text key={q} x={xS(q)} y={padT+H_plot+14} textAnchor="middle" fontSize="8" fill="#94a3b8">{q}</text>)}
+        {gridH.map(h=><text key={h} x={padL-5} y={yS(h)+3} textAnchor="end" fontSize="8" fill="#94a3b8">{h}</text>)}
+        <text x={W/2} y={H_svg-2} textAnchor="middle" fontSize="8" fill="#64748b">Q (m³/h)</text>
+        <text x={12} y={H_svg/2} textAnchor="middle" fontSize="8" fill="#1d4ed8" transform={`rotate(-90,12,${H_svg/2})`}>H (m)</text>
+        {/* Courbe Q/H */}
+        <path d={dQH} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round"/>
+        {/* Courbe Eta */}
+        {dEta&&<path d={dEta} fill="none" stroke="#d97706" strokeWidth="1.5" strokeDasharray="5 2"/>}
+        {/* Ligne H demandée */}
+        {H_target<=H_max_curve&&<line x1={padL} y1={yS(H_target)} x2={padL+W_plot} y2={yS(H_target)} stroke="#dc2626" strokeWidth="1" strokeDasharray="4 2"/>}
+        {/* Ligne Q demandé */}
+        {Q_target<=Q_max&&<line x1={xS(Q_target)} y1={padT} x2={xS(Q_target)} y2={padT+H_plot} stroke="#059669" strokeWidth="1" strokeDasharray="4 2"/>}
+        {/* Point de fonctionnement */}
+        {Hq&&Q_target<=Q_max&&<>
+          <circle cx={xS(Q_target)} cy={yS(Hq)} r={6} fill="#dc2626" stroke="white" strokeWidth="2"/>
+          <rect x={xS(Q_target)+8} y={yS(Hq)-20} width={120} height={30} rx="4" fill="rgba(255,255,255,0.9)" stroke="#dc2626" strokeWidth="1"/>
+          <text x={xS(Q_target)+14} y={yS(Hq)-8} fontSize="7.5" fontWeight="700" fill="#dc2626">H={Hq.toFixed(1)}m à Q={Q_target}m³/h</text>
+          {eq&&<text x={xS(Q_target)+14} y={yS(Hq)+6} fontSize="7" fill="#d97706">η={eq.toFixed(1)}%</text>}
+        </>}
+        {/* Légende */}
+        <line x1={padL+10} y1={padT+8} x2={padL+25} y2={padT+8} stroke="#2563eb" strokeWidth="2.5"/>
+        <text x={padL+28} y={padT+12} fontSize="7.5" fill="#2563eb">Courbe Q/H</text>
+        {dEta&&<><line x1={padL+90} y1={padT+8} x2={padL+105} y2={padT+8} stroke="#d97706" strokeWidth="1.5" strokeDasharray="5 2"/>
+        <text x={padL+108} y={padT+12} fontSize="7.5" fill="#d97706">Rendement η</text></>}
+      </svg>
+    );
+  };
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:'16px', fontFamily:"'Inter','Segoe UI',sans-serif" }}>
 
       {/* Bandeau titre */}
       <div style={{ background:'linear-gradient(135deg,#0f172a,#1e40af)', borderRadius:'14px', padding:'18px 24px', color:'white' }}>
-        <div style={{ fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.12em', opacity:0.6, textTransform:'uppercase', marginBottom:'3px' }}>Base Grundfos — Tarif Pro 2025</div>
+        <div style={{ fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.12em', opacity:0.6, textTransform:'uppercase', marginBottom:'3px' }}>Sélection par courbes Q/H réelles — Grundfos 2025/2026</div>
         <div style={{ fontSize:'1.25rem', fontWeight:800, marginBottom:'2px' }}>⚙️ Sélection de Pompes</div>
-        <div style={{ fontSize:'0.75rem', opacity:0.6 }}>CR (multicellulaire) · SP (submersible forage) — {PUMP_DB.length} modèles · 50 Hz</div>
+        <div style={{ fontSize:'0.75rem', opacity:0.6 }}>Interpolation sur courbes Q/H + η extraites des databooklets · CR & SP · 50 Hz · {PUMP_DB.length} modèles</div>
       </div>
 
-      {/* Formulaire de recherche */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px' }}>
+        {/* Formulaire gauche */}
+        <div style={{ background:'white', borderRadius:'14px', border:'1px solid #f1f5f9', boxShadow:'0 2px 8px rgba(0,0,0,0.04)', padding:'18px 20px', display:'flex', flexDirection:'column', gap:'14px' }}>
+          <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#2563eb', textTransform:'uppercase', letterSpacing:'0.08em', paddingBottom:'8px', borderBottom:'2px solid #eff6ff' }}>💧 Point de fonctionnement</div>
 
-        <div style={{ background:'white', borderRadius:'14px', border:'1px solid #f1f5f9', boxShadow:'0 2px 8px rgba(0,0,0,0.04)', padding:'18px 20px' }}>
-          <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#2563eb', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'14px', paddingBottom:'8px', borderBottom:'2px solid #eff6ff' }}>
-            💧 Point de fonctionnement
-          </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
-            {/* Q et H */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
-              {[
-                { label:'Débit Q', val:Q, set:setQ, unit:'m³/h', icon:'💧', note:'Débit nominal requis', warn: Q>280 },
-                { label:'HMT', val:H, set:setH, unit:'m', icon:'📐', note:'Hauteur manométrique totale', warn: H>600 },
-              ].map(({label,val,set:sv,unit,icon,note,warn}) => {
-                const [raw, setRaw] = useState(String(val));
-                useEffect(()=>setRaw(String(val)),[val]);
-                return (
-                  <div key={label}>
-                    <label style={{ display:'block', fontSize:'0.7rem', fontWeight:700, color:'#475569', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.04em' }}>{icon} {label} <span style={{color:'#94a3b8', textTransform:'none', fontWeight:400}}>({unit})</span></label>
-                    <input type="text" inputMode="decimal" value={raw}
-                      onChange={e=>setRaw(e.target.value)}
-                      onBlur={e=>{ const n=parseFloat(e.target.value); if(!isNaN(n)){sv(n);setRaw(String(n));} else setRaw(String(val)); }}
-                      onKeyDown={e=>{ if(e.key==='Enter')e.target.blur(); }}
-                      onFocus={e=>e.target.select()}
-                      style={{ width:'100%', boxSizing:'border-box', padding:'9px 40px 9px 12px', border:`1.5px solid ${warn?'#fcd34d':'#e2e8f0'}`, borderRadius:'8px', fontSize:'1rem', fontWeight:700, color:'#1e293b', fontFamily:"'JetBrains Mono','Fira Code',monospace", background:warn?'#fffbeb':'white', outline:'none' }}
-                    />
-                    <div style={{ fontSize:'0.65rem', color:'#94a3b8', marginTop:'2px', fontStyle:'italic' }}>{note}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Série */}
-            <div>
-              <label style={{ display:'block', fontSize:'0.7rem', fontWeight:700, color:'#475569', marginBottom:'6px', textTransform:'uppercase', letterSpacing:'0.04em' }}>🔧 Série de pompe</label>
-              <div style={{ display:'flex', gap:'6px' }}>
-                {[
-                  {v:'all', l:'Toutes', icon:'🔍', desc:'CR + SP'},
-                  {v:'CR', l:'CR — Multicellulaire', icon:'🔷', desc:'0.8→400 m³/h | jusqu\'à 450m'},
-                  {v:'SP', l:'SP — Submersible forage', icon:'🔵', desc:'1→280 m³/h | forage 4"→10"'},
-                ].map(opt => (
-                  <button key={opt.v} onClick={()=>setSerie(opt.v)}
-                    style={{ flex:1, padding:'8px 6px', borderRadius:'8px', border:`2px solid ${serie===opt.v?'#2563eb':'#e2e8f0'}`, background:serie===opt.v?'#eff6ff':'white', cursor:'pointer', textAlign:'center' }}>
-                    <div style={{ fontSize:'1rem' }}>{opt.icon}</div>
-                    <div style={{ fontSize:'0.7rem', fontWeight:serie===opt.v?700:500, color:serie===opt.v?'#1d4ed8':'#475569' }}>{opt.l}</div>
-                    <div style={{ fontSize:'0.6rem', color:'#94a3b8' }}>{opt.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* SP : diamètre forage */}
-            {(serie==='SP'||serie==='all') && (
-              <div>
-                <label style={{ display:'block', fontSize:'0.7rem', fontWeight:700, color:'#1d4ed8', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.04em' }}>🕳️ Diamètre forage (mm)</label>
-                <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
-                  {[{d:100,l:'4" (100mm)'},{d:152,l:'6" (152mm)'},{d:200,l:'8" (200mm)'},{d:254,l:'10" (254mm)'}].map(({d,l})=>(
-                    <button key={d} onClick={()=>setBorehole(d)}
-                      style={{ padding:'6px 12px', borderRadius:'6px', border:`1.5px solid ${borehole===d?'#2563eb':'#e2e8f0'}`, background:borehole===d?'#dbeafe':'#f8fafc', cursor:'pointer', fontSize:'0.75rem', fontWeight:borehole===d?700:400, color:borehole===d?'#1d4ed8':'#475569' }}>
-                      {l}
-                    </button>
-                  ))}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+            {[{l:'Débit Q',v:Q,sv:setQ,u:'m³/h',icon:'💧'},{l:'HMT',v:H,sv:setH,u:'m',icon:'📐'}].map(({l,v,sv,u,icon})=>{
+              const [r,sr]=useState(String(v));
+              useEffect(()=>sr(String(v)),[v]);
+              return (
+                <div key={l}>
+                  <label style={{display:'block',fontSize:'0.7rem',fontWeight:700,color:'#475569',marginBottom:'4px',textTransform:'uppercase',letterSpacing:'0.04em'}}>{icon} {l} <span style={{color:'#94a3b8',textTransform:'none',fontWeight:400}}>({u})</span></label>
+                  <input type="text" inputMode="decimal" value={r}
+                    onChange={e=>sr(e.target.value)}
+                    onBlur={e=>{const n=parseFloat(e.target.value);if(!isNaN(n)){sv(n);sr(String(n));}else sr(String(v));}}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}} onFocus={e=>e.target.select()}
+                    style={{width:'100%',boxSizing:'border-box',padding:'10px 12px',border:'1.5px solid #e2e8f0',borderRadius:'8px',fontSize:'1rem',fontWeight:700,color:'#1e293b',fontFamily:'monospace',outline:'none'}}
+                  />
                 </div>
-              </div>
-            )}
-
-            {/* Température */}
-            <div>
-              <label style={{ display:'block', fontSize:'0.7rem', fontWeight:700, color:'#475569', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.04em' }}>🌡️ Température fluide (°C)</label>
-              <div style={{ display:'flex', gap:'6px' }}>
-                {[{v:20,l:'20°C — Eau froide'},{v:60,l:'60°C — Eau chaude'},{v:90,l:'90°C — HTT'}].map(({v,l})=>(
-                  <button key={v} onClick={()=>setTemp(v)}
-                    style={{ flex:1, padding:'6px', borderRadius:'6px', border:`1.5px solid ${temp===v?'#d97706':'#e2e8f0'}`, background:temp===v?'#fef3c7':'white', cursor:'pointer', fontSize:'0.72rem', fontWeight:temp===v?700:400, color:temp===v?'#92400e':'#475569' }}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Panneau droit : tri + alertes + stats */}
-        <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
-
-          {/* Point de fonctionnement visuel */}
-          <div style={{ background:'white', borderRadius:'14px', border:'1px solid #f1f5f9', boxShadow:'0 2px 8px rgba(0,0,0,0.04)', padding:'16px 20px' }}>
-            <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#059669', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'12px', paddingBottom:'8px', borderBottom:'2px solid #f0fdf4' }}>
-              📊 Point de fonctionnement demandé
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-              {[
-                { l:'Débit Q', v:`${Q} m³/h`, c:'#2563eb', bg:'#eff6ff', icon:'💧' },
-                { l:'HMT', v:`${H} m`, c:'#059669', bg:'#f0fdf4', icon:'📐' },
-                { l:'Ph hydraulique', v:`${((Q*9.81*1000*H)/3600000).toFixed(2)} kW`, c:'#7c3aed', bg:'#faf5ff', icon:'⚡' },
-                { l:'Série cible', v:serie==='all'?'CR + SP':serie, c:'#1d4ed8', bg:'#dbeafe', icon:'🔧' },
-                { l:'Forage', v:serie==='SP'||serie==='all'?`${borehole}mm`:'—', c:'#0891b2', bg:'#ecfeff', icon:'🕳️' },
-                { l:'Température', v:`${temp}°C`, c:'#d97706', bg:'#fffbeb', icon:'🌡️' },
-              ].map(({l,v,c,bg,icon})=>(
-                <div key={l} style={{ background:bg, borderRadius:'8px', padding:'8px 12px', borderLeft:`3px solid ${c}` }}>
-                  <div style={{ fontSize:'0.65rem', color:'#94a3b8', fontWeight:500 }}>{icon} {l}</div>
-                  <div style={{ fontSize:'0.95rem', fontWeight:800, color:c, fontFamily:"monospace" }}>{v}</div>
-                </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-          {/* Tri */}
-          <div style={{ background:'white', borderRadius:'14px', border:'1px solid #f1f5f9', padding:'14px 18px' }}>
-            <div style={{ fontSize:'0.72rem', fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'10px' }}>Trier les résultats par</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px' }}>
-              {[{v:'score',l:'🎯 Concordance BEP'},{v:'prix',l:'💶 Prix croissant'},{v:'eta',l:'⚡ Meilleur rendement'},{v:'P',l:'🔋 Puissance mini'}].map(({v,l})=>(
-                <button key={v} onClick={()=>setSortBy(v)}
-                  style={{ padding:'7px 10px', borderRadius:'7px', border:`1.5px solid ${sortBy===v?'#2563eb':'#e2e8f0'}`, background:sortBy===v?'#eff6ff':'white', cursor:'pointer', fontSize:'0.75rem', fontWeight:sortBy===v?700:500, color:sortBy===v?'#1d4ed8':'#475569', textAlign:'left' }}>
-                  {l}
+          {/* Série */}
+          <div>
+            <label style={{display:'block',fontSize:'0.7rem',fontWeight:700,color:'#475569',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.04em'}}>🔧 Série</label>
+            <div style={{display:'flex',gap:'6px'}}>
+              {[{v:'all',l:'Toutes',icon:'🔍',d:'CR + SP'},{v:'CR',l:'CR Multicellulaire',icon:'🔷',d:'Surface'},{v:'SP',l:'SP Forage',icon:'🔵',d:'Immergée'}].map(opt=>(
+                <button key={opt.v} onClick={()=>setSerie(opt.v)} style={{flex:1,padding:'8px 6px',borderRadius:'8px',border:`2px solid ${serie===opt.v?'#2563eb':'#e2e8f0'}`,background:serie===opt.v?'#eff6ff':'white',cursor:'pointer',textAlign:'center'}}>
+                  <div style={{fontSize:'1rem'}}>{opt.icon}</div>
+                  <div style={{fontSize:'0.68rem',fontWeight:serie===opt.v?700:500,color:serie===opt.v?'#1d4ed8':'#475569'}}>{opt.l}</div>
+                  <div style={{fontSize:'0.6rem',color:'#94a3b8'}}>{opt.d}</div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Alertes automatiques */}
-          {H > 400 && <div style={{ background:'#fff1f2', border:'1.5px solid #fca5a5', borderRadius:'10px', padding:'10px 14px', fontSize:'0.78rem', color:'#dc2626' }}>
-            <strong>⚠️ HMT &gt; 400m</strong> — Vérifiez la pression maximale de service (PN) des pompes sélectionnées.
-          </div>}
-          {Q > 100 && serie==='SP' && <div style={{ background:'#fffbeb', border:'1.5px solid #fcd34d', borderRadius:'10px', padding:'10px 14px', fontSize:'0.78rem', color:'#92400e' }}>
-            <strong>💡 Grand débit SP</strong> — Pour Q &gt; 100 m³/h, envisagez plusieurs pompes SP en parallèle ou une pompe SP 95/125.
-          </div>}
-          {temp > 30 && serie==='SP' && <div style={{ background:'#fff1f2', border:'1.5px solid #fca5a5', borderRadius:'10px', padding:'10px 14px', fontSize:'0.78rem', color:'#dc2626' }}>
-            <strong>🌡️ Température inadaptée</strong> — Les pompes SP sont limitées à 30°C. Passez sur des CR pour eau chaude.
-          </div>}
-        </div>
-      </div>
-
-      {/* Bouton recherche */}
-      <button onClick={findPumps}
-        style={{ padding:'16px', background:'linear-gradient(135deg,#1e40af,#2563eb)', color:'white', border:'none', borderRadius:'12px', fontWeight:800, fontSize:'1.05rem', cursor:'pointer', fontFamily:"inherit", boxShadow:'0 6px 20px rgba(37,99,235,0.35)', letterSpacing:'0.02em' }}>
-        🔍 Trouver les pompes correspondantes — {PUMP_DB.filter(p=>serie==='all'||p.serie===serie).length} modèles analysés
-      </button>
-
-      {/* Résultats */}
-      {searched && results.length === 0 && (
-        <div style={{ background:'#fff1f2', border:'1.5px solid #fca5a5', borderRadius:'12px', padding:'24px', textAlign:'center' }}>
-          <div style={{ fontSize:'2rem', marginBottom:'8px' }}>😔</div>
-          <div style={{ fontSize:'1rem', fontWeight:700, color:'#dc2626', marginBottom:'4px' }}>Aucun modèle trouvé</div>
-          <div style={{ fontSize:'0.82rem', color:'#b91c1c' }}>
-            Modifiez les critères : réduisez la HMT, augmentez le débit, changez la série ou la taille de forage.
-          </div>
-        </div>
-      )}
-
-      {results.length > 0 && (
-        <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
-          <div style={{ fontSize:'0.85rem', fontWeight:700, color:'#1e293b', display:'flex', alignItems:'center', gap:'8px' }}>
-            <span>✅ {results.length} modèle{results.length>1?'s':''} trouvé{results.length>1?'s':''}</span>
-            <span style={{ background:'#dbeafe', color:'#1d4ed8', padding:'2px 10px', borderRadius:'20px', fontSize:'0.72rem', fontWeight:600 }}>Q={Q} m³/h | HMT={H} m</span>
-          </div>
-
-          {/* Grid résultats */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(310px,1fr))', gap:'10px' }}>
-            {results.map((p,i) => (
-              <div key={p.model+i}
-                onClick={()=>setSelected(selected?.model===p.model?null:p)}
-                style={{ background:'white', borderRadius:'12px', border:`2px solid ${selected?.model===p.model?'#2563eb':i===0?'#86efac':'#f1f5f9'}`, boxShadow:i===0?'0 4px 16px rgba(5,150,105,0.15)':'0 1px 4px rgba(0,0,0,0.05)', padding:'14px 16px', cursor:'pointer', transition:'all 0.15s', position:'relative' }}>
-
-                {/* Rang */}
-                {i===0&&<div style={{ position:'absolute', top:'-10px', left:'14px', background:'linear-gradient(135deg,#059669,#16a34a)', color:'white', fontSize:'0.65rem', fontWeight:800, padding:'2px 10px', borderRadius:'20px', letterSpacing:'0.08em' }}>🥇 MEILLEUR CHOIX</div>}
-
-                {/* Header modèle */}
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px' }}>
-                  <div>
-                    <div style={{ fontSize:'1rem', fontWeight:800, color:'#1e293b' }}>{p.model}</div>
-                    <div style={{ fontSize:'0.72rem', color:'#64748b', marginTop:'1px' }}>{p.brand} · {p.serie==='CR'?'Multicellulaire verticale':'Submersible forage'}</div>
-                  </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontSize:'0.72rem', fontWeight:700, color:getMatchColor(p.score), background:getMatchColor(p.score)+'18', padding:'2px 8px', borderRadius:'20px' }}>
-                      {getMatchLabel(p.score)}
-                    </div>
-                    <div style={{ fontSize:'0.68rem', color:'#94a3b8', marginTop:'2px' }}>Score: {p.score.toFixed(0)}/100</div>
-                  </div>
-                </div>
-
-                {/* KPIs en grille */}
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'6px', marginBottom:'10px' }}>
-                  {[
-                    { l:'Q max', v:`${p.Q_max} m³/h`, c:'#2563eb' },
-                    { l:'H max', v:`${p.H_max} m`, c:'#059669' },
-                    { l:'P moteur', v:`${p.P_kw} kW`, c:'#7c3aed' },
-                    { l:'η BEP', v:`${p.eta_bep}%`, c:'#d97706' },
-                    { l:'Étages', v:p.stages, c:'#0891b2' },
-                    { l:'IP', v:`IP${p.IP}`, c:'#475569' },
-                  ].map(({l,v,c})=>(
-                    <div key={l} style={{ background:'#f8fafc', borderRadius:'6px', padding:'5px 7px', textAlign:'center' }}>
-                      <div style={{ fontSize:'0.78rem', fontWeight:800, color:c }}>{v}</div>
-                      <div style={{ fontSize:'0.6rem', color:'#94a3b8' }}>{l}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Infos condensées */}
-                <div style={{ display:'flex', flexDirection:'column', gap:'3px', fontSize:'0.75rem', color:'#475569' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between' }}>
-                    <span>📐 Connexion</span><span style={{ fontWeight:600, color:'#1e293b' }}>{p.conn} — PN{p.pn}</span>
-                  </div>
-                  <div style={{ display:'flex', justifyContent:'space-between' }}>
-                    <span>📏 DN</span><span style={{ fontWeight:600, color:'#1e293b' }}>DN {p.DN_mm} mm</span>
-                  </div>
-                  {p.borehole_min&&<div style={{ display:'flex', justifyContent:'space-between' }}>
-                    <span>🕳️ Forage min</span><span style={{ fontWeight:600, color:'#1d4ed8' }}>Ø {p.borehole_min} mm</span>
-                  </div>}
-                  <div style={{ display:'flex', justifyContent:'space-between' }}>
-                    <span>⚡ Pa estimée</span><span style={{ fontWeight:600, color:'#7c3aed' }}>{p.Pa_calc} kW</span>
-                  </div>
-                  <div style={{ display:'flex', justifyContent:'space-between' }}>
-                    <span>📈 Marge H</span>
-                    <span style={{ fontWeight:600, color: p.H_margin>30?'#059669':'#d97706' }}>+{p.H_margin}% ({p.H_max-H}m)</span>
-                  </div>
-                </div>
-
-                {/* Prix */}
-                {p.prix_ht&&<div style={{ marginTop:'10px', paddingTop:'8px', borderTop:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <div>
-                    <div style={{ fontSize:'0.65rem', color:'#94a3b8' }}>Code Art. {p.code}</div>
-                    <div style={{ fontSize:'0.7rem', color:'#64748b' }}>Tarif Pro 2025 H.T.</div>
-                  </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontSize:'1.15rem', fontWeight:800, color:'#1e293b' }}>
-                      {p.prix_ht.toLocaleString('fr-FR')} €
-                    </div>
-                    <div style={{ fontSize:'0.65rem', color:'#94a3b8' }}>H.T. / unité</div>
-                  </div>
-                </div>}
-
-                {/* Applications */}
-                <div style={{ marginTop:'8px', display:'flex', flexWrap:'wrap', gap:'4px' }}>
-                  {p.app.split(',').map(a => (
-                    <span key={a} style={{ background:'#f1f5f9', color:'#475569', padding:'2px 8px', borderRadius:'20px', fontSize:'0.65rem', fontWeight:500 }}>{a.trim()}</span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Fiche technique détaillée */}
-          {selected && (
-            <div style={{ background:'white', borderRadius:'14px', border:'2px solid #2563eb', padding:'22px 24px', boxShadow:'0 8px 30px rgba(37,99,235,0.12)' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'16px' }}>
-                <div>
-                  <div style={{ fontSize:'1.4rem', fontWeight:800, color:'#1e293b' }}>{selected.model}</div>
-                  <div style={{ fontSize:'0.82rem', color:'#64748b' }}>{selected.brand} — {selected.type} — {selected.serie} série 50 Hz</div>
-                </div>
-                <div style={{ textAlign:'right' }}>
-                  {selected.prix_ht&&<div style={{ fontSize:'1.6rem', fontWeight:800, color:'#059669' }}>{selected.prix_ht.toLocaleString('fr-FR')} €</div>}
-                  <div style={{ fontSize:'0.7rem', color:'#94a3b8' }}>H.T. Tarif Pro 2025</div>
-                </div>
-              </div>
-
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'10px', marginBottom:'14px' }}>
-                {[
-                  { l:'Q nominal', v:`0 → ${selected.Q_max} m³/h`, c:'#2563eb', bg:'#eff6ff', icon:'💧' },
-                  { l:'HMT max', v:`${selected.H_max} m`, c:'#059669', bg:'#f0fdf4', icon:'📐' },
-                  { l:'HMT au BEP', v:`${selected.H_bep} m`, c:'#059669', bg:'#f0fdf4', icon:'🎯' },
-                  { l:'Q au BEP', v:`${selected.Q_bep} m³/h`, c:'#2563eb', bg:'#eff6ff', icon:'🎯' },
-                  { l:'Puissance', v:`${selected.P_kw} kW`, c:'#7c3aed', bg:'#faf5ff', icon:'⚡' },
-                  { l:'Rendement BEP', v:`${selected.eta_bep}%`, c:'#d97706', bg:'#fffbeb', icon:'🔄' },
-                  { l:'Étages', v:selected.stages, c:'#0891b2', bg:'#ecfeff', icon:'🔩' },
-                  { l:'IP', v:`IP ${selected.IP}`, c:'#475569', bg:'#f8fafc', icon:'🛡️' },
-                ].map(({l,v,c,bg,icon})=>(
-                  <div key={l} style={{ background:bg, borderRadius:'10px', padding:'10px 12px', borderLeft:`3px solid ${c}` }}>
-                    <div style={{ fontSize:'0.65rem', color:'#94a3b8' }}>{icon} {l}</div>
-                    <div style={{ fontSize:'1rem', fontWeight:800, color:c }}>{v}</div>
-                  </div>
+          {(serie==='SP'||serie==='all')&&(
+            <div>
+              <label style={{display:'block',fontSize:'0.7rem',fontWeight:700,color:'#1d4ed8',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.04em'}}>🕳️ Forage</label>
+              <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+                {[{d:100,l:'4" (100mm)'},{d:152,l:'6" (152mm)'},{d:200,l:'8" (200mm)'},{d:254,l:'10" (254mm)'}].map(({d,l})=>(
+                  <button key={d} onClick={()=>setBorehole(d)} style={{padding:'5px 10px',borderRadius:'6px',border:`1.5px solid ${borehole===d?'#2563eb':'#e2e8f0'}`,background:borehole===d?'#dbeafe':'#f8fafc',cursor:'pointer',fontSize:'0.72rem',fontWeight:borehole===d?700:400,color:borehole===d?'#1d4ed8':'#475569'}}>{l}</button>
                 ))}
-              </div>
-
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px' }}>
-                <div>
-                  <div style={{ fontSize:'0.72rem', fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'8px' }}>Données techniques</div>
-                  {[
-                    ['Connexion', `${selected.conn} — PN ${selected.pn}`],
-                    ['DN raccordement', `${selected.DN_mm} mm`],
-                    ['Temp. fluide max', `${selected.temp_max}°C`],
-                    ['Fluides admis', selected.fluide],
-                    selected.borehole_min?['Forage minimum', `Ø ${selected.borehole_min} mm (${selected.borehole_min>=254?'10"':selected.borehole_min>=200?'8"':selected.borehole_min>=152?'6"':'4"'})`]:null,
-                    ['Code article', selected.code],
-                  ].filter(Boolean).map(([l,v])=>(
-                    <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid #f8fafc', fontSize:'0.8rem' }}>
-                      <span style={{ color:'#64748b' }}>{l}</span>
-                      <span style={{ fontWeight:600, color:'#1e293b' }}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div style={{ fontSize:'0.72rem', fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'8px' }}>Analyse pour votre point Q={Q}m³/h | H={H}m</div>
-                  {[
-                    ['Ph hydraulique', `${selected.Ph} kW`],
-                    ['Pa estimée', `${selected.Pa_calc} kW`],
-                    ['Q au BEP', `${selected.Q_bep} m³/h (demande: ${Q} m³/h)`],
-                    ['Marge H disponible', `+${selected.H_margin}% soit ${selected.H_max-H} m de réserve`],
-                    ['Score BEP', `${selected.score.toFixed(0)}/100 — ${getMatchLabel(selected.score)}`],
-                  ].map(([l,v])=>(
-                    <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid #f8fafc', fontSize:'0.8rem' }}>
-                      <span style={{ color:'#64748b' }}>{l}</span>
-                      <span style={{ fontWeight:600, color:'#1e293b' }}>{v}</span>
-                    </div>
-                  ))}
-                  <div style={{ background:'#eff6ff', borderRadius:'8px', padding:'10px 12px', marginTop:'10px', fontSize:'0.78rem', color:'#1d4ed8' }}>
-                    <strong>💡 Applications :</strong><br/>{selected.app}
-                  </div>
-                </div>
               </div>
             </div>
           )}
+
+          <div>
+            <label style={{display:'block',fontSize:'0.7rem',fontWeight:700,color:'#475569',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.04em'}}>🌡️ Température</label>
+            <div style={{display:'flex',gap:'6px'}}>
+              {[{v:20,l:'≤ 30°C'},{v:60,l:'≤ 60°C'},{v:90,l:'≤ 90°C'}].map(({v,l})=>(
+                <button key={v} onClick={()=>setTemp(v)} style={{flex:1,padding:'6px',borderRadius:'6px',border:`1.5px solid ${temp===v?'#d97706':'#e2e8f0'}`,background:temp===v?'#fef3c7':'white',cursor:'pointer',fontSize:'0.72rem',fontWeight:temp===v?700:400,color:temp===v?'#92400e':'#475569'}}>{l}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Droite : résumé + tri */}
+        <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+          <div style={{background:'white',borderRadius:'14px',border:'1px solid #f1f5f9',padding:'16px 18px'}}>
+            <div style={{fontSize:'0.75rem',fontWeight:700,color:'#059669',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'12px',paddingBottom:'8px',borderBottom:'2px solid #f0fdf4'}}>📊 Point demandé</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+              {[
+                {l:'Débit Q',v:`${Q} m³/h`,c:'#2563eb',bg:'#eff6ff'},
+                {l:'HMT cible',v:`${H} m`,c:'#059669',bg:'#f0fdf4'},
+                {l:'Ph ≈',v:`${((Q*9.81*1000*H)/3600000).toFixed(2)} kW`,c:'#7c3aed',bg:'#faf5ff'},
+                {l:'Série',v:serie==='all'?'CR+SP':serie,c:'#1d4ed8',bg:'#dbeafe'},
+              ].map(({l,v,c,bg})=>(
+                <div key={l} style={{background:bg,borderRadius:'8px',padding:'8px 10px',borderLeft:`3px solid ${c}`}}>
+                  <div style={{fontSize:'0.65rem',color:'#94a3b8'}}>{l}</div>
+                  <div style={{fontSize:'0.95rem',fontWeight:800,color:c,fontFamily:'monospace'}}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:'10px',padding:'8px 10px',background:'#f0f9ff',borderRadius:'8px',fontSize:'0.75rem',color:'#0369a1',border:'1px solid #bae6fd'}}>
+              <strong>🔬 Méthode :</strong> Interpolation sur courbes Q/H réelles extraites des databooklets Grundfos. H affiché = HMT réelle de la pompe à Q={Q} m³/h.
+            </div>
+          </div>
+
+          <div style={{background:'white',borderRadius:'12px',border:'1px solid #f1f5f9',padding:'14px 16px'}}>
+            <div style={{fontSize:'0.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'8px'}}>Trier par</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px'}}>
+              {[{v:'score',l:'🎯 Meilleure concordance'},{v:'prix',l:'💶 Prix croissant'},{v:'eta',l:'⚡ Meilleur rendement'},{v:'P',l:'🔋 Puissance mini'}].map(({v,l})=>(
+                <button key={v} onClick={()=>setSortBy(v)} style={{padding:'7px 10px',borderRadius:'7px',border:`1.5px solid ${sortBy===v?'#2563eb':'#e2e8f0'}`,background:sortBy===v?'#eff6ff':'white',cursor:'pointer',fontSize:'0.75rem',fontWeight:sortBy===v?700:500,color:sortBy===v?'#1d4ed8':'#475569',textAlign:'left'}}>{l}</button>
+              ))}
+            </div>
+          </div>
+
+          {temp>30&&serie==='SP'&&<div style={{background:'#fff1f2',border:'1.5px solid #fca5a5',borderRadius:'10px',padding:'10px 14px',fontSize:'0.78rem',color:'#dc2626'}}><strong>⚠️</strong> SP limitées à 30°C. Passez sur CR pour eau chaude.</div>}
+        </div>
+      </div>
+
+      <button onClick={findPumps} style={{padding:'16px',background:'linear-gradient(135deg,#1e40af,#2563eb)',color:'white',border:'none',borderRadius:'12px',fontWeight:800,fontSize:'1.05rem',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 6px 20px rgba(37,99,235,0.35)'}}>
+        🔍 Rechercher — Interpolation sur {PUMP_DB.filter(p=>serie==='all'||p.serie===serie).length} modèles
+      </button>
+
+      {searched&&results.length===0&&(
+        <div style={{background:'#fff1f2',border:'1.5px solid #fca5a5',borderRadius:'12px',padding:'24px',textAlign:'center'}}>
+          <div style={{fontSize:'2rem',marginBottom:'8px'}}>😔</div>
+          <div style={{fontWeight:700,color:'#dc2626',marginBottom:'4px'}}>Aucun modèle trouvé pour Q={Q} m³/h / HMT={H} m</div>
+          <div style={{fontSize:'0.82rem',color:'#b91c1c'}}>Modifiez les critères ou vérifiez le diamètre de forage.</div>
+        </div>
+      )}
+
+      {results.length>0&&(
+        <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+          <div style={{fontSize:'0.85rem',fontWeight:700,color:'#1e293b',display:'flex',alignItems:'center',gap:'8px'}}>
+            <span>✅ {results.length} modèle{results.length>1?'s':''} — courbes interpolées à Q={Q} m³/h</span>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:'10px'}}>
+            {results.map((p,i)=>{
+              const at=p.at_Q;
+              const isSelected=selected?.model===p.model;
+              return (
+                <div key={p.model+i} onClick={()=>setSelected(isSelected?null:p)}
+                  style={{background:'white',borderRadius:'12px',border:`2px solid ${isSelected?'#2563eb':i===0?'#86efac':'#f1f5f9'}`,boxShadow:i===0?'0 4px 16px rgba(5,150,105,0.12)':'0 1px 4px rgba(0,0,0,0.04)',padding:'14px 16px',cursor:'pointer',position:'relative',transition:'all 0.15s'}}>
+
+                  {i===0&&<div style={{position:'absolute',top:'-10px',left:'14px',background:'linear-gradient(135deg,#059669,#16a34a)',color:'white',fontSize:'0.65rem',fontWeight:800,padding:'2px 10px',borderRadius:'20px'}}>🥇 MEILLEUR CHOIX</div>}
+
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'10px'}}>
+                    <div>
+                      <div style={{fontSize:'1rem',fontWeight:800,color:'#1e293b'}}>{p.model}</div>
+                      <div style={{fontSize:'0.7rem',color:'#64748b'}}>{p.brand} · {p.serie==='SP'?`Submersible ${p.sp_family?.includes('18')||p.sp_family?.includes('32')||p.sp_family?.includes('46')||p.sp_family?.includes('60')?'6"':p.sp_family?.includes('77')||p.sp_family?.includes('95')?'8"':p.sp_family?.includes('125')||p.sp_family?.includes('160')||p.sp_family?.includes('215')?'10"':'4"'}`:'Multicellulaire verticale'}</div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:'0.72rem',fontWeight:700,color:getMatchColor(p.score),background:getMatchColor(p.score)+'18',padding:'2px 8px',borderRadius:'20px'}}>{getMatchLabel(p.score)}</div>
+                    </div>
+                  </div>
+
+                  {/* KPIs courbe */}
+                  <div style={{background:'#f0fdf4',borderRadius:'8px',padding:'10px 12px',marginBottom:'10px',border:'1.5px solid #86efac'}}>
+                    <div style={{fontSize:'0.65rem',color:'#64748b',marginBottom:'5px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>📍 Valeurs interpolées à Q = {Q} m³/h</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'6px'}}>
+                      <div style={{textAlign:'center'}}>
+                        <div style={{fontSize:'1.15rem',fontWeight:800,color:'#059669',fontFamily:'monospace'}}>{at?.H} m</div>
+                        <div style={{fontSize:'0.65rem',color:'#64748b'}}>HMT réelle</div>
+                        <div style={{fontSize:'0.6rem',color:Math.abs(at?.H-H)/H*100<5?'#16a34a':'#d97706'}}>cible: {H}m (Δ{p.delta_H}%)</div>
+                      </div>
+                      <div style={{textAlign:'center'}}>
+                        <div style={{fontSize:'1.15rem',fontWeight:800,color:'#d97706',fontFamily:'monospace'}}>{at?.eta}%</div>
+                        <div style={{fontSize:'0.65rem',color:'#64748b'}}>Rendement η</div>
+                      </div>
+                      <div style={{textAlign:'center'}}>
+                        <div style={{fontSize:'1.15rem',fontWeight:800,color:'#7c3aed',fontFamily:'monospace'}}>{at?.Pa} kW</div>
+                        <div style={{fontSize:'0.65rem',color:'#64748b'}}>Pa absorbée</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'5px',marginBottom:'8px'}}>
+                    {[
+                      {l:'P moteur',v:`${p.P_kw} kW`,c:'#7c3aed'},
+                      {l:'Étages',v:p.stages,c:'#0891b2'},
+                      {l:`IP ${p.IP}`,v:`PN${p.pn}`,c:'#475569'},
+                    ].map(({l,v,c})=>(
+                      <div key={l} style={{background:'#f8fafc',borderRadius:'6px',padding:'4px 6px',textAlign:'center'}}>
+                        <div style={{fontSize:'0.8rem',fontWeight:700,color:c}}>{v}</div>
+                        <div style={{fontSize:'0.6rem',color:'#94a3b8'}}>{l}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:'8px',borderTop:'1px solid #f1f5f9'}}>
+                    <div>
+                      <div style={{fontSize:'0.62rem',color:'#94a3b8'}}>{p.code}</div>
+                      <div style={{fontSize:'0.62rem',color:'#64748b'}}>{p.conn} — DN{p.DN_mm}</div>
+                    </div>
+                    {p.prix_ht&&<div style={{fontSize:'1.1rem',fontWeight:800,color:'#1e293b'}}>{p.prix_ht.toLocaleString('fr-FR')} €</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Fiche détaillée + courbe */}
+          {selected&&(()=>{
+            const at=selected.at_Q;
+            const qhPts=getCurvePoints(selected);
+            return (
+              <div style={{background:'white',borderRadius:'14px',border:'2px solid #2563eb',padding:'22px 24px',boxShadow:'0 8px 30px rgba(37,99,235,0.12)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'16px',flexWrap:'wrap',gap:'8px'}}>
+                  <div>
+                    <div style={{fontSize:'1.4rem',fontWeight:800,color:'#1e293b'}}>{selected.model}</div>
+                    <div style={{fontSize:'0.8rem',color:'#64748b'}}>{selected.brand} · {selected.stages} étages · {selected.P_kw} kW · {selected.conn} PN{selected.pn}</div>
+                  </div>
+                  {selected.prix_ht&&<div style={{fontSize:'1.5rem',fontWeight:800,color:'#059669'}}>{selected.prix_ht.toLocaleString('fr-FR')} € H.T.</div>}
+                </div>
+
+                {/* Point de fonctionnement mis en valeur */}
+                <div style={{background:'linear-gradient(135deg,#f0fdf4,#dcfce7)',borderRadius:'12px',padding:'16px 18px',marginBottom:'16px',border:'2px solid #86efac'}}>
+                  <div style={{fontSize:'0.72rem',fontWeight:700,color:'#065f46',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'10px'}}>📍 Point de fonctionnement — Valeurs lues sur courbe à Q = {Q} m³/h</div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'10px'}}>
+                    {[
+                      {l:'Q demandé',v:`${Q} m³/h`,c:'#2563eb',icon:'💧'},
+                      {l:'HMT réelle',v:`${at?.H} m`,c:'#059669',icon:'📐', sub:`cible ${H}m · écart ${selected.delta_H}%`},
+                      {l:'Rendement η',v:`${at?.eta}%`,c:'#d97706',icon:'⚡'},
+                      {l:'Pa absorbée',v:`${at?.Pa} kW`,c:'#7c3aed',icon:'🔌'},
+                    ].map(({l,v,c,icon,sub})=>(
+                      <div key={l} style={{background:'white',borderRadius:'10px',padding:'10px 12px',border:`2px solid ${c}22`,textAlign:'center'}}>
+                        <div style={{fontSize:'1.2rem',marginBottom:'2px'}}>{icon}</div>
+                        <div style={{fontSize:'1.25rem',fontWeight:800,color:c,fontFamily:'monospace'}}>{v}</div>
+                        <div style={{fontSize:'0.68rem',color:'#64748b',fontWeight:600}}>{l}</div>
+                        {sub&&<div style={{fontSize:'0.6rem',color:'#94a3b8',marginTop:'2px'}}>{sub}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Courbe SVG */}
+                <div style={{marginBottom:'14px'}}>
+                  <div style={{fontSize:'0.72rem',fontWeight:700,color:'#1e293b',marginBottom:'8px',textTransform:'uppercase',letterSpacing:'0.06em'}}>📈 Courbe Q/H interpolée — {selected.model}</div>
+                  <SVGCurve pump={selected} Q_target={Q} H_target={H}/>
+                  <div style={{display:'flex',gap:'12px',marginTop:'6px',fontSize:'0.7rem',color:'#64748b'}}>
+                    <span>— Courbe Q/H (bleu) · - - Rendement η (orange) · ⬤ Point de fonctionnement (rouge)</span>
+                  </div>
+                </div>
+
+                {/* Tableau points courbe */}
+                <div>
+                  <div style={{fontSize:'0.72rem',fontWeight:700,color:'#1e293b',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>📊 Table Q/H de la courbe</div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(100px,1fr))',gap:'4px'}}>
+                    {qhPts.filter((_,i)=>i%2===0||i===qhPts.length-1).map(([q,h])=>{
+                      const etaC=getPumpEtaCurve(selected);
+                      const e=etaC?interpolate(etaC,q):null;
+                      const isTarget=Math.abs(q-Q)<0.5;
+                      return (
+                        <div key={q} style={{background:isTarget?'#dcfce7':'#f8fafc',border:`1px solid ${isTarget?'#86efac':'#e2e8f0'}`,borderRadius:'6px',padding:'5px 8px',textAlign:'center'}}>
+                          <div style={{fontSize:'0.7rem',fontWeight:700,color:'#2563eb',fontFamily:'monospace'}}>{q} m³/h</div>
+                          <div style={{fontSize:'0.75rem',fontWeight:800,color:'#059669',fontFamily:'monospace'}}>{h} m</div>
+                          {e!==null&&<div style={{fontSize:'0.65rem',color:'#d97706',fontFamily:'monospace'}}>{e.toFixed(0)}%</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Infos techniques */}
+                <div style={{marginTop:'14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',fontSize:'0.78rem'}}>
+                  {[
+                    ['Connexion',`${selected.conn} — PN ${selected.pn}`],
+                    ['DN',`${selected.DN_mm} mm`],
+                    ['Temp. max',`${selected.temp_max}°C`],
+                    ['Code article',selected.code],
+                    ['Applications',selected.app],
+                    selected.borehole_min?['Forage min',`Ø ${selected.borehole_min} mm`]:null,
+                  ].filter(Boolean).map(([l,v])=>(
+                    <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid #f8fafc'}}>
+                      <span style={{color:'#64748b'}}>{l}</span><span style={{fontWeight:600,color:'#1e293b'}}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
