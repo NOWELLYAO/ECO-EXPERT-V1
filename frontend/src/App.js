@@ -9878,12 +9878,6 @@ const CR45_DIRECT = {
   '5': [[22.0,127.0],[24.5,125.4],[29.8,121.2],[32.4,118.6],[35.6,115.3],[38.1,112.4],[41.1,108.4],[43.8,104.8]],
   '7': [[22.0,179.4],[24.5,177.2],[29.8,171.3],[32.4,168.0],[35.6,163.3],[38.1,159.0],[41.1,153.9],[43.8,148.5]],
 };
-const CR64_DIRECT = {
-  '2': [[31.2,56.4],[35.6,55.3],[39.6,54.2],[43.6,52.9],[47.6,51.7],[51.9,50.3],[56.2,48.8],[60.2,47.3],[64.3,45.8]],
-  '3': [[31.2,85.0],[35.6,83.4],[39.6,81.9],[43.6,80.2],[47.6,78.3],[51.9,76.1],[56.2,73.9],[60.2,71.7],[64.3,69.2]],
-  '4': [[31.2,113.0],[35.6,111.0],[39.6,109.0],[43.6,106.9],[47.6,104.5],[51.9,101.7],[56.2,98.9],[60.2,96.0],[64.3,92.7]],
-  '6': [[31.2,171.0],[35.6,168.0],[39.6,165.0],[43.6,161.8],[47.6,158.3],[51.9,154.4],[56.2,150.1],[60.2,146.0],[64.3,141.3]],
-};
 const CR95_DIRECT = {
   '1': [[0.0,23.8],[50,18.8],[60,17.8],[70,16.5],[80,14.8],[90,12.9],[100,10.5]],
   '2': [[0.0,29.1],[50,24.1],[60,23.1],[70,22.0],[80,20.6],[90,18.8],[100,16.7]],
@@ -9916,7 +9910,6 @@ const DIRECT_CURVES_BY_FAMILY_CR = {
   'CR 20': CR20_DIRECT,
   'CR 32': CR32_DIRECT,
   'CR 45': CR45_DIRECT,
-  'CR 64': CR64_DIRECT,
   'CR 95': CR95_DIRECT,
   'CR 125': CR125_DIRECT,
   'CR 155': CR155_DIRECT,
@@ -9983,225 +9976,495 @@ const getPumpAtQ = (pump, Q_target) => {
 const PUMP_DB = [
   // ════════════════════════════════════════════════════════
   // GRUNDFOS CR — Multicellulaire verticale en ligne
-  // cr_family correspond au Q_nom de la famille
+  // Données réelles extraites du data booklet officiel Grundfos CR 50Hz (05/2026)
+  // Prix et codes articles non vérifiés → null (à compléter avec source officielle)
   // ════════════════════════════════════════════════════════
+  // ── CR 1 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-2', stages:2, P_kw:0.37, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-3', stages:3, P_kw:0.37, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-4', stages:4, P_kw:0.37, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-5', stages:5, P_kw:0.37, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-6', stages:6, P_kw:0.37, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-7', stages:7, P_kw:0.37, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-8', stages:8, P_kw:0.55, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-9', stages:9, P_kw:0.55, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-10', stages:10, P_kw:0.55, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-11', stages:11, P_kw:0.55, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-12', stages:12, P_kw:0.75, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-13', stages:13, P_kw:0.75, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-15', stages:15, P_kw:0.75, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-17', stages:17, P_kw:1.1, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-19', stages:19, P_kw:1.1, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-21', stages:21, P_kw:1.1, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-23', stages:23, P_kw:1.1, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
 
-  // ── CR 1 : Q_nom=1 m³/h ──────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-2',  stages:2,  P_kw:0.37, IP:55, conn:'G 1/2',        pn:16, DN_mm:25,  temp_max:120, code:'92900962', prix_ht:1395, app:'Domestique,surpression légère,château eau' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-3',  stages:3,  P_kw:0.37, IP:55, conn:'G 1/2',        pn:16, DN_mm:25,  temp_max:120, code:'92900963', prix_ht:1446, app:'Domestique,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-4',  stages:4,  P_kw:0.37, IP:55, conn:'G 1/2',        pn:16, DN_mm:25,  temp_max:120, code:'92900965', prix_ht:1497, app:'Domestique,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-5',  stages:5,  P_kw:0.37, IP:55, conn:'G 1/2',        pn:16, DN_mm:25,  temp_max:120, code:'92900969', prix_ht:1547, app:'Domestique,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-6',  stages:6,  P_kw:0.37, IP:55, conn:'G 1/2',        pn:16, DN_mm:25,  temp_max:120, code:'92900970', prix_ht:1598, app:'Surpression,irrigation' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-8',  stages:8,  P_kw:0.55, IP:55, conn:'G 1/2',        pn:16, DN_mm:25,  temp_max:120, code:'92900974', prix_ht:1724, app:'Surpression,irrigation' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-10', stages:10, P_kw:0.55, IP:55, conn:'G 1/2',        pn:16, DN_mm:25,  temp_max:120, code:'92900978', prix_ht:1837, app:'Surpression,industrie' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-13', stages:13, P_kw:0.75, IP:55, conn:'G 1/2',        pn:16, DN_mm:25,  temp_max:120, code:'92900983', prix_ht:2162, app:'Surpression,industrie' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-15', stages:15, P_kw:0.75, IP:55, conn:'G 1/2',        pn:25, DN_mm:25,  temp_max:120, code:'92900986', prix_ht:2319, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-19', stages:19, P_kw:1.1,  IP:55, conn:'G 1/2',        pn:25, DN_mm:25,  temp_max:120, code:'92901383', prix_ht:2755, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-25', stages:25, P_kw:1.5,  IP:55, conn:'G 1/2',        pn:25, DN_mm:25,  temp_max:120, code:'92901384', prix_ht:2913, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-30', stages:30, P_kw:1.5,  IP:55, conn:'G 1/2',        pn:25, DN_mm:25,  temp_max:120, code:'92901385', prix_ht:3076, app:'Industrie,HTB' },
+  // ── CR 3 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-2', stages:2, P_kw:0.37, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-3', stages:3, P_kw:0.37, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-4', stages:4, P_kw:0.37, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-5', stages:5, P_kw:0.37, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-6', stages:6, P_kw:0.55, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-7', stages:7, P_kw:0.55, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-8', stages:8, P_kw:0.75, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-9', stages:9, P_kw:0.75, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-10', stages:10, P_kw:0.75, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-11', stages:11, P_kw:1.1, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-12', stages:12, P_kw:1.1, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-13', stages:13, P_kw:1.1, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-15', stages:15, P_kw:1.1, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-17', stages:17, P_kw:1.5, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-19', stages:19, P_kw:1.5, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-21', stages:21, P_kw:2.2, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-23', stages:23, P_kw:2.2, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
 
-  // ── CR 3 : Q_nom=3 m³/h ──────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-2',  stages:2,  P_kw:0.37, IP:55, conn:'G 1',          pn:16, DN_mm:32,  temp_max:120, code:'96509003', prix_ht:1480, app:'Domestique,HVAC,irrigation' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-3',  stages:3,  P_kw:0.37, IP:55, conn:'G 1',          pn:16, DN_mm:32,  temp_max:120, code:'96509004', prix_ht:1535, app:'Irrigation,HVAC' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-4',  stages:4,  P_kw:0.55, IP:55, conn:'G 1',          pn:16, DN_mm:32,  temp_max:120, code:'96509005', prix_ht:1645, app:'Irrigation,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-6',  stages:6,  P_kw:0.75, IP:55, conn:'G 1',          pn:16, DN_mm:32,  temp_max:120, code:'96509006', prix_ht:1820, app:'Surpression,industrie' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-8',  stages:8,  P_kw:1.1,  IP:55, conn:'G 1',          pn:16, DN_mm:32,  temp_max:120, code:'96509007', prix_ht:2020, app:'Surpression,industrie' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-12', stages:12, P_kw:1.5,  IP:55, conn:'G 1',          pn:25, DN_mm:32,  temp_max:120, code:'96509012', prix_ht:2350, app:'Industrie' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-17', stages:17, P_kw:2.2,  IP:55, conn:'G 1',          pn:25, DN_mm:32,  temp_max:120, code:'96509017', prix_ht:2920, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-23', stages:23, P_kw:3.0,  IP:55, conn:'G 1',          pn:25, DN_mm:32,  temp_max:120, code:'96509023', prix_ht:3480, app:'Industrie,HTB' },
+  // ── CR 5 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-2', stages:2, P_kw:0.37, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-3', stages:3, P_kw:0.55, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-4', stages:4, P_kw:0.55, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-5', stages:5, P_kw:0.75, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-6', stages:6, P_kw:1.1, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-7', stages:7, P_kw:1.1, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-8', stages:8, P_kw:1.1, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-9', stages:9, P_kw:1.5, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-10', stages:10, P_kw:1.5, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-11', stages:11, P_kw:2.2, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-12', stages:12, P_kw:2.2, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-13', stages:13, P_kw:2.2, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-14', stages:14, P_kw:2.2, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-15', stages:15, P_kw:2.2, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-16', stages:16, P_kw:2.2, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-18', stages:18, P_kw:3.0, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-20', stages:20, P_kw:3.0, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-22', stages:22, P_kw:4.0, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
 
-  // ── CR 5 : Q_nom=5 m³/h ──────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-2',  stages:2,  P_kw:0.37, IP:55, conn:'G 1 1/4',      pn:16, DN_mm:40,  temp_max:120, code:'96513002', prix_ht:1580, app:'Industrie,HVAC' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-3',  stages:3,  P_kw:0.55, IP:55, conn:'G 1 1/4',      pn:16, DN_mm:40,  temp_max:120, code:'96513003', prix_ht:1680, app:'Industrie,HVAC,irrigation' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-4',  stages:4,  P_kw:0.75, IP:55, conn:'G 1 1/4',      pn:16, DN_mm:40,  temp_max:120, code:'96513004', prix_ht:1780, app:'Industrie,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-5',  stages:5,  P_kw:0.75, IP:55, conn:'G 1 1/4',      pn:16, DN_mm:40,  temp_max:120, code:'96513005', prix_ht:1880, app:'Industrie,HVAC' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-7',  stages:7,  P_kw:1.1,  IP:55, conn:'G 1 1/4',      pn:16, DN_mm:40,  temp_max:120, code:'96513007', prix_ht:2080, app:'Industrie,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-10', stages:10, P_kw:1.5,  IP:55, conn:'G 1 1/4',      pn:16, DN_mm:40,  temp_max:120, code:'96513010', prix_ht:2280, app:'Industrie,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-13', stages:13, P_kw:2.2,  IP:55, conn:'G 1 1/4',      pn:25, DN_mm:40,  temp_max:120, code:'96513013', prix_ht:2680, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-18', stages:18, P_kw:3.0,  IP:55, conn:'G 1 1/4',      pn:25, DN_mm:40,  temp_max:120, code:'96513018', prix_ht:3280, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-24', stages:24, P_kw:4.0,  IP:55, conn:'G 1 1/4',      pn:25, DN_mm:40,  temp_max:120, code:'96513024', prix_ht:4200, app:'Industrie,HTB' },
+  // ── CR 10 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-1', stages:1, P_kw:0.37, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-2', stages:2, P_kw:0.75, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-3', stages:3, P_kw:1.1, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-4', stages:4, P_kw:1.5, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-5', stages:5, P_kw:2.2, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-6', stages:6, P_kw:2.2, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-7', stages:7, P_kw:3.0, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-8', stages:8, P_kw:3.0, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-9', stages:9, P_kw:3.0, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-10', stages:10, P_kw:4.0, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-12', stages:12, P_kw:4.0, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-14', stages:14, P_kw:5.5, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-16', stages:16, P_kw:5.5, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
 
-  // ── CR 10 : Q_nom=10 m³/h ────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-1', stages:1,  P_kw:0.75, IP:55, conn:'DN 50 flange',  pn:16, DN_mm:50,  temp_max:120, code:'96517001', prix_ht:2180, app:'Industrie,bâtiment' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-2', stages:2,  P_kw:1.1,  IP:55, conn:'DN 50 flange',  pn:16, DN_mm:50,  temp_max:120, code:'96517002', prix_ht:2480, app:'Industrie,bâtiment' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-3', stages:3,  P_kw:1.5,  IP:55, conn:'DN 50 flange',  pn:16, DN_mm:50,  temp_max:120, code:'96517003', prix_ht:2650, app:'Industrie,bâtiment,HVAC' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-5', stages:5,  P_kw:2.2,  IP:55, conn:'DN 50 flange',  pn:16, DN_mm:50,  temp_max:120, code:'96517005', prix_ht:3140, app:'Industrie,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-7', stages:7,  P_kw:3.0,  IP:55, conn:'DN 50 flange',  pn:16, DN_mm:50,  temp_max:120, code:'96517007', prix_ht:3780, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-9', stages:9,  P_kw:4.0,  IP:55, conn:'DN 50 flange',  pn:16, DN_mm:50,  temp_max:120, code:'96517009', prix_ht:4280, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-12',stages:12, P_kw:5.5,  IP:55, conn:'DN 50 flange',  pn:25, DN_mm:50,  temp_max:120, code:'96517012', prix_ht:5100, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-15',stages:15, P_kw:7.5,  IP:55, conn:'DN 50 flange',  pn:25, DN_mm:50,  temp_max:120, code:'96517015', prix_ht:6200, app:'Industrie,HTB' },
+  // ── CR 15 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-1', stages:1, P_kw:1.1, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-2', stages:2, P_kw:2.2, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-3', stages:3, P_kw:3.0, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-4', stages:4, P_kw:4.0, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-5', stages:5, P_kw:4.0, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-6', stages:6, P_kw:5.5, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-7', stages:7, P_kw:5.5, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
 
-  // ── CR 15 : Q_nom=15 m³/h ────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-1', stages:1,  P_kw:0.75, IP:55, conn:'DN 65 flange',  pn:16, DN_mm:65,  temp_max:120, code:'96520001', prix_ht:2800, app:'Industrie,bâtiment' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-2', stages:2,  P_kw:1.5,  IP:55, conn:'DN 65 flange',  pn:16, DN_mm:65,  temp_max:120, code:'96520002', prix_ht:3200, app:'Industrie,bâtiment,HVAC' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-3', stages:3,  P_kw:2.2,  IP:55, conn:'DN 65 flange',  pn:16, DN_mm:65,  temp_max:120, code:'96520003', prix_ht:3700, app:'Industrie,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-5', stages:5,  P_kw:3.0,  IP:55, conn:'DN 65 flange',  pn:16, DN_mm:65,  temp_max:120, code:'96520005', prix_ht:4600, app:'Industrie,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-7', stages:7,  P_kw:5.5,  IP:55, conn:'DN 65 flange',  pn:16, DN_mm:65,  temp_max:120, code:'96520007', prix_ht:5500, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-10',stages:10, P_kw:7.5,  IP:55, conn:'DN 65 flange',  pn:25, DN_mm:65,  temp_max:120, code:'96520010', prix_ht:7200, app:'Industrie,HTB' },
+  // ── CR 20 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-1', stages:1, P_kw:1.1, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-2', stages:2, P_kw:2.2, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-3', stages:3, P_kw:4.0, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-4', stages:4, P_kw:5.5, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-5', stages:5, P_kw:5.5, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-6', stages:6, P_kw:7.5, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-7', stages:7, P_kw:7.5, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
 
-  // ── CR 20 : Q_nom=20 m³/h ────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-2', stages:2,  P_kw:2.2,  IP:55, conn:'DN 80 flange',  pn:16, DN_mm:80,  temp_max:120, code:'96524002', prix_ht:4200, app:'Industrie,bâtiment,HVAC' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-3', stages:3,  P_kw:3.0,  IP:55, conn:'DN 80 flange',  pn:16, DN_mm:80,  temp_max:120, code:'96524003', prix_ht:4900, app:'Industrie,bâtiment' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-5', stages:5,  P_kw:5.5,  IP:55, conn:'DN 80 flange',  pn:16, DN_mm:80,  temp_max:120, code:'96524005', prix_ht:6100, app:'Industrie,surpression' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-7', stages:7,  P_kw:7.5,  IP:55, conn:'DN 80 flange',  pn:16, DN_mm:80,  temp_max:120, code:'96524007', prix_ht:7400, app:'Industrie,HTB' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-10',stages:10, P_kw:11.0, IP:55, conn:'DN 80 flange',  pn:25, DN_mm:80,  temp_max:120, code:'96524010', prix_ht:9800, app:'Industrie,HTB' },
+  // ── CR 32 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-1', stages:1, P_kw:2.2, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-2', stages:2, P_kw:4.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-3', stages:3, P_kw:5.5, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-4', stages:4, P_kw:7.5, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-5', stages:5, P_kw:11.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-6', stages:6, P_kw:11.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-7', stages:7, P_kw:15.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-8', stages:8, P_kw:15.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-9', stages:9, P_kw:18.5, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-10', stages:10, P_kw:18.5, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-11', stages:11, P_kw:22.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-12', stages:12, P_kw:22.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-13', stages:13, P_kw:30.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-14', stages:14, P_kw:30.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
 
-  // ── CR 32 : Q_nom=32 m³/h ────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-2', stages:2,  P_kw:3.0,  IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96530002', prix_ht:6200, app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-3', stages:3,  P_kw:4.0,  IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96530003', prix_ht:7200, app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-5', stages:5,  P_kw:5.5,  IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96530005', prix_ht:8800, app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-7', stages:7,  P_kw:7.5,  IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96530007', prix_ht:10500,app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-10',stages:10, P_kw:11.0, IP:55, conn:'DN 100 flange', pn:25, DN_mm:100, temp_max:120, code:'96530010', prix_ht:13500,app:'Industrie,HTB' },
+  // ── CR 45 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-1', stages:1, P_kw:4.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-2', stages:2, P_kw:7.5, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-3', stages:3, P_kw:11.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-4', stages:4, P_kw:15.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-5', stages:5, P_kw:18.5, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-6', stages:6, P_kw:22.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-7', stages:7, P_kw:30.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-8', stages:8, P_kw:30.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-9', stages:9, P_kw:37.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-10', stages:10, P_kw:37.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-11', stages:11, P_kw:45.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-12', stages:12, P_kw:45.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
 
-  // ── CR 45 : Q_nom=45 m³/h ────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-2', stages:2,  P_kw:5.5,  IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96536002', prix_ht:8400, app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-3', stages:3,  P_kw:7.5,  IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96536003', prix_ht:10200,app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-5', stages:5,  P_kw:11.0, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:'96536005', prix_ht:12800,app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 45', model:'CR 45-7', stages:7,  P_kw:15.0, IP:55, conn:'DN 100 flange', pn:25, DN_mm:100, temp_max:120, code:'96536007', prix_ht:15400,app:'Industrie,HTB' },
+  // ── CR 64 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-1', stages:1, P_kw:5.5, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-2', stages:2, P_kw:11.0, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-3', stages:3, P_kw:18.5, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-4', stages:4, P_kw:22.0, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-5', stages:5, P_kw:30.0, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-6', stages:6, P_kw:37.0, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-7', stages:7, P_kw:45.0, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
 
-  // ── CR 64 : Q_nom=64 m³/h ────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-2', stages:2,  P_kw:7.5,  IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:'96540002', prix_ht:11200,app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-3', stages:3,  P_kw:11.0, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:'96540003', prix_ht:13600,app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-4', stages:4,  P_kw:15.0, IP:55, conn:'DN 125 flange', pn:16, DN_mm:125, temp_max:120, code:'96540004', prix_ht:16400,app:'Industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 64', model:'CR 64-6', stages:6,  P_kw:22.0, IP:55, conn:'DN 125 flange', pn:25, DN_mm:125, temp_max:120, code:'96540006', prix_ht:21000,app:'Industrie,HTB' },
+  // ── CR 95 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95', model:'CR 95-1', stages:1, P_kw:7.5, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,industrie lourde' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95', model:'CR 95-2', stages:2, P_kw:15.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,industrie lourde' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95', model:'CR 95-3', stages:3, P_kw:22.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,industrie lourde' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95', model:'CR 95-4', stages:4, P_kw:30.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,industrie lourde' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95', model:'CR 95-5', stages:5, P_kw:37.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,industrie lourde' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95', model:'CR 95-6', stages:6, P_kw:45.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,industrie lourde' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 95', model:'CR 95-7', stages:7, P_kw:55.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,industrie lourde' },
 
-  // ── CR 95+ ────────────────────────────────────────────
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 95',  model:'CR 95-1',  stages:1, P_kw:5.5,  IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96543001', prix_ht:15800,app:'Collectivités,industrie lourde' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 95',  model:'CR 95-2',  stages:2, P_kw:11.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96543002', prix_ht:20400,app:'Collectivités,industrie lourde' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 95',  model:'CR 95-3',  stages:3, P_kw:15.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96543003', prix_ht:25600,app:'Collectivités,industrie lourde' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-1', stages:1, P_kw:7.5,  IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96547001', prix_ht:20000,app:'Collectivités,grande industrie' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-2', stages:2, P_kw:15.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:'96547002', prix_ht:28000,app:'Collectivités,grande industrie' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-3', stages:3, P_kw:22.0, IP:55, conn:'DN 150 flange', pn:25, DN_mm:150, temp_max:120, code:'96547003', prix_ht:38000,app:'Collectivités,grande industrie' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 155', model:'CR 155-1', stages:1, P_kw:11.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:'96551001', prix_ht:28000,app:'Grande industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 155', model:'CR 155-2', stages:2, P_kw:22.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:'96551002', prix_ht:38000,app:'Grande industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-1', stages:1, P_kw:15.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:'96555001', prix_ht:34000,app:'Grande industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-2', stages:2, P_kw:30.0, IP:55, conn:'DN 200 flange', pn:25, DN_mm:200, temp_max:120, code:'96555002', prix_ht:48000,app:'Grande industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 255', model:'CR 255-1', stages:1, P_kw:18.5, IP:55, conn:'DN 250 flange', pn:16, DN_mm:250, temp_max:120, code:'96560001', prix_ht:40000,app:'Grande industrie,collectivités' },
-  { brand:'Grundfos', serie:'CR', cr_family:'CR 255', model:'CR 255-2', stages:2, P_kw:37.0, IP:55, conn:'DN 250 flange', pn:25, DN_mm:250, temp_max:120, code:'96560002', prix_ht:55000,app:'Grande industrie,collectivités' },
+  // ── CR 125 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-1', stages:1, P_kw:11.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,grande industrie' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-2', stages:2, P_kw:22.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,grande industrie' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-3', stages:3, P_kw:37.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,grande industrie' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-4', stages:4, P_kw:45.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,grande industrie' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 125', model:'CR 125-5', stages:5, P_kw:55.0, IP:55, conn:'DN 150 flange', pn:16, DN_mm:150, temp_max:120, code:null, prix_ht:null, app:'Collectivités,grande industrie' },
+
+  // ── CR 155 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 155', model:'CR 155-1', stages:1, P_kw:15.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 155', model:'CR 155-2', stages:2, P_kw:30.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 155', model:'CR 155-3', stages:3, P_kw:45.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+
+  // ── CR 215 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-1', stages:1, P_kw:37.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-2', stages:2, P_kw:75.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-3', stages:3, P_kw:90.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-4', stages:4, P_kw:132.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-5', stages:5, P_kw:160.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 215', model:'CR 215-6', stages:6, P_kw:200.0, IP:55, conn:'DN 200 flange', pn:16, DN_mm:200, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+
+  // ── CR 255 ──────────────────────────────
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 255', model:'CR 255-1', stages:1, P_kw:45.0, IP:55, conn:'DN 250 flange', pn:16, DN_mm:250, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 255', model:'CR 255-2', stages:2, P_kw:75.0, IP:55, conn:'DN 250 flange', pn:16, DN_mm:250, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 255', model:'CR 255-3', stages:3, P_kw:110.0, IP:55, conn:'DN 250 flange', pn:16, DN_mm:250, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 255', model:'CR 255-4', stages:4, P_kw:160.0, IP:55, conn:'DN 250 flange', pn:16, DN_mm:250, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 255', model:'CR 255-5', stages:5, P_kw:200.0, IP:55, conn:'DN 250 flange', pn:16, DN_mm:250, temp_max:120, code:null, prix_ht:null, app:'Grande industrie,collectivités' },
 
   // ════════════════════════════════════════════════════════
   // GRUNDFOS SP — Submersible forage
-  // SP XA ou SP X → X = débit nominal en m³/h
+  // Données réelles extraites du data booklet officiel Grundfos SP 50Hz (01/2025)
   // ════════════════════════════════════════════════════════
+  // ── SP 1A ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-9', stages:9, P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",eau potable,domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-14', stages:14, P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",eau potable,domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-18', stages:18, P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",eau potable,domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-21', stages:21, P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",eau potable,domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-28', stages:28, P_kw:0.75, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",eau potable,domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-36', stages:36, P_kw:1.1, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",eau potable,domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-42', stages:42, P_kw:1.1, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",eau potable,domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-50', stages:50, P_kw:1.5, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",eau potable,domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-57', stages:57, P_kw:1.5, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",eau potable,domestique', borehole_min:100 },
 
-  // ── SP 1A : Q_nom=1 m³/h, Q_max réel 1.4 m³/h ───────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-9',  stages:9,  P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09510K09', prix_ht:820,  app:'Forage 4",eau potable,domestique', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-14', stages:14, P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09510K14', prix_ht:950,  app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-18', stages:18, P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09510K18', prix_ht:1050, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-28', stages:28, P_kw:0.75, IP:68, conn:'Rp 1 1/4', pn:60, DN_mm:32, temp_max:30, code:'09510K28', prix_ht:1250, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-42', stages:42, P_kw:1.1,  IP:68, conn:'Rp 1 1/4', pn:60, DN_mm:32, temp_max:30, code:'09510K42', prix_ht:1620, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 1A', model:'SP 1A-57', stages:57, P_kw:1.5,  IP:68, conn:'Rp 1 1/4', pn:60, DN_mm:32, temp_max:30, code:'09510K57', prix_ht:1980, app:'Forage 4",HTB', borehole_min:100 },
+  // ── SP 2A ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-6', stages:6, P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-9', stages:9, P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-13', stages:13, P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-18', stages:18, P_kw:0.75, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-23', stages:23, P_kw:1.1, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-28', stages:28, P_kw:1.5, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-33', stages:33, P_kw:1.5, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-40', stages:40, P_kw:2.2, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-48', stages:48, P_kw:2.2, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-55', stages:55, P_kw:3.0, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-65', stages:65, P_kw:3.0, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation,habitat', borehole_min:100 },
 
-  // ── SP 2A : Q_nom=2 m³/h, Q_max réel 2.7 m³/h ───────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-6',  stages:6,  P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09520K06', prix_ht:870,  app:'Forage 4",irrigation,habitat', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-9',  stages:9,  P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09520K09', prix_ht:1020, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-13', stages:13, P_kw:0.75, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09520K13', prix_ht:1180, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-18', stages:18, P_kw:1.1,  IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09520K18', prix_ht:1320, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-23', stages:23, P_kw:1.1,  IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09520K23', prix_ht:1480, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-33', stages:33, P_kw:1.5,  IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09520K33', prix_ht:1850, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 2A', model:'SP 2A-40', stages:40, P_kw:2.2,  IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09520K40', prix_ht:2100, app:'Forage 4",HTB', borehole_min:100 },
+  // ── SP 3A ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-6', stages:6, P_kw:0.37, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-9', stages:9, P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-12', stages:12, P_kw:0.75, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-15', stages:15, P_kw:1.1, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-18', stages:18, P_kw:1.1, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-22', stages:22, P_kw:1.5, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-25', stages:25, P_kw:1.5, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-29', stages:29, P_kw:2.2, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-33', stages:33, P_kw:2.2, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-39', stages:39, P_kw:3.0, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-45', stages:45, P_kw:3.0, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-52', stages:52, P_kw:4.0, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-60', stages:60, P_kw:4.0, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:null, prix_ht:null, app:'Forage 4",irrigation', borehole_min:100 },
 
-  // ── SP 3A : Q_nom=3 m³/h, Q_max réel 3.6 m³/h ───────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-6',  stages:6,  P_kw:0.55, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09530K06', prix_ht:920,  app:'Forage 4",irrigation', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-9',  stages:9,  P_kw:0.75, IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09530K09', prix_ht:1080, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-12', stages:12, P_kw:1.1,  IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09530K12', prix_ht:1240, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-15', stages:15, P_kw:1.5,  IP:68, conn:'Rp 1 1/4', pn:25, DN_mm:32, temp_max:30, code:'09530K15', prix_ht:1450, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-22', stages:22, P_kw:2.2,  IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09530K22', prix_ht:1780, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 3A', model:'SP 3A-33', stages:33, P_kw:3.0,  IP:68, conn:'Rp 1 1/4', pn:40, DN_mm:32, temp_max:30, code:'09530K33', prix_ht:2280, app:'Forage 4",HTB', borehole_min:100 },
+  // ── SP 5A ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-4', stages:4, P_kw:0.37, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-6', stages:6, P_kw:0.55, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-8', stages:8, P_kw:0.75, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-12', stages:12, P_kw:1.1, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-17', stages:17, P_kw:1.5, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-21', stages:21, P_kw:2.2, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-25', stages:25, P_kw:2.2, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-33', stages:33, P_kw:3.0, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-38', stages:38, P_kw:4.0, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-44', stages:44, P_kw:4.0, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-52', stages:52, P_kw:5.5, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-60', stages:60, P_kw:5.5, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",usage domestique', borehole_min:100 },
 
-  // ── SP 5A : Q_nom=5 m³/h, Q_max réel 6.4 m³/h ───────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-4',  stages:4,  P_kw:0.37, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09550K04', prix_ht:880,  app:'Forage 4",usage domestique', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-6',  stages:6,  P_kw:0.55, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09550K06', prix_ht:1050, app:'Forage 4",irrigation,domestique', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-8',  stages:8,  P_kw:0.75, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09550K08', prix_ht:1180, app:'Forage 4",irrigation', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-12', stages:12, P_kw:1.1,  IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09550K12', prix_ht:1480, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-17', stages:17, P_kw:1.5,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09550K17', prix_ht:1780, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-21', stages:21, P_kw:2.2,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09550K21', prix_ht:2050, app:'Forage 4",eau potable', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-25', stages:25, P_kw:2.2,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09550K25', prix_ht:2350, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-33', stages:33, P_kw:3.0,  IP:68, conn:'Rp 1 1/2', pn:60, DN_mm:40, temp_max:30, code:'09550K33', prix_ht:2980, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-44', stages:44, P_kw:4.0,  IP:68, conn:'Rp 1 1/2', pn:60, DN_mm:40, temp_max:30, code:'09550K44', prix_ht:3980, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 5A', model:'SP 5A-52', stages:52, P_kw:5.5,  IP:68, conn:'Rp 1 1/2', pn:60, DN_mm:40, temp_max:30, code:'09550K52', prix_ht:4850, app:'Forage 4",HTB', borehole_min:100 },
+  // ── SP 7 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-1', stages:1, P_kw:1.5, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-3', stages:3, P_kw:0.55, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-5', stages:5, P_kw:0.75, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-8', stages:8, P_kw:1.1, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-12', stages:12, P_kw:1.5, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-17', stages:17, P_kw:2.2, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-23', stages:23, P_kw:3.0, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-27', stages:27, P_kw:4.0, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-31', stages:31, P_kw:4.0, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-37', stages:37, P_kw:5.5, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-42', stages:42, P_kw:5.5, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-51', stages:51, P_kw:7.5, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-59', stages:59, P_kw:7.5, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
 
-  // ── SP 7 : Q_nom=7 m³/h, Q_max réel 9 m³/h ──────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-3',  stages:3,  P_kw:0.55, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09570K03', prix_ht:1180, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-5',  stages:5,  P_kw:0.75, IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09570K05', prix_ht:1380, app:'Forage 4",agriculture', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-8',  stages:8,  P_kw:1.1,  IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09570K08', prix_ht:1780, app:'Forage 4",agriculture', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-12', stages:12, P_kw:1.5,  IP:68, conn:'Rp 1 1/2', pn:25, DN_mm:40, temp_max:30, code:'09570K12', prix_ht:2180, app:'Forage 4",agriculture', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-17', stages:17, P_kw:2.2,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09570K17', prix_ht:2780, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-23', stages:23, P_kw:3.0,  IP:68, conn:'Rp 1 1/2', pn:40, DN_mm:40, temp_max:30, code:'09570K23', prix_ht:3480, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-31', stages:31, P_kw:4.0,  IP:68, conn:'Rp 1 1/2', pn:60, DN_mm:40, temp_max:30, code:'09570K31', prix_ht:4480, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 7', model:'SP 7-42', stages:42, P_kw:5.5,  IP:68, conn:'Rp 1 1/2', pn:60, DN_mm:40, temp_max:30, code:'09570K42', prix_ht:5800, app:'Forage 4",HTB', borehole_min:100 },
+  // ── SP 9 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-4', stages:4, P_kw:0.75, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-5', stages:5, P_kw:1.1, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-8', stages:8, P_kw:1.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-10', stages:10, P_kw:2.2, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-11', stages:11, P_kw:2.2, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-13', stages:13, P_kw:3.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-16', stages:16, P_kw:3.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-18', stages:18, P_kw:4.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-21', stages:21, P_kw:4.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-23', stages:23, P_kw:5.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-25', stages:25, P_kw:5.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-29', stages:29, P_kw:5.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-32', stages:32, P_kw:7.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-36', stages:36, P_kw:7.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-40', stages:40, P_kw:7.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-44', stages:44, P_kw:9.2, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-48', stages:48, P_kw:9.2, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-52', stages:52, P_kw:11.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
 
-  // ── SP 9 : Q_nom=9 m³/h, Q_max réel 11 m³/h ─────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-4',  stages:4,  P_kw:0.75, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09590K04', prix_ht:1280, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-5',  stages:5,  P_kw:1.1,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09590K05', prix_ht:1480, app:'Forage 4",agriculture', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-8',  stages:8,  P_kw:1.5,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09590K08', prix_ht:1880, app:'Forage 4",agriculture', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-10', stages:10, P_kw:2.2,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09590K10', prix_ht:2280, app:'Forage 4",collectivités', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-13', stages:13, P_kw:3.0,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09590K13', prix_ht:2780, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-18', stages:18, P_kw:4.0,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09590K18', prix_ht:3580, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 9', model:'SP 9-25', stages:25, P_kw:5.5,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09590K25', prix_ht:4580, app:'Forage 4",HTB', borehole_min:100 },
+  // ── SP 11 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-3', stages:3, P_kw:0.75, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-5', stages:5, P_kw:1.1, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-7', stages:7, P_kw:1.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-11', stages:11, P_kw:2.2, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-15', stages:15, P_kw:3.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-20', stages:20, P_kw:4.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-24', stages:24, P_kw:5.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-27', stages:27, P_kw:5.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-33', stages:33, P_kw:7.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-37', stages:37, P_kw:7.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
 
-  // ── SP 11 : Q_nom=11 m³/h ────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-3', stages:3,  P_kw:1.5,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09511K03', prix_ht:1680, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-5', stages:5,  P_kw:2.2,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09511K05', prix_ht:2180, app:'Forage 4",agriculture', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-7', stages:7,  P_kw:3.0,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09511K07', prix_ht:2780, app:'Forage 4",collectivités', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-10',stages:10, P_kw:4.0,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09511K10', prix_ht:3380, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 11', model:'SP 11-14',stages:14, P_kw:5.5,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09511K14', prix_ht:4380, app:'Forage 4",HTB', borehole_min:100 },
+  // ── SP 14 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-4', stages:4, P_kw:1.1, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-6', stages:6, P_kw:1.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-8', stages:8, P_kw:2.2, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-11', stages:11, P_kw:3.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-13', stages:13, P_kw:3.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-15', stages:15, P_kw:4.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-17', stages:17, P_kw:4.0, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-20', stages:20, P_kw:5.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-23', stages:23, P_kw:5.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-27', stages:27, P_kw:7.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-31', stages:31, P_kw:7.5, IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:null, prix_ht:null, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
 
-  // ── SP 14 : Q_nom=14 m³/h ────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-4', stages:4,  P_kw:2.2,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09514K04', prix_ht:2350, app:'Forage 4",agriculture,collectivités', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-6', stages:6,  P_kw:3.0,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09514K06', prix_ht:2880, app:'Forage 4",collectivités', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-8', stages:8,  P_kw:4.0,  IP:68, conn:'Rp 2', pn:25, DN_mm:50, temp_max:30, code:'09514K08', prix_ht:3480, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-11',stages:11, P_kw:5.5,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09514K11', prix_ht:4350, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-15',stages:15, P_kw:7.5,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09514K15', prix_ht:5600, app:'Forage 4",HTB', borehole_min:100 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 14', model:'SP 14-20',stages:20, P_kw:9.2,  IP:68, conn:'Rp 2', pn:40, DN_mm:50, temp_max:30, code:'09514K20', prix_ht:7100, app:'Forage 4",HTB', borehole_min:100 },
+  // ── SP 18 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-1', stages:1, P_kw:0.55, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-2', stages:2, P_kw:1.1, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-3', stages:3, P_kw:2.2, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-4', stages:4, P_kw:2.2, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-5', stages:5, P_kw:3.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-6', stages:6, P_kw:4.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-7', stages:7, P_kw:4.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-8', stages:8, P_kw:5.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-9', stages:9, P_kw:5.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-11', stages:11, P_kw:7.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-12', stages:12, P_kw:7.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-13', stages:13, P_kw:7.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-14', stages:14, P_kw:7.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-15', stages:15, P_kw:9.2, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-16', stages:16, P_kw:9.2, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-17', stages:17, P_kw:9.2, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-18', stages:18, P_kw:9.2, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-19', stages:19, P_kw:11.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-20', stages:20, P_kw:11.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-21', stages:21, P_kw:11.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-22', stages:22, P_kw:13.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-23', stages:23, P_kw:13.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-24', stages:24, P_kw:13.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-29', stages:29, P_kw:15.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-31', stages:31, P_kw:18.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-33', stages:33, P_kw:18.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-36', stages:36, P_kw:18.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-40', stages:40, P_kw:22.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:null, prix_ht:null, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
 
-  // ── SP 18 (6") : Q_nom=18 m³/h ───────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-18',stages:18, P_kw:13.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:'09518K18', prix_ht:8200, app:'Forage 6",agriculture,collectivités', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-20',stages:20, P_kw:15.0, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:'09518K20', prix_ht:9100, app:'Forage 6",agriculture', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-25',stages:25, P_kw:18.5, IP:68, conn:'Rp 2 1/2', pn:25, DN_mm:65, temp_max:30, code:'09518K25', prix_ht:11200,app:'Forage 6",collectivités', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-33',stages:33, P_kw:22.0, IP:68, conn:'Rp 2 1/2', pn:40, DN_mm:65, temp_max:30, code:'09518K33', prix_ht:14500,app:'Forage 6",HTB', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-40',stages:40, P_kw:26.0, IP:68, conn:'Rp 2 1/2', pn:40, DN_mm:65, temp_max:30, code:'09518K40', prix_ht:17200,app:'Forage 6",HTB', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-48',stages:48, P_kw:30.0, IP:68, conn:'Rp 2 1/2', pn:40, DN_mm:65, temp_max:30, code:'09518K48', prix_ht:20500,app:'Forage 6",HTB', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 18', model:'SP 18-60',stages:60, P_kw:37.0, IP:68, conn:'Rp 2 1/2', pn:40, DN_mm:65, temp_max:30, code:'09518K60', prix_ht:26800,app:'Forage 6",HTB', borehole_min:152 },
+  // ── SP 32 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-1', stages:1, P_kw:1.1, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-2', stages:2, P_kw:2.2, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-3', stages:3, P_kw:3.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-4', stages:4, P_kw:4.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-5', stages:5, P_kw:5.5, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-6', stages:6, P_kw:5.5, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-7', stages:7, P_kw:7.5, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-8', stages:8, P_kw:7.5, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-9', stages:9, P_kw:7.5, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-14', stages:14, P_kw:13.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-16', stages:16, P_kw:15.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-17', stages:17, P_kw:15.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-18', stages:18, P_kw:15.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-19', stages:19, P_kw:18.5, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-20', stages:20, P_kw:18.5, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-21', stages:21, P_kw:18.5, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-22', stages:22, P_kw:18.5, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-23', stages:23, P_kw:22.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-24', stages:24, P_kw:22.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-25', stages:25, P_kw:22.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-26', stages:26, P_kw:22.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-27', stages:27, P_kw:26.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-29', stages:29, P_kw:26.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-31', stages:31, P_kw:26.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-33', stages:33, P_kw:30.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-35', stages:35, P_kw:30.0, IP:68, conn:'Rp 3', pn:25, DN_mm:80, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
 
-  // ── SP 32 (6") ────────────────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-20',stages:20, P_kw:13.0, IP:68, conn:'Rp 3',     pn:25, DN_mm:80, temp_max:30, code:'09532K20', prix_ht:8200, app:'Forage 6",irrigation intensive,collectivités', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-25',stages:25, P_kw:15.0, IP:68, conn:'Rp 3',     pn:25, DN_mm:80, temp_max:30, code:'09532K25', prix_ht:9600, app:'Forage 6",agriculture', borehole_min:152 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 32', model:'SP 32-33',stages:33, P_kw:18.5, IP:68, conn:'Rp 3',     pn:40, DN_mm:80, temp_max:30, code:'09532K33', prix_ht:12500,app:'Forage 6",HTB', borehole_min:152 },
+  // ── SP 46 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-1', stages:1, P_kw:2.2, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-2', stages:2, P_kw:3.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-3', stages:3, P_kw:5.5, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-4', stages:4, P_kw:7.5, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-5', stages:5, P_kw:7.5, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-6', stages:6, P_kw:9.2, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-10', stages:10, P_kw:15.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-12', stages:12, P_kw:18.5, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-13', stages:13, P_kw:22.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-14', stages:14, P_kw:22.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-15', stages:15, P_kw:22.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-16', stages:16, P_kw:26.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-17', stages:17, P_kw:26.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-18', stages:18, P_kw:30.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-19', stages:19, P_kw:30.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-20', stages:20, P_kw:30.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-21', stages:21, P_kw:37.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-22', stages:22, P_kw:37.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-23', stages:23, P_kw:37.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-24', stages:24, P_kw:37.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
 
-  // ── SP 46 (6") ────────────────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-2', stages:2,  P_kw:5.5,  IP:68, conn:'Rp 4',     pn:25, DN_mm:100,temp_max:30, code:'09546K02', prix_ht:6400, app:'Forage 6",irrigation,collectivités', borehole_min:168 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-4', stages:4,  P_kw:9.2,  IP:68, conn:'Rp 4',     pn:25, DN_mm:100,temp_max:30, code:'09546K04', prix_ht:9200, app:'Forage 6",agriculture', borehole_min:168 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 46', model:'SP 46-7', stages:7,  P_kw:15.0, IP:68, conn:'Rp 4',     pn:40, DN_mm:100,temp_max:30, code:'09546K07', prix_ht:14200,app:'Forage 6",HTB', borehole_min:168 },
+  // ── SP 60 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-1', stages:1, P_kw:2.2, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-2', stages:2, P_kw:4.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-3', stages:3, P_kw:5.5, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-4', stages:4, P_kw:7.5, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-5', stages:5, P_kw:9.2, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-6', stages:6, P_kw:11.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-7', stages:7, P_kw:13.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-8', stages:8, P_kw:15.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-9', stages:9, P_kw:18.5, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-10', stages:10, P_kw:18.5, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-11', stages:11, P_kw:22.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-12', stages:12, P_kw:22.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-13', stages:13, P_kw:26.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-14', stages:14, P_kw:26.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-15', stages:15, P_kw:26.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-16', stages:16, P_kw:30.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-17', stages:17, P_kw:30.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-18', stages:18, P_kw:37.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-19', stages:19, P_kw:37.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-20', stages:20, P_kw:37.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-21', stages:21, P_kw:37.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-22', stages:22, P_kw:45.0, IP:68, conn:'Rp 4', pn:25, DN_mm:100, temp_max:30, code:null, prix_ht:null, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
 
-  // ── SP 60 (6") ────────────────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-3', stages:3,  P_kw:9.2,  IP:68, conn:'Rp 4',     pn:25, DN_mm:100,temp_max:30, code:'09560K03', prix_ht:9800, app:'Forage 6",irrigation intensive,collectivités', borehole_min:168 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 60', model:'SP 60-5', stages:5,  P_kw:15.0, IP:68, conn:'Rp 4',     pn:40, DN_mm:100,temp_max:30, code:'09560K05', prix_ht:14800,app:'Forage 6",collectivités', borehole_min:168 },
+  // ── SP 77 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-1', stages:1, P_kw:5.5, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-2', stages:2, P_kw:7.5, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-3', stages:3, P_kw:11.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-4', stages:4, P_kw:15.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-5', stages:5, P_kw:18.5, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-6', stages:6, P_kw:22.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-7', stages:7, P_kw:26.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-8', stages:8, P_kw:30.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-9', stages:9, P_kw:30.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-10', stages:10, P_kw:37.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-11', stages:11, P_kw:37.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-12', stages:12, P_kw:45.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-13', stages:13, P_kw:55.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-14', stages:14, P_kw:55.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-15', stages:15, P_kw:55.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-16', stages:16, P_kw:63.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-17', stages:17, P_kw:63.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-18', stages:18, P_kw:63.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-19', stages:19, P_kw:75.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-20', stages:20, P_kw:75.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-21', stages:21, P_kw:75.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-22', stages:22, P_kw:92.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",eau potable collectivités', borehole_min:200 },
 
-  // ── SP 77 (8") ────────────────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-3', stages:3,  P_kw:11.0, IP:68, conn:'Rp 5',     pn:25, DN_mm:125,temp_max:30, code:'09577K03', prix_ht:14500,app:'Forage 8",eau potable collectivités', borehole_min:200 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 77', model:'SP 77-5', stages:5,  P_kw:18.5, IP:68, conn:'Rp 5',     pn:40, DN_mm:125,temp_max:30, code:'09577K05', prix_ht:21500,app:'Forage 8",collectivités', borehole_min:200 },
+  // ── SP 95 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-1', stages:1, P_kw:5.5, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-2', stages:2, P_kw:9.2, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-3', stages:3, P_kw:13.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-4', stages:4, P_kw:18.5, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-5', stages:5, P_kw:22.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-6', stages:6, P_kw:26.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-7', stages:7, P_kw:30.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-8', stages:8, P_kw:37.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-9', stages:9, P_kw:37.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-10', stages:10, P_kw:45.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-11', stages:11, P_kw:55.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-12', stages:12, P_kw:55.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-13', stages:13, P_kw:55.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-14', stages:14, P_kw:63.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-15', stages:15, P_kw:75.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-16', stages:16, P_kw:75.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-17', stages:17, P_kw:75.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-18', stages:18, P_kw:92.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-19', stages:19, P_kw:92.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-20', stages:20, P_kw:92.0, IP:68, conn:'Rp 5', pn:25, DN_mm:125, temp_max:30, code:null, prix_ht:null, app:'Forage 8",AEP,collectivités', borehole_min:200 },
 
-  // ── SP 95 (8") ────────────────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-3', stages:3,  P_kw:15.0, IP:68, conn:'Rp 5',     pn:25, DN_mm:125,temp_max:30, code:'09595K03', prix_ht:18500,app:'Forage 8",AEP,collectivités', borehole_min:200 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 95', model:'SP 95-5', stages:5,  P_kw:22.0, IP:68, conn:'Rp 5',     pn:40, DN_mm:125,temp_max:30, code:'09595K05', prix_ht:28000,app:'Forage 8",AEP', borehole_min:200 },
+  // ── SP 125 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-1', stages:1, P_kw:11.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-2', stages:2, P_kw:22.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-3', stages:3, P_kw:30.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-4', stages:4, P_kw:37.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-5', stages:5, P_kw:55.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-6', stages:6, P_kw:63.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-7', stages:7, P_kw:75.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-8', stages:8, P_kw:75.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-9', stages:9, P_kw:92.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-10', stages:10, P_kw:92.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-11', stages:11, P_kw:110.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-12', stages:12, P_kw:132.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-13', stages:13, P_kw:132.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-14', stages:14, P_kw:147.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-15', stages:15, P_kw:147.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-16', stages:16, P_kw:170.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-17', stages:17, P_kw:170.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
 
-  // ── SP 125 (10") ──────────────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-3',stages:3, P_kw:22.0, IP:68, conn:'Rp 6',     pn:25, DN_mm:150,temp_max:30, code:'09512K03', prix_ht:28000,app:'Forage 10",AEP,périmètre irrigué', borehole_min:254 },
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 125', model:'SP 125-5',stages:5, P_kw:37.0, IP:68, conn:'Rp 6',     pn:40, DN_mm:150,temp_max:30, code:'09512K05', prix_ht:42000,app:'Forage 10",AEP', borehole_min:254 },
+  // ── SP 160 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-1', stages:1, P_kw:13.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-2', stages:2, P_kw:26.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-3', stages:3, P_kw:37.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-4', stages:4, P_kw:55.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-5', stages:5, P_kw:63.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-6', stages:6, P_kw:75.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-7', stages:7, P_kw:92.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-8', stages:8, P_kw:92.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-9', stages:9, P_kw:110.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-10', stages:10, P_kw:132.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-11', stages:11, P_kw:132.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-13', stages:13, P_kw:170.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-14', stages:14, P_kw:170.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-15', stages:15, P_kw:190.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP', borehole_min:254 },
 
-  // ── SP 160 (10") ──────────────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 160', model:'SP 160-3',stages:3, P_kw:30.0, IP:68, conn:'Rp 6',     pn:25, DN_mm:150,temp_max:30, code:'09516K03', prix_ht:38000,app:'Forage 10",grande AEP', borehole_min:254 },
+  // ── SP 215 ──────────────────────────────
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-1', stages:1, P_kw:18.5, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-2', stages:2, P_kw:45.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-3', stages:3, P_kw:63.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-4', stages:4, P_kw:75.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-5', stages:5, P_kw:92.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-6', stages:6, P_kw:110.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-7', stages:7, P_kw:132.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-8', stages:8, P_kw:147.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-9', stages:9, P_kw:170.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
+  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-11', stages:11, P_kw:220.0, IP:68, conn:'Rp 6', pn:25, DN_mm:150, temp_max:30, code:null, prix_ht:null, app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
 
-  // ── SP 215 (10") ──────────────────────────────────────
-  { brand:'Grundfos', serie:'SP', sp_family:'SP 215', model:'SP 215-2',stages:2, P_kw:37.0, IP:68, conn:'Rp 6',     pn:25, DN_mm:150,temp_max:30, code:'09521K02', prix_ht:52000,app:'Forage 10",grande AEP,irrigation intensive', borehole_min:254 },
 ];
 
 const PumpSelector = () => {
   const [Q, setQ] = useState(30);
   const [H, setH] = useState(25);
   const [serie, setSerie] = useState('all');
-  const [borehole, setBorehole] = useState(200);
   const [temp, setTemp] = useState(20);
   const [results, setResults] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -10228,7 +10491,6 @@ const PumpSelector = () => {
     const scored = PUMP_DB
       .filter(p => {
         if (serie !== 'all' && p.serie !== serie) return false;
-        if (p.borehole_min && borehole < p.borehole_min) return false;
         if (temp > p.temp_max) return false;
 
         // ── FILTRE DÉBIT NOMINAL : Q demandé doit être dans la plage de la famille ──
@@ -10389,17 +10651,6 @@ const PumpSelector = () => {
               ))}
             </div>
           </div>
-
-          {(serie==='SP'||serie==='all')&&(
-            <div>
-              <label style={{display:'block',fontSize:'0.7rem',fontWeight:700,color:'#1d4ed8',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.04em'}}>🕳️ Forage</label>
-              <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
-                {[{d:100,l:'4" (100mm)'},{d:152,l:'6" (152mm)'},{d:200,l:'8" (200mm)'},{d:254,l:'10" (254mm)'}].map(({d,l})=>(
-                  <button key={d} onClick={()=>setBorehole(d)} style={{padding:'5px 10px',borderRadius:'6px',border:`1.5px solid ${borehole===d?'#2563eb':'#e2e8f0'}`,background:borehole===d?'#dbeafe':'#f8fafc',cursor:'pointer',fontSize:'0.72rem',fontWeight:borehole===d?700:400,color:borehole===d?'#1d4ed8':'#475569'}}>{l}</button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div>
             <label style={{display:'block',fontSize:'0.7rem',fontWeight:700,color:'#475569',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.04em'}}>🌡️ Température</label>
