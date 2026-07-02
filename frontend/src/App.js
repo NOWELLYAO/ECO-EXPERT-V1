@@ -9765,8 +9765,15 @@ const SP125_DIRECT = {
   '3': [[0.0,65.8],[40,57.4],[60,53.2],[80,48.6],[100,43.4],[120,36.3]],
   '5': [[0.0,130.4],[40,116.4],[60,109.4],[80,101.5],[100,93.1],[120,82.0]],
 };
+const SP160_DIRECT = {
+  '3': [[0.0,101.6],[20,90.8],[30,85.4],[40,79.9],[50,75.1],[60,71.3],[70,67.4]],
+};
+const SP215_DIRECT = {
+  '2': [[0.0,72.9],[40,69.1],[60,67.2],[80,64.2],[100,60.9],[120,57.6],[140,54.3],[160,51.3],[200,46.3],[220,43.5],[240,39.9]],
+};
 // Table de lookup : famille -> { nb_étages: courbe directe }
 const DIRECT_CURVES_BY_FAMILY = {
+  'SP 1A': SP1A_DIRECT,
   'SP 5A': SP5A_DIRECT,
   'SP 7': SP7_DIRECT,
   'SP 2A': SP2A_DIRECT,
@@ -9781,10 +9788,26 @@ const DIRECT_CURVES_BY_FAMILY = {
   'SP 77': SP77_DIRECT,
   'SP 95': SP95_DIRECT,
   'SP 125': SP125_DIRECT,
+  'SP 160': SP160_DIRECT,
+  'SP 215': SP215_DIRECT,
 };
 
 // ── Fonctions calcul courbe ───────────────────────────────────────────
-const CR3_DIRECT = {
+const SP1A_DIRECT = {
+  '14': [[0,79.8],[0.2,78.4],[0.4,77.0],[0.6,72.8],[0.8,67.2],[1.0,62.2],[1.2,47.6],[1.4,28.0]],
+  '18': [[0,102.6],[0.2,100.8],[0.4,99.0],[0.6,93.6],[0.8,86.4],[1.0,79.9],[1.2,61.2],[1.4,36.0]],
+  '28': [[0,159.6],[0.2,156.8],[0.4,154.0],[0.6,145.6],[0.8,134.4],[1.0,124.3],[1.2,95.2],[1.4,56.0]],
+  '42': [[0,239.4],[0.2,235.2],[0.4,231.0],[0.6,218.4],[0.8,201.6],[1.0,186.5],[1.2,142.8],[1.4,84.0]],
+  '57': [[0,324.9],[0.2,319.2],[0.4,313.5],[0.6,296.4],[0.8,273.6],[1.0,253.1],[1.2,193.8],[1.4,114.0]],
+};
+const CR1_DIRECT = {
+  '10': [[0.0,41.8],[0.2,41.4],[0.6,40.5],[0.8,39.1],[1.0,37.7],[1.2,36.0],[1.4,33.3],[1.6,29.7],[2.0,24.5]],
+  '13': [[0.0,61.2],[0.2,60.6],[0.6,59.4],[0.8,57.9],[1.0,56.2],[1.2,53.8],[1.4,50.2],[1.6,45.7],[2.0,41.6]],
+  '15': [[0.0,73.8],[0.2,73.1],[0.6,71.7],[0.8,70.0],[1.0,67.8],[1.2,64.7],[1.4,60.8],[1.6,55.6],[2.0,49.7]],
+  '19': [[0.0,98.8],[0.2,98.0],[0.6,96.3],[0.8,94.0],[1.0,91.2],[1.2,87.2],[1.4,82.3],[1.6,75.6],[2.0,65.8]],
+  '25': [[0.0,137.4],[0.2,136.5],[0.6,134.6],[0.8,131.8],[1.0,128.1],[1.2,123.1],[1.4,116.5],[1.6,107.8],[2.0,93.7]],
+  '30': [[0.0,169.2],[0.2,167.9],[0.6,165.4],[0.8,162.0],[1.0,157.5],[1.2,151.6],[1.4,143.4],[1.6,133.2],[2.0,120.1]],
+};
   '2': [[0.0,13.5],[0.6,12.9],[0.7,12.8],[0.9,12.6],[1.1,12.4],[1.3,12.2],[1.6,11.8],[1.9,11.2],[2.2,10.4],[2.5,9.4],[2.9,7.9]],
   '3': [[0.0,20.2],[0.6,19.4],[0.9,19.0],[1.1,18.7],[1.4,18.1],[1.7,17.3],[2.0,16.3],[2.2,15.6],[2.5,14.1],[2.9,11.7]],
   '4': [[0.0,27.1],[0.6,25.9],[0.9,25.3],[1.1,24.9],[1.4,24.1],[1.7,23.1],[2.0,21.9],[2.2,20.7],[2.5,18.7],[2.9,15.0]],
@@ -9793,6 +9816,16 @@ const CR3_DIRECT = {
   '12': [[0.0,81.9],[0.6,76.9],[0.9,74.4],[1.1,72.8],[1.4,70.0],[1.7,65.9],[2.0,60.8],[2.2,56.7],[2.5,49.1],[2.9,39.2]],
   '17': [[0.0,115.6],[0.6,109.4],[0.9,106.3],[1.1,104.1],[1.4,99.4],[1.7,94.1],[2.0,87.0],[2.2,80.8],[2.5,70.2],[2.9,59.7]],
   '23': [[0.0,155.5],[0.6,148.1],[0.9,144.4],[1.1,141.4],[1.4,135.7],[1.7,128.3],[2.0,118.1],[2.2,110.2],[2.5,96.5],[2.9,80.6]],
+};
+const CR3_DIRECT = {
+  '2': [[0.0,13.5],[0.5,13.0],[0.6,12.9],[0.9,12.6],[1.1,12.4],[1.4,12.1],[1.7,11.7],[2.0,10.9],[2.5,9.4],[2.9,7.9]],
+  '3': [[0.0,19.4],[0.5,19.4],[0.6,19.4],[0.9,19.0],[1.1,18.7],[1.4,18.1],[1.7,17.3],[2.0,16.3],[2.5,14.1],[2.9,11.7]],
+  '4': [[0.0,27.1],[0.5,26.1],[0.6,25.9],[0.9,25.3],[1.1,24.9],[1.4,24.1],[1.7,23.1],[2.0,21.9],[2.5,18.7],[2.9,15.0]],
+  '6': [[0.0,39.3],[0.5,38.3],[0.6,38.1],[0.9,36.7],[1.1,36.0],[1.4,34.7],[1.7,33.1],[2.0,30.7],[2.5,25.0],[2.9,21.9]],
+  '8': [[0.0,52.5],[0.5,51.0],[0.6,50.7],[0.9,48.8],[1.1,47.9],[1.4,46.2],[1.7,43.7],[2.0,40.6],[2.5,32.4],[2.9,27.4]],
+  '12': [[0.0,79.9],[0.5,77.4],[0.6,76.9],[0.9,74.4],[1.1,72.8],[1.4,70.0],[1.7,65.9],[2.0,60.8],[2.5,49.1],[2.9,39.2]],
+  '17': [[0.0,114.2],[0.5,110.2],[0.6,109.4],[0.9,106.3],[1.1,104.1],[1.4,99.4],[1.7,94.1],[2.0,87.0],[2.5,70.2],[2.9,59.7]],
+  '23': [[0.0,155.3],[0.5,149.3],[0.6,148.1],[0.9,144.4],[1.1,141.4],[1.4,135.7],[1.7,128.3],[2.0,118.1],[2.5,96.5],[2.9,80.6]],
 };
 const CR5_DIRECT = {
   '2': [[0.0,13.9],[0.1,13.9],[0.5,13.8],[1.4,13.6],[2.1,13.4],[4.4,13.1],[5.0,12.8],[6.0,12.5],[7.0,12.3],[8.0,11.9],[8.5,11.8]],
@@ -9850,7 +9883,30 @@ const CR64_DIRECT = {
   '4': [[31.2,113.0],[35.6,111.0],[39.6,109.0],[43.6,106.9],[47.6,104.5],[51.9,101.7],[56.2,98.9],[60.2,96.0],[64.3,92.7]],
   '6': [[31.2,171.0],[35.6,168.0],[39.6,165.0],[43.6,161.8],[47.6,158.3],[51.9,154.4],[56.2,150.1],[60.2,146.0],[64.3,141.3]],
 };
+const CR95_DIRECT = {
+  '1': [[0.0,23.8],[50,18.8],[60,17.8],[70,16.5],[80,14.8],[90,12.9],[100,10.5]],
+  '2': [[0.0,29.1],[50,24.1],[60,23.1],[70,22.0],[80,20.6],[90,18.8],[100,16.7]],
+  '3': [[0.0,62.1],[50,53.6],[60,51.9],[70,49.7],[80,46.9],[90,43.3],[100,38.9]],
+};
+const CR125_DIRECT = {
+  '1': [[0.0,32.1],[20,31.5],[40,30.9],[70,29.5],[80,28.9],[90,27.9],[100,26.9],[110,25.6],[120,24.1],[130,22.5],[150,20.7]],
+  '2': [[0.0,63.1],[20,62.7],[40,62.3],[70,60.3],[80,59.0],[90,57.3],[100,55.2],[110,52.7],[120,49.7],[130,46.3],[150,41.2]],
+  '3': [[0.0,94.6],[20,94.2],[40,93.8],[70,91.4],[80,89.5],[90,87.0],[100,83.9],[110,80.1],[120,75.9],[130,70.6],[150,60.3]],
+};
+const CR155_DIRECT = {
+  '1': [[0.0,35.9],[40,34.7],[60,34.1],[80,33.2],[100,31.8],[120,29.7],[140,26.9],[160,22.5]],
+  '2': [[0.0,73.1],[40,71.5],[60,70.7],[80,69.4],[100,66.9],[120,63.0],[140,57.4],[160,46.7]],
+};
+const CR215_DIRECT = {
+  '1': [[0.0,35.3],[110,29.8],[120,29.3],[140,28.1],[160,26.9],[180,25.2],[200,22.9],[210,21.8]],
+  '2': [[0.0,89.0],[110,82.4],[120,81.8],[140,79.2],[160,76.5],[180,72.7],[200,67.7],[210,65.1]],
+};
+const CR255_DIRECT = {
+  '1': [[0.0,36.8],[120,30.8],[160,28.8],[200,26.5],[240,22.2],[280,16.3]],
+  '2': [[0.0,91.5],[120,82.2],[160,79.1],[200,73.0],[240,64.4],[280,51.9]],
+};
 const DIRECT_CURVES_BY_FAMILY_CR = {
+  'CR 1': CR1_DIRECT,
   'CR 3': CR3_DIRECT,
   'CR 5': CR5_DIRECT,
   'CR 10': CR10_DIRECT,
@@ -9859,6 +9915,11 @@ const DIRECT_CURVES_BY_FAMILY_CR = {
   'CR 32': CR32_DIRECT,
   'CR 45': CR45_DIRECT,
   'CR 64': CR64_DIRECT,
+  'CR 95': CR95_DIRECT,
+  'CR 125': CR125_DIRECT,
+  'CR 155': CR155_DIRECT,
+  'CR 215': CR215_DIRECT,
+  'CR 255': CR255_DIRECT,
 };
 
 const getPumpCurveQH = (pump) => {
@@ -10147,16 +10208,44 @@ const PumpSelector = () => {
   const [showCurve, setShowCurve] = useState(false);
 
   const findPumps = () => {
+    // Q_max par famille pour filtrer par plage nominale
+    const getFamilyQmax = (pump) => {
+      if (pump.serie === 'SP') {
+        const sc = SP_STAGE_CURVES[pump.sp_family];
+        return sc ? sc.Q_max : null;
+      } else {
+        const qh = CR_STAGE_QH[pump.cr_family];
+        return qh ? qh[qh.length-1][0] : null;
+      }
+    };
+    const getFamilyQmin = (pump) => {
+      const qmax = getFamilyQmax(pump);
+      return qmax ? qmax * 0.15 : 0;
+    };
+
     const scored = PUMP_DB
       .filter(p => {
         if (serie !== 'all' && p.serie !== serie) return false;
         if (p.borehole_min && borehole < p.borehole_min) return false;
         if (temp > p.temp_max) return false;
+
+        // ── FILTRE DÉBIT NOMINAL : Q demandé doit être dans la plage de la famille ──
+        const Qmax_fam = getFamilyQmax(p);
+        const Qmin_fam = getFamilyQmin(p);
+        if (Qmax_fam !== null) {
+          // Filtre débit nominal strict :
+          // Q demandé doit être entre 35% et 105% du Q_max de la famille
+          // En dessous de 35%: pompe très surdimensionnée → mauvais rendement, cavitation
+          // Au-dessus de 105%: dépassement de la plage de fonctionnement
+          if (Q > Qmax_fam * 1.05) return false;
+          if (Q < Qmax_fam * 0.35) return false;
+        }
+
         // Vérifier via courbe si Q/H est atteignable
         const at = getPumpAtQ(p, Q);
         if (!at) return false;
         if (at.H <= 0) return false;
-        // Tolérance : H_courbe doit être entre 85% et 115% du H demandé
+        // Tolérance : H_courbe doit être entre 80% et 130% du H demandé
         if (at.H < H * 0.80 || at.H > H * 1.30) return false;
         return true;
       })
@@ -10320,32 +10409,76 @@ const PumpSelector = () => {
           </div>
         </div>
 
-        {/* Droite : résumé + tri */}
+        {/* Droite : résumé hydraulique complet */}
         <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+          {/* Récapitulatif point de fonctionnement */}
           <div style={{background:'white',borderRadius:'14px',border:'1px solid #f1f5f9',padding:'16px 18px'}}>
-            <div style={{fontSize:'0.75rem',fontWeight:700,color:'#059669',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'12px',paddingBottom:'8px',borderBottom:'2px solid #f0fdf4'}}>📊 Point demandé</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+            <div style={{fontSize:'0.75rem',fontWeight:700,color:'#059669',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'12px',paddingBottom:'8px',borderBottom:'2px solid #f0fdf4'}}>📊 Récapitulatif hydraulique</div>
+
+            {/* KPIs principaux */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'10px'}}>
               {[
-                {l:'Débit Q',v:`${Q} m³/h`,c:'#2563eb',bg:'#eff6ff'},
-                {l:'HMT cible',v:`${H} m`,c:'#059669',bg:'#f0fdf4'},
-                {l:'Ph ≈',v:`${((Q*9.81*1000*H)/3600000).toFixed(2)} kW`,c:'#7c3aed',bg:'#faf5ff'},
-                {l:'Série',v:serie==='all'?'CR+SP':serie,c:'#1d4ed8',bg:'#dbeafe'},
-              ].map(({l,v,c,bg})=>(
+                {l:'Débit Q',v:`${Q} m³/h`,sub:`≈ ${(Q/3.6).toFixed(2)} l/s`,c:'#2563eb',bg:'#eff6ff'},
+                {l:'HMT cible',v:`${H} m`,sub:`≈ ${(H*0.0981).toFixed(2)} bar`,c:'#059669',bg:'#f0fdf4'},
+                {l:'Puissance hydraulique',v:`${((Q*9.81*H)/3600).toFixed(2)} kW`,sub:`Ph = ρgQH`,c:'#7c3aed',bg:'#faf5ff'},
+                {l:'Vitesse canalisation*',v:`${((Q/3600)/Math.PI/Math.pow(((Q<5?32:Q<20?50:Q<60?80:Q<150?100:150)/2000),2)).toFixed(2)} m/s`,sub:`*DN${Q<5?32:Q<20?50:Q<60?80:Q<150?100:150} recommandé`,c:'#0369a1',bg:'#f0f9ff'},
+              ].map(({l,v,sub,c,bg})=>(
                 <div key={l} style={{background:bg,borderRadius:'8px',padding:'8px 10px',borderLeft:`3px solid ${c}`}}>
-                  <div style={{fontSize:'0.65rem',color:'#94a3b8'}}>{l}</div>
-                  <div style={{fontSize:'0.95rem',fontWeight:800,color:c,fontFamily:'monospace'}}>{v}</div>
+                  <div style={{fontSize:'0.63rem',color:'#94a3b8'}}>{l}</div>
+                  <div style={{fontSize:'0.9rem',fontWeight:800,color:c,fontFamily:'monospace'}}>{v}</div>
+                  <div style={{fontSize:'0.6rem',color:'#94a3b8'}}>{sub}</div>
                 </div>
               ))}
             </div>
-            <div style={{marginTop:'10px',padding:'8px 10px',background:'#f0f9ff',borderRadius:'8px',fontSize:'0.75rem',color:'#0369a1',border:'1px solid #bae6fd'}}>
-              <strong>🔬 Méthode :</strong> Interpolation sur courbes Q/H réelles extraites des databooklets Grundfos. H affiché = HMT réelle de la pompe à Q={Q} m³/h.
+
+            {/* Familles compatibles avec ce débit */}
+            <div style={{background:'#fafafa',borderRadius:'8px',padding:'10px 12px',border:'1px solid #e2e8f0'}}>
+              <div style={{fontSize:'0.65rem',fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>🎯 Familles adaptées à Q = {Q} m³/h</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
+                {[
+                  {fam:'CR 1', Qmin:0, Qmax:2.2},
+                  {fam:'CR 3', Qmin:0.3, Qmax:4.5},
+                  {fam:'CR 5', Qmin:1, Qmax:8.5},
+                  {fam:'CR 10', Qmin:2, Qmax:12},
+                  {fam:'CR 15', Qmin:3, Qmax:22},
+                  {fam:'CR 20', Qmin:4, Qmax:28},
+                  {fam:'CR 32', Qmin:5, Qmax:38},
+                  {fam:'CR 45', Qmin:7, Qmax:55},
+                  {fam:'CR 64', Qmin:12, Qmax:80},
+                  {fam:'CR 95', Qmin:18, Qmax:120},
+                  {fam:'CR 125', Qmin:23, Qmax:155},
+                  {fam:'CR 155', Qmin:27, Qmax:180},
+                  {fam:'CR 215', Qmin:35, Qmax:260},
+                  {fam:'CR 255', Qmin:40, Qmax:295},
+                  {fam:'SP 1A', Qmin:0, Qmax:1.4},
+                  {fam:'SP 2A', Qmin:0.2, Qmax:2.7},
+                  {fam:'SP 3A', Qmin:0.4, Qmax:3.6},
+                  {fam:'SP 5A', Qmin:1, Qmax:6.4},
+                  {fam:'SP 7', Qmin:1.4, Qmax:9.0},
+                  {fam:'SP 9', Qmin:1.7, Qmax:11},
+                  {fam:'SP 11', Qmin:2, Qmax:14},
+                  {fam:'SP 14', Qmin:2.5, Qmax:17},
+                  {fam:'SP 18', Qmin:3.5, Qmax:24},
+                  {fam:'SP 32', Qmin:5, Qmax:38},
+                  {fam:'SP 46', Qmin:7, Qmax:60},
+                  {fam:'SP 60', Qmin:9, Qmax:80},
+                  {fam:'SP 77', Qmin:12, Qmax:90},
+                  {fam:'SP 95', Qmin:18, Qmax:120},
+                  {fam:'SP 125', Qmin:23, Qmax:160},
+                  {fam:'SP 160', Qmin:30, Qmax:210},
+                  {fam:'SP 215', Qmin:42, Qmax:280},
+                ].filter(({Qmin,Qmax})=> Q >= Qmin && Q <= Qmax).map(({fam})=>(
+                  <span key={fam} style={{fontSize:'0.68rem',fontWeight:700,background:fam.startsWith('CR')?'#dbeafe':'#dcfce7',color:fam.startsWith('CR')?'#1e40af':'#15803d',padding:'2px 7px',borderRadius:'12px',border:`1px solid ${fam.startsWith('CR')?'#93c5fd':'#86efac'}`}}>{fam}</span>
+                ))}
+              </div>
             </div>
           </div>
 
+          {/* Tri */}
           <div style={{background:'white',borderRadius:'12px',border:'1px solid #f1f5f9',padding:'14px 16px'}}>
             <div style={{fontSize:'0.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'8px'}}>Trier par</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px'}}>
-              {[{v:'score',l:'🎯 Meilleure concordance'},{v:'prix',l:'💶 Prix croissant'},{v:'eta',l:'⚡ Meilleur rendement'},{v:'P',l:'🔋 Puissance mini'}].map(({v,l})=>(
+              {[{v:'score',l:'🎯 Concordance'},{v:'prix',l:'💶 Prix croissant'},{v:'eta',l:'⚡ Rendement'},{v:'P',l:'🔋 Puissance mini'}].map(({v,l})=>(
                 <button key={v} onClick={()=>setSortBy(v)} style={{padding:'7px 10px',borderRadius:'7px',border:`1.5px solid ${sortBy===v?'#2563eb':'#e2e8f0'}`,background:sortBy===v?'#eff6ff':'white',cursor:'pointer',fontSize:'0.75rem',fontWeight:sortBy===v?700:500,color:sortBy===v?'#1d4ed8':'#475569',textAlign:'left'}}>{l}</button>
               ))}
             </div>
@@ -10356,14 +10489,15 @@ const PumpSelector = () => {
       </div>
 
       <button onClick={findPumps} style={{padding:'16px',background:'linear-gradient(135deg,#1e40af,#2563eb)',color:'white',border:'none',borderRadius:'12px',fontWeight:800,fontSize:'1.05rem',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 6px 20px rgba(37,99,235,0.35)'}}>
-        🔍 Rechercher — Interpolation sur {PUMP_DB.filter(p=>serie==='all'||p.serie===serie).length} modèles
+        🔍 Rechercher parmi {PUMP_DB.filter(p=>serie==='all'||p.serie===serie).length} modèles — Courbes Q/H réelles Grundfos
       </button>
 
       {searched&&results.length===0&&(
         <div style={{background:'#fff1f2',border:'1.5px solid #fca5a5',borderRadius:'12px',padding:'24px',textAlign:'center'}}>
           <div style={{fontSize:'2rem',marginBottom:'8px'}}>😔</div>
-          <div style={{fontWeight:700,color:'#dc2626',marginBottom:'4px'}}>Aucun modèle trouvé pour Q={Q} m³/h / HMT={H} m</div>
-          <div style={{fontSize:'0.82rem',color:'#b91c1c'}}>Modifiez les critères ou vérifiez le diamètre de forage.</div>
+          <div style={{fontWeight:700,color:'#dc2626',marginBottom:'4px'}}>Aucun modèle compatible pour Q={Q} m³/h / HMT={H} m</div>
+          <div style={{fontSize:'0.82rem',color:'#b91c1c',marginBottom:'8px'}}>Les familles compatibles avec ce débit sont affichées ci-dessus.</div>
+          <div style={{fontSize:'0.78rem',color:'#991b1b'}}>Vérifiez : tolérance HMT ±20% · diamètre de forage · température max</div>
         </div>
       )}
 
@@ -10373,65 +10507,76 @@ const PumpSelector = () => {
             <span>✅ {results.length} modèle{results.length>1?'s':''} — courbes interpolées à Q={Q} m³/h</span>
           </div>
 
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:'10px'}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:'12px'}}>
             {results.map((p,i)=>{
               const at=p.at_Q;
               const isSelected=selected?.model===p.model;
+              const boreDiam = p.borehole_min ? `Forage ≥${p.borehole_min}mm` : '';
+              const typeLabel = p.serie==='SP'
+                ? `Forage ${p.sp_family?.match(/160|215|125/)? '10"' : p.sp_family?.match(/77|95/)? '8"' : p.sp_family?.match(/^SP (1[48]|18|32|46|60)/)? '6"' : '4"'} submersible`
+                : 'Multicellulaire verticale';
               return (
                 <div key={p.model+i} onClick={()=>setSelected(isSelected?null:p)}
-                  style={{background:'white',borderRadius:'12px',border:`2px solid ${isSelected?'#2563eb':i===0?'#86efac':'#f1f5f9'}`,boxShadow:i===0?'0 4px 16px rgba(5,150,105,0.12)':'0 1px 4px rgba(0,0,0,0.04)',padding:'14px 16px',cursor:'pointer',position:'relative',transition:'all 0.15s'}}>
+                  style={{background:'white',borderRadius:'14px',border:`2px solid ${isSelected?'#2563eb':i===0?'#86efac':'#e2e8f0'}`,boxShadow:i===0?'0 6px 20px rgba(5,150,105,0.15)':'0 1px 6px rgba(0,0,0,0.05)',padding:'16px 18px',cursor:'pointer',position:'relative',transition:'all 0.15s'}}>
 
-                  {i===0&&<div style={{position:'absolute',top:'-10px',left:'14px',background:'linear-gradient(135deg,#059669,#16a34a)',color:'white',fontSize:'0.65rem',fontWeight:800,padding:'2px 10px',borderRadius:'20px'}}>🥇 MEILLEUR CHOIX</div>}
+                  {i===0&&<div style={{position:'absolute',top:'-11px',left:'14px',background:'linear-gradient(135deg,#059669,#16a34a)',color:'white',fontSize:'0.65rem',fontWeight:800,padding:'3px 12px',borderRadius:'20px'}}>🥇 RECOMMANDÉ</div>}
 
+                  {/* Header : Modèle + Prix */}
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'10px'}}>
                     <div>
-                      <div style={{fontSize:'1rem',fontWeight:800,color:'#1e293b'}}>{p.model}</div>
-                      <div style={{fontSize:'0.7rem',color:'#64748b'}}>{p.brand} · {p.serie==='SP'?`Submersible ${p.sp_family?.includes('18')||p.sp_family?.includes('32')||p.sp_family?.includes('46')||p.sp_family?.includes('60')?'6"':p.sp_family?.includes('77')||p.sp_family?.includes('95')?'8"':p.sp_family?.includes('125')||p.sp_family?.includes('160')||p.sp_family?.includes('215')?'10"':'4"'}`:'Multicellulaire verticale'}</div>
+                      <div style={{fontSize:'1.1rem',fontWeight:900,color:'#0f172a'}}>{p.model}</div>
+                      <div style={{fontSize:'0.67rem',color:'#64748b',marginTop:'2px'}}>{typeLabel}{boreDiam?' · '+boreDiam:''}</div>
                     </div>
-                    <div style={{textAlign:'right'}}>
-                      <div style={{fontSize:'0.72rem',fontWeight:700,color:getMatchColor(p.score),background:getMatchColor(p.score)+'18',padding:'2px 8px',borderRadius:'20px'}}>{getMatchLabel(p.score)}</div>
-                    </div>
-                  </div>
-
-                  {/* KPIs courbe */}
-                  <div style={{background:'#f0fdf4',borderRadius:'8px',padding:'10px 12px',marginBottom:'10px',border:'1.5px solid #86efac'}}>
-                    <div style={{fontSize:'0.65rem',color:'#64748b',marginBottom:'5px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>📍 Valeurs interpolées à Q = {Q} m³/h</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'6px'}}>
-                      <div style={{textAlign:'center'}}>
-                        <div style={{fontSize:'1.15rem',fontWeight:800,color:'#059669',fontFamily:'monospace'}}>{at?.H} m</div>
-                        <div style={{fontSize:'0.65rem',color:'#64748b'}}>HMT réelle</div>
-                        <div style={{fontSize:'0.6rem',color:Math.abs(at?.H-H)/H*100<5?'#16a34a':'#d97706'}}>cible: {H}m (Δ{p.delta_H}%)</div>
-                      </div>
-                      <div style={{textAlign:'center'}}>
-                        <div style={{fontSize:'1.15rem',fontWeight:800,color:'#d97706',fontFamily:'monospace'}}>{at?.eta}%</div>
-                        <div style={{fontSize:'0.65rem',color:'#64748b'}}>Rendement η</div>
-                      </div>
-                      <div style={{textAlign:'center'}}>
-                        <div style={{fontSize:'1.15rem',fontWeight:800,color:'#7c3aed',fontFamily:'monospace'}}>{at?.Pa} kW</div>
-                        <div style={{fontSize:'0.65rem',color:'#64748b'}}>Pa absorbée</div>
-                      </div>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'3px'}}>
+                      <div style={{fontSize:'0.7rem',fontWeight:700,color:getMatchColor(p.score),background:getMatchColor(p.score)+'18',padding:'2px 8px',borderRadius:'20px'}}>{getMatchLabel(p.score)}</div>
+                      {p.prix_ht&&<div style={{fontSize:'1.1rem',fontWeight:900,color:'#0f172a',fontFamily:'monospace'}}>{p.prix_ht.toLocaleString('fr-FR')} € HT</div>}
                     </div>
                   </div>
 
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'5px',marginBottom:'8px'}}>
+                  {/* Performances interpolées à Q demandé */}
+                  <div style={{background:'#f0fdf4',borderRadius:'10px',padding:'10px 12px',marginBottom:'10px',border:'1.5px solid #86efac'}}>
+                    <div style={{fontSize:'0.6rem',color:'#059669',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'7px'}}>📍 À Q = {Q} m³/h (interpolé)</div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'5px'}}>
+                      {[
+                        {v:`${at?.H} m`,l:'HMT réelle',sub:`cible ${H}m · Δ${p.delta_H}%`,c:'#059669',alert:Math.abs(at?.H-H)/H*100>10},
+                        {v:`${at?.eta}%`,l:'Rendement η',sub:at?.eta>=60?'Bon rendement':at?.eta>=45?'Acceptable':'Faible',c:'#d97706'},
+                        {v:`${at?.Pa} kW`,l:'Puissance abs.',sub:`Moteur ${p.P_kw} kW`,c:'#7c3aed'},
+                        {v:`${((Q*9.81*(at?.H||0))/3600).toFixed(2)} kW`,l:'Ph hydraulique',sub:'ρgQH / 3600',c:'#0369a1'},
+                      ].map(({v,l,sub,c,alert})=>(
+                        <div key={l} style={{textAlign:'center',background:'white',borderRadius:'7px',padding:'6px 3px',border:alert?'1px solid #fcd34d':'none'}}>
+                          <div style={{fontSize:'1rem',fontWeight:800,color:c,fontFamily:'monospace'}}>{v}</div>
+                          <div style={{fontSize:'0.58rem',color:'#64748b'}}>{l}</div>
+                          <div style={{fontSize:'0.56rem',color:alert?'#d97706':'#94a3b8'}}>{sub}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Specs techniques essentiels */}
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'4px',marginBottom:'8px'}}>
                     {[
-                      {l:'P moteur',v:`${p.P_kw} kW`,c:'#7c3aed'},
-                      {l:'Étages',v:p.stages,c:'#0891b2'},
-                      {l:`IP ${p.IP}`,v:`PN${p.pn}`,c:'#475569'},
+                      {l:'Moteur',v:`${p.P_kw} kW`,c:'#7c3aed'},
+                      {l:'Étages',v:`${p.stages}`,c:'#0891b2'},
+                      {l:'IP / PN',v:`${p.IP} / ${p.pn}`,c:'#475569'},
+                      {l:'DN',v:`${p.DN_mm} mm`,c:'#0369a1'},
                     ].map(({l,v,c})=>(
-                      <div key={l} style={{background:'#f8fafc',borderRadius:'6px',padding:'4px 6px',textAlign:'center'}}>
-                        <div style={{fontSize:'0.8rem',fontWeight:700,color:c}}>{v}</div>
-                        <div style={{fontSize:'0.6rem',color:'#94a3b8'}}>{l}</div>
+                      <div key={l} style={{background:'#f8fafc',borderRadius:'6px',padding:'5px 4px',textAlign:'center',border:'1px solid #e2e8f0'}}>
+                        <div style={{fontSize:'0.82rem',fontWeight:700,color:c}}>{v}</div>
+                        <div style={{fontSize:'0.58rem',color:'#94a3b8'}}>{l}</div>
                       </div>
                     ))}
                   </div>
 
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:'8px',borderTop:'1px solid #f1f5f9'}}>
-                    <div>
-                      <div style={{fontSize:'0.62rem',color:'#94a3b8'}}>{p.code}</div>
-                      <div style={{fontSize:'0.62rem',color:'#64748b'}}>{p.conn} — DN{p.DN_mm}</div>
-                    </div>
-                    {p.prix_ht&&<div style={{fontSize:'1.1rem',fontWeight:800,color:'#1e293b'}}>{p.prix_ht.toLocaleString('fr-FR')} €</div>}
+                  {/* Connexion + Application */}
+                  <div style={{background:'#f8fafc',borderRadius:'7px',padding:'7px 10px',marginBottom:'7px',fontSize:'0.7rem'}}>
+                    <span style={{fontWeight:700,color:'#374151'}}>🔗 {p.conn}</span>
+                    {p.app&&<span style={{color:'#64748b',marginLeft:'6px',fontSize:'0.65rem'}}>· {p.app}</span>}
+                  </div>
+
+                  {/* Footer code + score */}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:'7px',borderTop:'1px solid #f1f5f9'}}>
+                    <div style={{fontSize:'0.62rem',color:'#94a3b8',fontFamily:'monospace'}}>{p.code}</div>
+                    <div style={{fontSize:'0.7rem',fontWeight:700,color:'#64748b'}}>Score : {p.score}/100</div>
                   </div>
                 </div>
               );
@@ -10844,4 +10989,3 @@ function App() {
 }
 
 export default App;
-
