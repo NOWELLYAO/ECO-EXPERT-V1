@@ -10518,11 +10518,18 @@ const PumpSelector = () => {
         const H_curve = at?.H || 0;
         const eta_curve = at?.eta || 0;
         const delta_H = Math.abs(H_curve - H) / H * 100; // % d'écart
-        // Score basé sur proximité HMT + rendement
         const score_H = Math.max(0, 100 - delta_H * 3);
         const score_eta = eta_curve;
-        const score = score_H * 0.6 + score_eta * 0.4;
-        return { ...p, at_Q: at, score: parseFloat(score.toFixed(1)), delta_H: parseFloat(delta_H.toFixed(1)) };
+        // ── Score dimensionnement : pénalise le surdimensionnement de famille ──
+        // Une pompe dont le Q demandé ne représente qu'une petite fraction du
+        // Q_max de sa famille est surdimensionnée (carcasse inutilement grosse,
+        // coût excessif, fonctionnement loin du BEP). L'optimum se situe
+        // autour de 75-85% du Q_max de la famille ; on pénalise l'écart à ce point.
+        const Qmax_fam = getFamilyQmax(p);
+        const ratio = Qmax_fam ? (Q / Qmax_fam) * 100 : 80;
+        const score_size = Math.max(0, 100 - Math.abs(ratio - 80) * 1.5);
+        const score = score_H * 0.40 + score_eta * 0.30 + score_size * 0.30;
+        return { ...p, at_Q: at, score: parseFloat(score.toFixed(1)), delta_H: parseFloat(delta_H.toFixed(1)), size_ratio: parseFloat(ratio.toFixed(0)) };
       })
       .filter(p => p.score > 0)
       .sort((a,b) => {
