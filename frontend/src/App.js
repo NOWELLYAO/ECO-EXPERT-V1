@@ -10471,6 +10471,12 @@ const PumpSelector = () => {
   const [searched, setSearched] = useState(false);
   const [sortBy, setSortBy] = useState('score');
   const [showCurve, setShowCurve] = useState(false);
+  const [curveEdits, setCurveEdits] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ecopump_curve_edits') || '{}'); } catch { return {}; }
+  });
+  const [editingCurve, setEditingCurve] = useState(false);
+  const [draftPts, setDraftPts] = useState(null);
+  const [showExport, setShowExport] = useState(false);
 
   const findPumps = () => {
     // Q_max par famille pour filtrer par plage nominale
@@ -10551,9 +10557,61 @@ const PumpSelector = () => {
 
   // Génère les points de courbe Q/H pour l'affichage graphique
   const getCurvePoints = (pump) => {
+    if (curveEdits[pump.model] && curveEdits[pump.model].length >= 2) return curveEdits[pump.model];
     const qh = getPumpCurveQH(pump);
     if (!qh) return [];
     return qh;
+  };
+
+  const startEditCurve = (pump) => {
+    const pts = getCurvePoints(pump).map(([q,h]) => [q,h]);
+    setDraftPts(pts);
+    setEditingCurve(true);
+    setShowExport(false);
+  };
+  const updateDraftPt = (idx, field, val) => {
+    setDraftPts(prev => {
+      const next = prev.map(p => [...p]);
+      next[idx][field] = val;
+      return next;
+    });
+  };
+  const addDraftPt = () => {
+    setDraftPts(prev => {
+      const last = prev[prev.length-1];
+      const q = last ? (parseFloat(last[0])||0) + 5 : 0;
+      const h = last ? (parseFloat(last[1])||0) : 0;
+      return [...prev, [q, h]];
+    });
+  };
+  const removeDraftPt = (idx) => {
+    setDraftPts(prev => prev.filter((_,i)=>i!==idx));
+  };
+  const saveCurveEdit = (pump) => {
+    const cleaned = draftPts
+      .map(([q,h]) => [parseFloat(q), parseFloat(h)])
+      .filter(([q,h]) => !isNaN(q) && !isNaN(h))
+      .sort((a,b) => a[0]-b[0]);
+    if (cleaned.length < 2) { alert('Il faut au moins 2 points valides.'); return; }
+    const next = { ...curveEdits, [pump.model]: cleaned };
+    setCurveEdits(next);
+    try { localStorage.setItem('ecopump_curve_edits', JSON.stringify(next)); } catch {}
+    setEditingCurve(false);
+    setDraftPts(null);
+  };
+  const resetCurveEdit = (pump) => {
+    const next = { ...curveEdits };
+    delete next[pump.model];
+    setCurveEdits(next);
+    try { localStorage.setItem('ecopump_curve_edits', JSON.stringify(next)); } catch {}
+    setEditingCurve(false);
+    setDraftPts(null);
+  };
+  const exportCurveEdit = (pump) => {
+    const pts = curveEdits[pump.model];
+    if (!pts) return '';
+    const rows = pts.map(([q,h]) => `[${q},${h}]`).join(',');
+    return `// ${pump.model} — courbe corrigée manuellement\n'${pump.stages}': [${rows}],`;
   };
 
   const SVGCurve = ({ pump, Q_target, H_target }) => {
@@ -10879,30 +10937,81 @@ const PumpSelector = () => {
 
                 {/* Courbe SVG */}
                 <div style={{marginBottom:'14px'}}>
-                  <div style={{fontSize:'0.72rem',fontWeight:700,color:'#1e293b',marginBottom:'8px',textTransform:'uppercase',letterSpacing:'0.06em'}}>📈 Courbe Q/H interpolée — {selected.model}</div>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px',flexWrap:'wrap',gap:'8px'}}>
+                    <div style={{fontSize:'0.72rem',fontWeight:700,color:'#1e293b',textTransform:'uppercase',letterSpacing:'0.06em'}}>
+                      📈 Courbe Q/H interpolée — {selected.model}
+                      {curveEdits[selected.model]&&<span style={{marginLeft:'8px',fontSize:'0.65rem',fontWeight:700,color:'#7c3aed',background:'#f3e8ff',padding:'2px 8px',borderRadius:'99px'}}>✏️ Corrigée manuellement</span>}
+                    </div>
+                    {!editingCurve?(
+                      <button onClick={()=>startEditCurve(selected)} style={{fontSize:'0.7rem',fontWeight:700,color:'#2563eb',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}}>✏️ Corriger cette courbe</button>
+                    ):(
+                      <div style={{display:'flex',gap:'6px'}}>
+                        <button onClick={()=>saveCurveEdit(selected)} style={{fontSize:'0.7rem',fontWeight:700,color:'white',background:'#059669',border:'none',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}}>💾 Enregistrer</button>
+                        <button onClick={()=>{setEditingCurve(false);setDraftPts(null);}} style={{fontSize:'0.7rem',fontWeight:700,color:'#475569',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}}>Annuler</button>
+                      </div>
+                    )}
+                  </div>
                   <SVGCurve pump={selected} Q_target={Q} H_target={H}/>
                   <div style={{display:'flex',gap:'12px',marginTop:'6px',fontSize:'0.7rem',color:'#64748b'}}>
                     <span>— Courbe Q/H (bleu) · - - Rendement η (orange) · ⬤ Point de fonctionnement (rouge)</span>
                   </div>
                 </div>
 
-                {/* Tableau points courbe */}
+                {/* Tableau points courbe — lecture ou édition */}
                 <div>
-                  <div style={{fontSize:'0.72rem',fontWeight:700,color:'#1e293b',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>📊 Table Q/H de la courbe</div>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(100px,1fr))',gap:'4px'}}>
-                    {qhPts.filter((_,i)=>i%2===0||i===qhPts.length-1).map(([q,h])=>{
-                      const etaC=getPumpEtaCurve(selected);
-                      const e=etaC?interpolate(etaC,q):null;
-                      const isTarget=Math.abs(q-Q)<0.5;
-                      return (
-                        <div key={q} style={{background:isTarget?'#dcfce7':'#f8fafc',border:`1px solid ${isTarget?'#86efac':'#e2e8f0'}`,borderRadius:'6px',padding:'5px 8px',textAlign:'center'}}>
-                          <div style={{fontSize:'0.7rem',fontWeight:700,color:'#2563eb',fontFamily:'monospace'}}>{q} m³/h</div>
-                          <div style={{fontSize:'0.75rem',fontWeight:800,color:'#059669',fontFamily:'monospace'}}>{h} m</div>
-                          {e!==null&&<div style={{fontSize:'0.65rem',color:'#d97706',fontFamily:'monospace'}}>{e.toFixed(0)}%</div>}
-                        </div>
-                      );
-                    })}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'6px'}}>
+                    <div style={{fontSize:'0.72rem',fontWeight:700,color:'#1e293b',textTransform:'uppercase',letterSpacing:'0.06em'}}>
+                      {editingCurve?'✏️ Édition des points Q/H (m³/h → m)':'📊 Table Q/H de la courbe'}
+                    </div>
+                    {curveEdits[selected.model]&&!editingCurve&&(
+                      <div style={{display:'flex',gap:'6px'}}>
+                        <button onClick={()=>setShowExport(v=>!v)} style={{fontSize:'0.65rem',fontWeight:700,color:'#2563eb',background:'none',border:'1px solid #bfdbfe',borderRadius:'6px',padding:'4px 8px',cursor:'pointer'}}>{showExport?'Masquer export':'📤 Exporter'}</button>
+                        <button onClick={()=>resetCurveEdit(selected)} style={{fontSize:'0.65rem',fontWeight:700,color:'#dc2626',background:'none',border:'1px solid #fecaca',borderRadius:'6px',padding:'4px 8px',cursor:'pointer'}}>↺ Réinitialiser</button>
+                      </div>
+                    )}
                   </div>
+
+                  {editingCurve?(
+                    <div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:'6px'}}>
+                        {draftPts.map((pt,idx)=>(
+                          <div key={idx} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'6px',padding:'6px 8px'}}>
+                            <div style={{display:'flex',gap:'4px',alignItems:'center'}}>
+                              <input type="number" value={pt[0]} onChange={e=>updateDraftPt(idx,0,e.target.value)} placeholder="Q" style={{width:'50%',fontSize:'0.7rem',padding:'3px 4px',border:'1px solid #e2e8f0',borderRadius:'4px',fontFamily:'monospace'}}/>
+                              <input type="number" value={pt[1]} onChange={e=>updateDraftPt(idx,1,e.target.value)} placeholder="H" style={{width:'50%',fontSize:'0.7rem',padding:'3px 4px',border:'1px solid #e2e8f0',borderRadius:'4px',fontFamily:'monospace'}}/>
+                              <button onClick={()=>removeDraftPt(idx)} style={{background:'none',border:'none',color:'#dc2626',cursor:'pointer',fontSize:'0.85rem',padding:'0 2px'}}>✕</button>
+                            </div>
+                            <div style={{fontSize:'0.55rem',color:'#92400e',marginTop:'2px'}}>m³/h → m</div>
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={addDraftPt} style={{marginTop:'8px',fontSize:'0.7rem',fontWeight:700,color:'#059669',background:'#f0fdf4',border:'1px solid #86efac',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}}>+ Ajouter un point</button>
+                      <div style={{fontSize:'0.65rem',color:'#92400e',marginTop:'8px'}}>💡 Saisis les vraies valeurs lues sur la courbe Grundfos officielle. La courbe et le point de fonctionnement ci-dessus se mettent à jour en direct après enregistrement.</div>
+                    </div>
+                  ):(
+                    <>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(100px,1fr))',gap:'4px'}}>
+                        {qhPts.filter((_,i)=>i%2===0||i===qhPts.length-1).map(([q,h])=>{
+                          const etaC=getPumpEtaCurve(selected);
+                          const e=etaC?interpolate(etaC,q):null;
+                          const isTarget=Math.abs(q-Q)<0.5;
+                          return (
+                            <div key={q} style={{background:isTarget?'#dcfce7':'#f8fafc',border:`1px solid ${isTarget?'#86efac':'#e2e8f0'}`,borderRadius:'6px',padding:'5px 8px',textAlign:'center'}}>
+                              <div style={{fontSize:'0.7rem',fontWeight:700,color:'#2563eb',fontFamily:'monospace'}}>{q} m³/h</div>
+                              <div style={{fontSize:'0.75rem',fontWeight:800,color:'#059669',fontFamily:'monospace'}}>{h} m</div>
+                              {e!==null&&<div style={{fontSize:'0.65rem',color:'#d97706',fontFamily:'monospace'}}>{e.toFixed(0)}%</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {showExport&&curveEdits[selected.model]&&(
+                        <div style={{marginTop:'10px'}}>
+                          <textarea readOnly value={exportCurveEdit(selected)} style={{width:'100%',minHeight:'70px',fontSize:'0.7rem',fontFamily:'monospace',padding:'8px',border:'1px solid #bfdbfe',borderRadius:'8px',background:'#f8fafc'}} onFocus={e=>e.target.select()}/>
+                          <div style={{fontSize:'0.65rem',color:'#64748b',marginTop:'4px'}}>Copie ce bloc et envoie-le pour intégration définitive dans le code source.</div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Infos techniques */}
