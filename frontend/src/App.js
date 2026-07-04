@@ -10472,15 +10472,21 @@ const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange, yLabel = 
   const [hoverInfo, setHoverInfo] = useState(null);
 
   if (!pts || pts.length < 2) return null;
-  const Q_max = Math.max(...pts.map(p => p[0]), 1);
-  const H_max_curve = Math.max(...pts.map(p => p[1]), 1);
+  // Sécurise les valeurs (une saisie en cours dans la table peut être temporairement
+  // non numérique, ex: "" ou "-" avant de finir de taper un nombre négatif) pour
+  // éviter tout NaN qui casserait le rendu SVG.
+  const safeNum = (v, fallback = 0) => { const n = parseFloat(v); return isNaN(n) ? fallback : n; };
+  const finiteQs = pts.map(p => safeNum(p[0], null)).filter(n => n !== null);
+  const finiteHs = pts.map(p => safeNum(p[1], null)).filter(n => n !== null);
+  const Q_max = finiteQs.length ? Math.max(...finiteQs, 1) : 1;
+  const H_max_curve = finiteHs.length ? Math.max(...finiteHs, 1) : 1;
   const eta_max = 100;
   const W = 500, H_svg = 240, padL = 50, padR = 20, padT = 15, padB = 35;
   const W_plot = W - padL - padR;
   const H_plot = H_svg - padT - padB;
-  const xS = q => padL + (q / Q_max) * W_plot;
-  const yS = h => padT + H_plot - (h / H_max_curve) * H_plot;
-  const yE = e => padT + H_plot - (e / eta_max) * H_plot;
+  const xS = q => padL + (safeNum(q) / Q_max) * W_plot;
+  const yS = h => padT + H_plot - (safeNum(h) / H_max_curve) * H_plot;
+  const yE = e => padT + H_plot - (safeNum(e) / eta_max) * H_plot;
   const qFromX = x => (x - padL) / W_plot * Q_max;
   const hFromY = y => (padT + H_plot - y) / H_plot * H_max_curve;
 
@@ -10488,7 +10494,9 @@ const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange, yLabel = 
   const dEta = etaPts && etaPts.length ? etaPts.map(([q, e], i) => `${i === 0 ? 'M' : 'L'} ${xS(q)} ${yE(e)}`).join(' ') : '';
 
   const clientToSvg = (clientX, clientY) => {
+    if (!svgRef.current) return { x: 0, y: 0 };
     const rect = svgRef.current.getBoundingClientRect();
+    if (!rect.width || !rect.height) return { x: 0, y: 0 };
     return { x: (clientX - rect.left) * (W / rect.width), y: (clientY - rect.top) * (H_svg / rect.height) };
   };
 
@@ -10497,7 +10505,8 @@ const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange, yLabel = 
     if (dragIdx !== null) {
       didDragRef.current = true;
       let h = Math.max(0, parseFloat(hFromY(y).toFixed(2)));
-      const q = pts[dragIdx][0];
+      if (isNaN(h)) return;
+      const q = safeNum(pts[dragIdx][0]);
       setHoverInfo({ x: xS(q), y: yS(h), q, h, dragging: true });
       const next = pts.map(p => [...p]);
       next[dragIdx][1] = h;
@@ -10507,9 +10516,9 @@ const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange, yLabel = 
     // Survol continu (hors glisser) : lecture Q/valeur au point survolé
     if (x < padL || x > padL + W_plot) { setHoverInfo(null); return; }
     const q = parseFloat(qFromX(x).toFixed(1));
-    if (q < 0 || q > Q_max) { setHoverInfo(null); return; }
+    if (isNaN(q) || q < 0 || q > Q_max) { setHoverInfo(null); return; }
     const h = interpolate(pts, q);
-    if (h === null) { setHoverInfo(null); return; }
+    if (h === null || isNaN(h)) { setHoverInfo(null); return; }
     setHoverInfo({ x: xS(q), y: yS(h), q, h, dragging: false });
   };
   const endDrag = () => { setDragIdx(null); };
@@ -10521,6 +10530,7 @@ const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange, yLabel = 
     if (x < padL || x > padL + W_plot || y < padT || y > padT + H_plot) return;
     const q = parseFloat(qFromX(x).toFixed(1));
     const h = parseFloat(hFromY(y).toFixed(1));
+    if (isNaN(q) || isNaN(h)) return;
     const next = [...pts.map(p => [...p]), [q, h]].sort((a, b) => a[0] - b[0]);
     onChange(next);
   };
@@ -10547,7 +10557,7 @@ const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange, yLabel = 
       {pts.map(([q,h],i)=>(
         <circle key={i} cx={xS(q)} cy={yS(h)} r={dragIdx===i?9:6.5} fill={dragIdx===i?'#dc2626':'#2563eb'} stroke="white" strokeWidth="2"
           style={{cursor:'grab'}}
-          onPointerDown={(e)=>{ e.stopPropagation(); didDragRef.current=false; setDragIdx(i); svgRef.current.setPointerCapture(e.pointerId); }}
+          onPointerDown={(e)=>{ e.stopPropagation(); didDragRef.current=false; setDragIdx(i); try { svgRef.current && svgRef.current.setPointerCapture(e.pointerId); } catch(err) { /* capture non critique, on continue sans */ } }}
           onDoubleClick={(e)=>{ e.stopPropagation(); if (pts.length>2) onChange(pts.filter((_,idx)=>idx!==i)); }}
         />
       ))}
@@ -10786,12 +10796,15 @@ const PumpSelector = () => {
     const gridH = [0, H_max_curve*0.25, H_max_curve*0.5, H_max_curve*0.75, H_max_curve].map(v=>parseFloat(v.toFixed(0)));
 
     const handleMove = (e) => {
+      if (!svgRef.current) return;
       const rect = svgRef.current.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
       const x = (e.clientX - rect.left) * (W / rect.width);
       if (x < padL || x > padL + W_plot) { setHover(null); return; }
       const q = parseFloat(qFromX(x).toFixed(1));
-      if (q < 0 || q > Q_max) { setHover(null); return; }
+      if (isNaN(q) || q < 0 || q > Q_max) { setHover(null); return; }
       const h = interpolate(pts, q);
+      if (h === null || isNaN(h)) { setHover(null); return; }
       const e_ = etaPts.length ? interpolate(etaPts, q) : null;
       setHover({ x: xS(q), q, h, eta: e_ });
     };
@@ -11492,6 +11505,30 @@ const DashboardHome = ({ onNavigate }) => {
 
 // APP PRINCIPAL
 // ============================================================
+// ── Filet de sécurité : si un composant plante (erreur JS), on affiche un
+// message au lieu de laisser toute la page devenir blanche.
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error('Erreur applicative interceptée:', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding:'32px', textAlign:'center', fontFamily:"'Inter','Segoe UI',sans-serif" }}>
+          <div style={{ fontSize:'2.2rem', marginBottom:'10px' }}>⚠️</div>
+          <div style={{ fontWeight:800, fontSize:'1.1rem', color:'#dc2626', marginBottom:'8px' }}>Un problème est survenu dans cet onglet</div>
+          <div style={{ fontSize:'0.85rem', color:'#64748b', marginBottom:'16px', maxWidth:'480px', margin:'0 auto 16px' }}>
+            {this.state.error?.message || 'Erreur inconnue'}
+          </div>
+          <button onClick={()=>this.setState({hasError:false, error:null})} style={{padding:'10px 20px',background:'#2563eb',color:'white',border:'none',borderRadius:'8px',fontWeight:700,cursor:'pointer',marginRight:'8px'}}>↺ Réessayer</button>
+          <button onClick={()=>window.location.reload()} style={{padding:'10px 20px',background:'#f1f5f9',color:'#334155',border:'1px solid #e2e8f0',borderRadius:'8px',fontWeight:700,cursor:'pointer'}}>Recharger la page</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [fluids, setFluids] = useState([]);
@@ -11605,7 +11642,7 @@ function App() {
           </nav>
         </div>
       </header>
-      <main className="app-main">{renderTabContent()}</main>
+      <main className="app-main"><ErrorBoundary key={activeTab}>{renderTabContent()}</ErrorBoundary></main>
     </div>
   );
 }
