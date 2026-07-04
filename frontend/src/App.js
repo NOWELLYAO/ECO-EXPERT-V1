@@ -9415,11 +9415,14 @@ const lerp = (x, x0, x1, y0, y1) => y0 + (y1 - y0) * (x - x0) / (x1 - x0);
 // Interpolation sur tableau de points [[x,y]] trié par x croissant
 const interpolate = (pts, x) => {
   if (!pts || pts.length === 0) return null;
-  if (x <= pts[0][0]) return pts[0][1];
-  if (x >= pts[pts.length-1][0]) return pts[pts.length-1][1];
+  const toNum = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  if (x <= pts[0][0]) return toNum(pts[0][1]);
+  if (x >= pts[pts.length-1][0]) return toNum(pts[pts.length-1][1]);
   for (let i = 0; i < pts.length-1; i++) {
     if (x >= pts[i][0] && x <= pts[i+1][0]) {
-      return lerp(x, pts[i][0], pts[i+1][0], pts[i][1], pts[i+1][1]);
+      const h0 = toNum(pts[i][1]), h1 = toNum(pts[i+1][1]);
+      if (h0 === null || h1 === null) return null;
+      return lerp(x, pts[i][0], pts[i+1][0], h0, h1);
     }
   }
   return null;
@@ -11648,5 +11651,3 @@ function App() {
 }
 
 export default App;
-
-                  
