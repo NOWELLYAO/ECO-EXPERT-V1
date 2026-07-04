@@ -10670,14 +10670,56 @@ const PumpSelector = () => {
     );
   };
 
+  const exportAllCurveEdits = () => {
+    const count = Object.keys(curveEdits).length;
+    if (count === 0) { alert('Aucune correction enregistrée pour le moment.'); return; }
+    const blob = new Blob([JSON.stringify(curveEdits, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ecopump-corrections-courbes-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  const importAllCurveEdits = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        const next = { ...curveEdits, ...imported };
+        setCurveEdits(next);
+        localStorage.setItem('ecopump_curve_edits', JSON.stringify(next));
+        alert(`${Object.keys(imported).length} courbe(s) importée(s) avec succès.`);
+      } catch { alert('Fichier invalide.'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:'16px', fontFamily:"'Inter','Segoe UI',sans-serif" }}>
 
       {/* Bandeau titre */}
       <div style={{ background:'linear-gradient(135deg,#0f172a,#1e40af)', borderRadius:'14px', padding:'18px 24px', color:'white' }}>
         <div style={{ fontSize:'0.65rem', fontWeight:700, letterSpacing:'0.12em', opacity:0.6, textTransform:'uppercase', marginBottom:'3px' }}>Sélection par courbes Q/H réelles — Grundfos 2025/2026</div>
-        <div style={{ fontSize:'1.25rem', fontWeight:800, marginBottom:'2px' }}>⚙️ Sélection de Pompes</div>
-        <div style={{ fontSize:'0.75rem', opacity:0.6 }}>Interpolation sur courbes Q/H + η extraites des databooklets · CR & SP · 50 Hz · {PUMP_DB.length} modèles</div>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', flexWrap:'wrap', gap:'10px' }}>
+          <div>
+            <div style={{ fontSize:'1.25rem', fontWeight:800, marginBottom:'2px' }}>⚙️ Sélection de Pompes</div>
+            <div style={{ fontSize:'0.75rem', opacity:0.6 }}>Interpolation sur courbes Q/H + η extraites des databooklets · CR & SP · 50 Hz · {PUMP_DB.length} modèles</div>
+          </div>
+          <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+            {Object.keys(curveEdits).length>0&&<span style={{fontSize:'0.68rem',fontWeight:700,background:'rgba(255,255,255,0.15)',padding:'4px 10px',borderRadius:'99px'}}>✏️ {Object.keys(curveEdits).length} courbe(s) corrigée(s)</span>}
+            <button onClick={exportAllCurveEdits} style={{fontSize:'0.7rem',fontWeight:700,color:'#0f172a',background:'white',border:'none',borderRadius:'8px',padding:'7px 12px',cursor:'pointer'}}>📥 Exporter tout</button>
+            <label style={{fontSize:'0.7rem',fontWeight:700,color:'white',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:'8px',padding:'7px 12px',cursor:'pointer'}}>
+              📤 Importer
+              <input type="file" accept="application/json" onChange={importAllCurveEdits} style={{display:'none'}}/>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px' }}>
