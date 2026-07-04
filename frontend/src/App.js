@@ -9951,9 +9951,9 @@ const getPumpEtaCurve = (pump) => {
   return CR_ETA_CURVES[pump.cr_family] || null;
 };
 
-const getPumpAtQ = (pump, Q_target) => {
-  const qh = getPumpCurveQH(pump);
-  const eta_curve = getPumpEtaCurve(pump);
+const getPumpAtQ = (pump, Q_target, qhOverride = null, etaOverride = null) => {
+  const qh = (qhOverride && qhOverride.length >= 2) ? qhOverride : getPumpCurveQH(pump);
+  const eta_curve = (etaOverride && etaOverride.length >= 2) ? etaOverride : getPumpEtaCurve(pump);
   if (!qh || qh.length === 0) return null;
   const Q_max_curve = qh[qh.length-1][0];
   // Q doit être dans la plage de la pompe
@@ -10465,7 +10465,7 @@ const PUMP_DB = [
 // sa hauteur H, cliquer une zone vide pour ajouter un point. Défini hors de
 // PumpSelector pour que l'état de glissement ne soit pas perdu à chaque
 // re-rendu (Q, H, etc. changent en direct pendant la saisie).
-const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange }) => {
+const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange, yLabel = 'H (m)', yUnit = 'm' }) => {
   const svgRef = useRef(null);
   const didDragRef = useRef(false);
   const [dragIdx, setDragIdx] = useState(null);
@@ -10493,17 +10493,27 @@ const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange }) => {
   };
 
   const handlePointerMove = (e) => {
-    if (dragIdx === null) return;
-    didDragRef.current = true;
-    const { y } = clientToSvg(e.clientX, e.clientY);
-    let h = Math.max(0, parseFloat(hFromY(y).toFixed(2)));
-    const q = pts[dragIdx][0];
-    setHoverInfo({ x: xS(q), y: yS(h), q, h });
-    const next = pts.map(p => [...p]);
-    next[dragIdx][1] = h;
-    onChange(next);
+    const { x, y } = clientToSvg(e.clientX, e.clientY);
+    if (dragIdx !== null) {
+      didDragRef.current = true;
+      let h = Math.max(0, parseFloat(hFromY(y).toFixed(2)));
+      const q = pts[dragIdx][0];
+      setHoverInfo({ x: xS(q), y: yS(h), q, h, dragging: true });
+      const next = pts.map(p => [...p]);
+      next[dragIdx][1] = h;
+      onChange(next);
+      return;
+    }
+    // Survol continu (hors glisser) : lecture Q/valeur au point survolé
+    if (x < padL || x > padL + W_plot) { setHoverInfo(null); return; }
+    const q = parseFloat(qFromX(x).toFixed(1));
+    if (q < 0 || q > Q_max) { setHoverInfo(null); return; }
+    const h = interpolate(pts, q);
+    if (h === null) { setHoverInfo(null); return; }
+    setHoverInfo({ x: xS(q), y: yS(h), q, h, dragging: false });
   };
-  const endDrag = () => { setDragIdx(null); setHoverInfo(null); };
+  const endDrag = () => { setDragIdx(null); };
+  const handleLeave = () => { if (dragIdx === null) setHoverInfo(null); };
 
   const handleChartClick = (e) => {
     if (didDragRef.current) { didDragRef.current = false; return; } // ignore le clic généré juste après un glisser
@@ -10524,14 +10534,14 @@ const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange }) => {
       onPointerDown={(e)=>{ didDragRef.current=false; }}
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
-      onPointerLeave={endDrag}
+      onPointerLeave={handleLeave}
       onClick={handleChartClick}>
       {gridQ.map(q=><line key={'gq'+q} x1={xS(q)} y1={padT} x2={xS(q)} y2={padT+H_plot} stroke="#fde68a" strokeWidth="0.5"/>)}
       {gridH.map(h=><line key={'gh'+h} x1={padL} y1={yS(h)} x2={padL+W_plot} y2={yS(h)} stroke="#fde68a" strokeWidth="0.5"/>)}
       {gridQ.map(q=><text key={'tq'+q} x={xS(q)} y={padT+H_plot+14} textAnchor="middle" fontSize="8" fill="#92400e">{q}</text>)}
       {gridH.map(h=><text key={'th'+h} x={padL-5} y={yS(h)+3} textAnchor="end" fontSize="8" fill="#92400e">{h}</text>)}
       <text x={W/2} y={H_svg-2} textAnchor="middle" fontSize="8" fill="#92400e">Q (m³/h)</text>
-      <text x={12} y={H_svg/2} textAnchor="middle" fontSize="8" fill="#92400e" transform={`rotate(-90,12,${H_svg/2})`}>H (m)</text>
+      <text x={12} y={H_svg/2} textAnchor="middle" fontSize="8" fill="#92400e" transform={`rotate(-90,12,${H_svg/2})`}>{yLabel}</text>
       {dEta&&<path d={dEta} fill="none" stroke="#d97706" strokeWidth="1.5" strokeDasharray="5 2"/>}
       <path d={dQH} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round"/>
       {pts.map(([q,h],i)=>(
@@ -10543,8 +10553,9 @@ const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange }) => {
       ))}
       {hoverInfo&&(
         <g>
+          <line x1={hoverInfo.x} y1={padT} x2={hoverInfo.x} y2={padT+H_plot} stroke="#0ea5e9" strokeWidth="1" strokeDasharray="2 2"/>
           <rect x={Math.min(hoverInfo.x+10, W-110)} y={Math.max(hoverInfo.y-26,2)} width={106} height={24} rx={4} fill="rgba(15,23,42,0.92)"/>
-          <text x={Math.min(hoverInfo.x+16, W-104)} y={Math.max(hoverInfo.y-10,18)} fontSize="9" fontWeight="700" fill="white">Q={hoverInfo.q} · H={hoverInfo.h.toFixed(1)}m</text>
+          <text x={Math.min(hoverInfo.x+16, W-104)} y={Math.max(hoverInfo.y-10,18)} fontSize="9" fontWeight="700" fill="white">Q={hoverInfo.q} · {hoverInfo.h.toFixed(1)}{yUnit}</text>
         </g>
       )}
     </svg>
@@ -10564,9 +10575,15 @@ const PumpSelector = () => {
   const [curveEdits, setCurveEdits] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ecopump_curve_edits') || '{}'); } catch { return {}; }
   });
+  const [etaEdits, setEtaEdits] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ecopump_eta_edits') || '{}'); } catch { return {}; }
+  });
   const [editingCurve, setEditingCurve] = useState(false);
+  const [editTab, setEditTab] = useState('qh'); // 'qh' ou 'eta'
   const [draftPts, setDraftPts] = useState(null);
+  const [draftEtaPts, setDraftEtaPts] = useState(null);
   const [showExport, setShowExport] = useState(false);
+  const getFamilyKey = (pump) => pump.serie === 'SP' ? pump.sp_family : pump.cr_family;
 
   const computePumpResults = () => {
     // Q_max par famille pour filtrer par plage nominale
@@ -10602,7 +10619,7 @@ const PumpSelector = () => {
         }
 
         // Vérifier via courbe si Q/H est atteignable
-        const at = getPumpAtQ(p, Q);
+        const at = getPumpAtQ(p, Q, curveEdits[p.model], etaEdits[getFamilyKey(p)]);
         if (!at) return false;
         if (at.H <= 0) return false;
         // Tolérance : H_courbe doit être entre 80% et 130% du H demandé
@@ -10610,7 +10627,7 @@ const PumpSelector = () => {
         return true;
       })
       .map(p => {
-        const at = getPumpAtQ(p, Q);
+        const at = getPumpAtQ(p, Q, curveEdits[p.model], etaEdits[getFamilyKey(p)]);
         const H_curve = at?.H || 0;
         const eta_curve = at?.eta || 0;
         const delta_H = Math.abs(H_curve - H) / H * 100; // % d'écart
@@ -10651,7 +10668,7 @@ const PumpSelector = () => {
       // sinon la referme proprement plutôt que d'afficher des données obsolètes
       return scored.find(p => p.model === prevSel.model) || null;
     });
-  }, [Q, H, serie, temp, sortBy, curveEdits]);
+  }, [Q, H, serie, temp, sortBy, curveEdits, etaEdits]);
 
   const getMatchColor = s => s >= 75?'#16a34a':s>=55?'#d97706':'#ef4444';
   const getMatchLabel = s => s >= 75?'✅ Excellent':s>=55?'⚠️ Acceptable':'❌ Hors plage';
@@ -10663,22 +10680,32 @@ const PumpSelector = () => {
     if (!qh) return [];
     return qh;
   };
+  const getEffectiveEta = (pump) => {
+    const key = getFamilyKey(pump);
+    if (etaEdits[key] && etaEdits[key].length >= 2) return etaEdits[key];
+    return getPumpEtaCurve(pump) || [];
+  };
 
   const startEditCurve = (pump) => {
     const pts = getCurvePoints(pump).map(([q,h]) => [q,h]);
+    const etaPts = getEffectiveEta(pump).map(([q,e]) => [q,e]);
     setDraftPts(pts);
+    setDraftEtaPts(etaPts.length >= 2 ? etaPts : [[0,0],[pts[pts.length-1][0],0]]);
+    setEditTab('qh');
     setEditingCurve(true);
     setShowExport(false);
   };
+  const activeDraft = editTab === 'qh' ? draftPts : draftEtaPts;
+  const setActiveDraft = editTab === 'qh' ? setDraftPts : setDraftEtaPts;
   const updateDraftPt = (idx, field, val) => {
-    setDraftPts(prev => {
+    setActiveDraft(prev => {
       const next = prev.map(p => [...p]);
       next[idx][field] = val;
       return next;
     });
   };
   const addDraftPt = () => {
-    setDraftPts(prev => {
+    setActiveDraft(prev => {
       const last = prev[prev.length-1];
       const q = last ? (parseFloat(last[0])||0) + 5 : 0;
       const h = last ? (parseFloat(last[1])||0) : 0;
@@ -10686,38 +10713,57 @@ const PumpSelector = () => {
     });
   };
   const removeDraftPt = (idx) => {
-    setDraftPts(prev => prev.filter((_,i)=>i!==idx));
+    setActiveDraft(prev => prev.filter((_,i)=>i!==idx));
   };
   const saveCurveEdit = (pump) => {
-    const cleaned = draftPts
+    const cleanPts = (arr) => arr
       .map(([q,h]) => [parseFloat(q), parseFloat(h)])
       .filter(([q,h]) => !isNaN(q) && !isNaN(h))
       .sort((a,b) => a[0]-b[0]);
-    if (cleaned.length < 2) { alert('Il faut au moins 2 points valides.'); return; }
-    const next = { ...curveEdits, [pump.model]: cleaned };
-    setCurveEdits(next);
-    try { localStorage.setItem('ecopump_curve_edits', JSON.stringify(next)); } catch {}
+    const cleanedQH = cleanPts(draftPts);
+    const cleanedEta = cleanPts(draftEtaPts);
+    if (cleanedQH.length < 2) { alert('Il faut au moins 2 points valides sur la courbe Q/H.'); return; }
+    const nextCurves = { ...curveEdits, [pump.model]: cleanedQH };
+    setCurveEdits(nextCurves);
+    try { localStorage.setItem('ecopump_curve_edits', JSON.stringify(nextCurves)); } catch {}
+    if (cleanedEta.length >= 2) {
+      const key = getFamilyKey(pump);
+      const nextEta = { ...etaEdits, [key]: cleanedEta };
+      setEtaEdits(nextEta);
+      try { localStorage.setItem('ecopump_eta_edits', JSON.stringify(nextEta)); } catch {}
+    }
     setEditingCurve(false);
     setDraftPts(null);
+    setDraftEtaPts(null);
   };
   const resetCurveEdit = (pump) => {
     const next = { ...curveEdits };
     delete next[pump.model];
     setCurveEdits(next);
     try { localStorage.setItem('ecopump_curve_edits', JSON.stringify(next)); } catch {}
-    setEditingCurve(false);
-    setDraftPts(null);
+  };
+  const resetEtaEdit = (pump) => {
+    const key = getFamilyKey(pump);
+    const next = { ...etaEdits };
+    delete next[key];
+    setEtaEdits(next);
+    try { localStorage.setItem('ecopump_eta_edits', JSON.stringify(next)); } catch {}
   };
   const exportCurveEdit = (pump) => {
     const pts = curveEdits[pump.model];
-    if (!pts) return '';
-    const rows = pts.map(([q,h]) => `[${q},${h}]`).join(',');
-    return `// ${pump.model} — courbe corrigée manuellement\n'${pump.stages}': [${rows}],`;
+    const key = getFamilyKey(pump);
+    const eta = etaEdits[key];
+    let out = '';
+    if (pts) out += `// ${pump.model} — courbe Q/H corrigée manuellement\n'${pump.stages}': [${pts.map(([q,h])=>`[${q},${h}]`).join(',')}],\n`;
+    if (eta) out += `// ${key} — courbe de rendement η corrigée manuellement\n[${eta.map(([q,e])=>`[${q},${e}]`).join(',')}]\n`;
+    return out;
   };
 
   const SVGCurve = ({ pump, Q_target, H_target }) => {
+    const [hover, setHover] = useState(null);
+    const svgRef = useRef(null);
     const pts = getCurvePoints(pump);
-    const etaPts = getPumpEtaCurve(pump) || [];
+    const etaPts = getEffectiveEta(pump);
     if (!pts.length) return null;
     const Q_max = pts[pts.length-1][0];
     const H_max_curve = pts[0][1];
@@ -10728,6 +10774,7 @@ const PumpSelector = () => {
     const xS = q => padL + (q/Q_max) * W_plot;
     const yS = h => padT + H_plot - (h/H_max_curve) * H_plot;
     const yE = e => padT + H_plot - (e/eta_max) * H_plot;
+    const qFromX = x => (x-padL) / W_plot * Q_max;
     // Courbe Q/H
     const dQH = pts.map(([q,h],i) => `${i===0?'M':'L'} ${xS(q)} ${yS(h)}`).join(' ');
     // Courbe Eta
@@ -10737,8 +10784,21 @@ const PumpSelector = () => {
     const eq = etaPts.length ? interpolate(etaPts, Q_target) : null;
     const gridQ = [0, Q_max*0.25, Q_max*0.5, Q_max*0.75, Q_max].map(v=>parseFloat(v.toFixed(1)));
     const gridH = [0, H_max_curve*0.25, H_max_curve*0.5, H_max_curve*0.75, H_max_curve].map(v=>parseFloat(v.toFixed(0)));
+
+    const handleMove = (e) => {
+      const rect = svgRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (W / rect.width);
+      if (x < padL || x > padL + W_plot) { setHover(null); return; }
+      const q = parseFloat(qFromX(x).toFixed(1));
+      if (q < 0 || q > Q_max) { setHover(null); return; }
+      const h = interpolate(pts, q);
+      const e_ = etaPts.length ? interpolate(etaPts, q) : null;
+      setHover({ x: xS(q), q, h, eta: e_ });
+    };
+
     return (
-      <svg width="100%" viewBox={`0 0 ${W} ${H_svg}`} style={{ background:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0' }}>
+      <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H_svg}`} style={{ background:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0', cursor:'crosshair' }}
+        onMouseMove={handleMove} onMouseLeave={()=>setHover(null)}>
         {/* Grid */}
         {gridQ.map(q=><line key={q} x1={xS(q)} y1={padT} x2={xS(q)} y2={padT+H_plot} stroke="#e2e8f0" strokeWidth="0.5"/>)}
         {gridH.map(h=><line key={h} x1={padL} y1={yS(h)} x2={padL+W_plot} y2={yS(h)} stroke="#e2e8f0" strokeWidth="0.5"/>)}
@@ -10762,6 +10822,16 @@ const PumpSelector = () => {
           <text x={xS(Q_target)+14} y={yS(Hq)-8} fontSize="7.5" fontWeight="700" fill="#dc2626">H={Hq.toFixed(1)}m à Q={Q_target}m³/h</text>
           {eq&&<text x={xS(Q_target)+14} y={yS(Hq)+6} fontSize="7" fill="#d97706">η={eq.toFixed(1)}%</text>}
         </>}
+        {/* Survol : ligne guide + info-bulle */}
+        {hover&&hover.h!==null&&(
+          <>
+            <line x1={hover.x} y1={padT} x2={hover.x} y2={padT+H_plot} stroke="#0ea5e9" strokeWidth="1" strokeDasharray="2 2"/>
+            <circle cx={hover.x} cy={yS(hover.h)} r={4} fill="#0ea5e9" stroke="white" strokeWidth="1.5"/>
+            <rect x={Math.min(hover.x+8, W-118)} y={padT+2} width={112} height={eq!==null&&hover.eta!==null?34:20} rx="4" fill="rgba(15,23,42,0.92)"/>
+            <text x={Math.min(hover.x+13, W-113)} y={padT+14} fontSize="8" fontWeight="700" fill="white">Q={hover.q} · H={hover.h.toFixed(1)}m</text>
+            {hover.eta!==null&&<text x={Math.min(hover.x+13, W-113)} y={padT+27} fontSize="7.5" fill="#fbbf24">η={hover.eta.toFixed(1)}%</text>}
+          </>
+        )}
         {/* Légende */}
         <line x1={padL+10} y1={padT+8} x2={padL+25} y2={padT+8} stroke="#2563eb" strokeWidth="2.5"/>
         <text x={padL+28} y={padT+12} fontSize="7.5" fill="#2563eb">Courbe Q/H</text>
@@ -10772,9 +10842,10 @@ const PumpSelector = () => {
   };
 
   const exportAllCurveEdits = () => {
-    const count = Object.keys(curveEdits).length;
-    if (count === 0) { alert('Aucune correction enregistrée pour le moment.'); return; }
-    const blob = new Blob([JSON.stringify(curveEdits, null, 2)], { type: 'application/json' });
+    const nCurves = Object.keys(curveEdits).length;
+    const nEta = Object.keys(etaEdits).length;
+    if (nCurves === 0 && nEta === 0) { alert('Aucune correction enregistrée pour le moment.'); return; }
+    const blob = new Blob([JSON.stringify({ curves: curveEdits, eta: etaEdits }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -10791,10 +10862,16 @@ const PumpSelector = () => {
     reader.onload = (ev) => {
       try {
         const imported = JSON.parse(ev.target.result);
-        const next = { ...curveEdits, ...imported };
-        setCurveEdits(next);
-        localStorage.setItem('ecopump_curve_edits', JSON.stringify(next));
-        alert(`${Object.keys(imported).length} courbe(s) importée(s) avec succès.`);
+        // Compatible avec les anciens exports (format plat = courbes Q/H uniquement)
+        const importedCurves = imported.curves || imported;
+        const importedEta = imported.eta || {};
+        const nextCurves = { ...curveEdits, ...importedCurves };
+        const nextEta = { ...etaEdits, ...importedEta };
+        setCurveEdits(nextCurves);
+        setEtaEdits(nextEta);
+        localStorage.setItem('ecopump_curve_edits', JSON.stringify(nextCurves));
+        localStorage.setItem('ecopump_eta_edits', JSON.stringify(nextEta));
+        alert(`${Object.keys(importedCurves).length} courbe(s) Q/H et ${Object.keys(importedEta).length} courbe(s) η importée(s).`);
       } catch { alert('Fichier invalide.'); }
     };
     reader.readAsText(file);
@@ -11090,29 +11167,43 @@ const PumpSelector = () => {
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px',flexWrap:'wrap',gap:'8px'}}>
                     <div style={{fontSize:'0.72rem',fontWeight:700,color:'#1e293b',textTransform:'uppercase',letterSpacing:'0.06em'}}>
                       📈 Courbe Q/H interpolée — {selected.model}
-                      {curveEdits[selected.model]&&<span style={{marginLeft:'8px',fontSize:'0.65rem',fontWeight:700,color:'#7c3aed',background:'#f3e8ff',padding:'2px 8px',borderRadius:'99px'}}>✏️ Corrigée manuellement</span>}
+                      {curveEdits[selected.model]&&<span style={{marginLeft:'8px',fontSize:'0.65rem',fontWeight:700,color:'#7c3aed',background:'#f3e8ff',padding:'2px 8px',borderRadius:'99px'}}>✏️ Q/H corrigée</span>}
+                      {etaEdits[getFamilyKey(selected)]&&<span style={{marginLeft:'6px',fontSize:'0.65rem',fontWeight:700,color:'#b45309',background:'#fef3c7',padding:'2px 8px',borderRadius:'99px'}}>✏️ η corrigée</span>}
                     </div>
                     {!editingCurve?(
                       <button onClick={()=>startEditCurve(selected)} style={{fontSize:'0.7rem',fontWeight:700,color:'#2563eb',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}}>✏️ Corriger cette courbe</button>
                     ):(
                       <div style={{display:'flex',gap:'6px'}}>
                         <button onClick={()=>saveCurveEdit(selected)} style={{fontSize:'0.7rem',fontWeight:700,color:'white',background:'#059669',border:'none',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}}>💾 Enregistrer</button>
-                        <button onClick={()=>{setEditingCurve(false);setDraftPts(null);}} style={{fontSize:'0.7rem',fontWeight:700,color:'#475569',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}}>Annuler</button>
+                        <button onClick={()=>{setEditingCurve(false);setDraftPts(null);setDraftEtaPts(null);}} style={{fontSize:'0.7rem',fontWeight:700,color:'#475569',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}}>Annuler</button>
                       </div>
                     )}
                   </div>
+
+                  {editingCurve&&(
+                    <div style={{display:'flex',gap:'6px',marginBottom:'8px'}}>
+                      <button onClick={()=>setEditTab('qh')} style={{flex:1,padding:'7px',borderRadius:'8px',border:`1.5px solid ${editTab==='qh'?'#2563eb':'#e2e8f0'}`,background:editTab==='qh'?'#eff6ff':'white',color:editTab==='qh'?'#1d4ed8':'#64748b',fontWeight:700,fontSize:'0.72rem',cursor:'pointer'}}>💧 Courbe Q/H</button>
+                      <button onClick={()=>setEditTab('eta')} style={{flex:1,padding:'7px',borderRadius:'8px',border:`1.5px solid ${editTab==='eta'?'#d97706':'#e2e8f0'}`,background:editTab==='eta'?'#fffbeb':'white',color:editTab==='eta'?'#b45309':'#64748b',fontWeight:700,fontSize:'0.72rem',cursor:'pointer'}}>⚡ Courbe rendement η (famille {getFamilyKey(selected)})</button>
+                    </div>
+                  )}
+
                   {editingCurve?(
                     <>
-                      <EditableCurveSVG pts={draftPts} Q_target={Q} H_target={H} etaPts={getPumpEtaCurve(selected)} onChange={setDraftPts}/>
+                      {editTab==='qh'?(
+                        <EditableCurveSVG pts={draftPts} Q_target={Q} H_target={H} etaPts={draftEtaPts} onChange={setDraftPts} yLabel="H (m)" yUnit="m"/>
+                      ):(
+                        <EditableCurveSVG pts={draftEtaPts} Q_target={Q} H_target={H} etaPts={null} onChange={setDraftEtaPts} yLabel="η (%)" yUnit="%"/>
+                      )}
                       <div style={{display:'flex',gap:'12px',marginTop:'6px',fontSize:'0.7rem',color:'#92400e'}}>
-                        <span>🖱️ Glisse un point verticalement pour ajuster sa hauteur · Clique une zone vide pour en ajouter un · Double-clic pour supprimer</span>
+                        <span>🖱️ Glisse un point verticalement · Clique une zone vide pour en ajouter un · Double-clic pour supprimer · Survole pour lire les valeurs</span>
                       </div>
+                      {editTab==='eta'&&<div style={{fontSize:'0.65rem',color:'#b45309',marginTop:'4px'}}>⚠️ La courbe de rendement est partagée par tous les étages de la famille {getFamilyKey(selected)} (pas seulement {selected.model}).</div>}
                     </>
                   ):(
                     <>
                       <SVGCurve pump={selected} Q_target={Q} H_target={H}/>
                       <div style={{display:'flex',gap:'12px',marginTop:'6px',fontSize:'0.7rem',color:'#64748b'}}>
-                        <span>— Courbe Q/H (bleu) · - - Rendement η (orange) · ⬤ Point de fonctionnement (rouge)</span>
+                        <span>— Courbe Q/H (bleu) · - - Rendement η (orange) · ⬤ Point de fonctionnement (rouge) · Survole pour lire Q/H/η</span>
                       </div>
                     </>
                   )}
@@ -11122,12 +11213,13 @@ const PumpSelector = () => {
                 <div>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'6px'}}>
                     <div style={{fontSize:'0.72rem',fontWeight:700,color:'#1e293b',textTransform:'uppercase',letterSpacing:'0.06em'}}>
-                      {editingCurve?'✏️ Édition des points Q/H (m³/h → m)':'📊 Table Q/H de la courbe'}
+                      {editingCurve?(editTab==='qh'?'✏️ Édition des points Q/H (m³/h → m)':'✏️ Édition des points de rendement (m³/h → %)'):'📊 Table Q/H de la courbe'}
                     </div>
-                    {curveEdits[selected.model]&&!editingCurve&&(
+                    {!editingCurve&&(curveEdits[selected.model]||etaEdits[getFamilyKey(selected)])&&(
                       <div style={{display:'flex',gap:'6px'}}>
                         <button onClick={()=>setShowExport(v=>!v)} style={{fontSize:'0.65rem',fontWeight:700,color:'#2563eb',background:'none',border:'1px solid #bfdbfe',borderRadius:'6px',padding:'4px 8px',cursor:'pointer'}}>{showExport?'Masquer export':'📤 Exporter'}</button>
-                        <button onClick={()=>resetCurveEdit(selected)} style={{fontSize:'0.65rem',fontWeight:700,color:'#dc2626',background:'none',border:'1px solid #fecaca',borderRadius:'6px',padding:'4px 8px',cursor:'pointer'}}>↺ Réinitialiser</button>
+                        {curveEdits[selected.model]&&<button onClick={()=>resetCurveEdit(selected)} style={{fontSize:'0.65rem',fontWeight:700,color:'#dc2626',background:'none',border:'1px solid #fecaca',borderRadius:'6px',padding:'4px 8px',cursor:'pointer'}}>↺ Reset Q/H</button>}
+                        {etaEdits[getFamilyKey(selected)]&&<button onClick={()=>resetEtaEdit(selected)} style={{fontSize:'0.65rem',fontWeight:700,color:'#dc2626',background:'none',border:'1px solid #fecaca',borderRadius:'6px',padding:'4px 8px',cursor:'pointer'}}>↺ Reset η</button>}
                       </div>
                     )}
                   </div>
@@ -11135,26 +11227,26 @@ const PumpSelector = () => {
                   {editingCurve?(
                     <div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:'6px'}}>
-                        {draftPts.map((pt,idx)=>(
+                        {activeDraft.map((pt,idx)=>(
                           <div key={idx} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'6px',padding:'6px 8px'}}>
                             <div style={{display:'flex',gap:'4px',alignItems:'center'}}>
                               <input type="number" value={pt[0]} onChange={e=>updateDraftPt(idx,0,e.target.value)} placeholder="Q" style={{width:'50%',fontSize:'0.7rem',padding:'3px 4px',border:'1px solid #e2e8f0',borderRadius:'4px',fontFamily:'monospace'}}/>
-                              <input type="number" value={pt[1]} onChange={e=>updateDraftPt(idx,1,e.target.value)} placeholder="H" style={{width:'50%',fontSize:'0.7rem',padding:'3px 4px',border:'1px solid #e2e8f0',borderRadius:'4px',fontFamily:'monospace'}}/>
+                              <input type="number" value={pt[1]} onChange={e=>updateDraftPt(idx,1,e.target.value)} placeholder={editTab==='qh'?'H':'η'} style={{width:'50%',fontSize:'0.7rem',padding:'3px 4px',border:'1px solid #e2e8f0',borderRadius:'4px',fontFamily:'monospace'}}/>
                               <button onClick={()=>removeDraftPt(idx)} style={{background:'none',border:'none',color:'#dc2626',cursor:'pointer',fontSize:'0.85rem',padding:'0 2px'}}>✕</button>
                             </div>
-                            <div style={{fontSize:'0.55rem',color:'#92400e',marginTop:'2px'}}>m³/h → m</div>
+                            <div style={{fontSize:'0.55rem',color:'#92400e',marginTop:'2px'}}>{editTab==='qh'?'m³/h → m':'m³/h → %'}</div>
                           </div>
                         ))}
                       </div>
                       <button onClick={addDraftPt} style={{marginTop:'8px',fontSize:'0.7rem',fontWeight:700,color:'#059669',background:'#f0fdf4',border:'1px solid #86efac',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}}>+ Ajouter un point</button>
-                      <div style={{fontSize:'0.65rem',color:'#92400e',marginTop:'8px'}}>💡 Saisis les vraies valeurs lues sur la courbe Grundfos officielle. La courbe et le point de fonctionnement ci-dessus se mettent à jour en direct après enregistrement.</div>
+                      <div style={{fontSize:'0.65rem',color:'#92400e',marginTop:'8px'}}>💡 Saisis les vraies valeurs lues sur la courbe Grundfos officielle. Les deux courbes (Q/H et η) s'enregistrent ensemble au clic sur "Enregistrer".</div>
                     </div>
                   ):(
                     <>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(100px,1fr))',gap:'4px'}}>
                         {qhPts.filter((_,i)=>i%2===0||i===qhPts.length-1).map(([q,h])=>{
-                          const etaC=getPumpEtaCurve(selected);
-                          const e=etaC?interpolate(etaC,q):null;
+                          const etaC=getEffectiveEta(selected);
+                          const e=etaC.length?interpolate(etaC,q):null;
                           const isTarget=Math.abs(q-Q)<0.5;
                           return (
                             <div key={q} style={{background:isTarget?'#dcfce7':'#f8fafc',border:`1px solid ${isTarget?'#86efac':'#e2e8f0'}`,borderRadius:'6px',padding:'5px 8px',textAlign:'center'}}>
@@ -11165,7 +11257,7 @@ const PumpSelector = () => {
                           );
                         })}
                       </div>
-                      {showExport&&curveEdits[selected.model]&&(
+                      {showExport&&(curveEdits[selected.model]||etaEdits[getFamilyKey(selected)])&&(
                         <div style={{marginTop:'10px'}}>
                           <textarea readOnly value={exportCurveEdit(selected)} style={{width:'100%',minHeight:'70px',fontSize:'0.7rem',fontFamily:'monospace',padding:'8px',border:'1px solid #bfdbfe',borderRadius:'8px',background:'#f8fafc'}} onFocus={e=>e.target.select()}/>
                           <div style={{fontSize:'0.65rem',color:'#64748b',marginTop:'4px'}}>Copie ce bloc et envoie-le pour intégration définitive dans le code source.</div>
