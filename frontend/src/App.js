@@ -10478,7 +10478,7 @@ const PumpSelector = () => {
   const [draftPts, setDraftPts] = useState(null);
   const [showExport, setShowExport] = useState(false);
 
-  const findPumps = () => {
+  const computePumpResults = () => {
     // Q_max par famille pour filtrer par plage nominale
     const getFamilyQmax = (pump) => {
       if (pump.serie === 'SP') {
@@ -10546,11 +10546,22 @@ const PumpSelector = () => {
         return b.score - a.score;
       })
       .slice(0, 12);
-    setResults(scored);
-    setSelected(null);
-    setSearched(true);
-    setShowCurve(false);
+    return scored;
   };
+
+  // ── Recherche en temps réel : recalcule automatiquement dès que Q, H, ──
+  // ── la série, la température ou le tri changent (plus besoin de bouton) ──
+  useEffect(() => {
+    const scored = computePumpResults();
+    setResults(scored);
+    setSearched(true);
+    setSelected(prevSel => {
+      if (!prevSel) return null;
+      // Conserve la sélection si elle est toujours dans les résultats,
+      // sinon la referme proprement plutôt que d'afficher des données obsolètes
+      return scored.find(p => p.model === prevSel.model) || null;
+    });
+  }, [Q, H, serie, temp, sortBy, curveEdits]);
 
   const getMatchColor = s => s >= 75?'#16a34a':s>=55?'#d97706':'#ef4444';
   const getMatchLabel = s => s >= 75?'✅ Excellent':s>=55?'⚠️ Acceptable':'❌ Hors plage';
@@ -10735,7 +10746,12 @@ const PumpSelector = () => {
                 <div key={l}>
                   <label style={{display:'block',fontSize:'0.7rem',fontWeight:700,color:'#475569',marginBottom:'4px',textTransform:'uppercase',letterSpacing:'0.04em'}}>{icon} {l} <span style={{color:'#94a3b8',textTransform:'none',fontWeight:400}}>({u})</span></label>
                   <input type="text" inputMode="decimal" value={r}
-                    onChange={e=>sr(e.target.value)}
+                    onChange={e=>{
+                      const val = e.target.value;
+                      sr(val);
+                      const n = parseFloat(val);
+                      if (!isNaN(n) && val.trim() !== '') sv(n); // met à jour en direct dès que la saisie est un nombre valide
+                    }}
                     onBlur={e=>{const n=parseFloat(e.target.value);if(!isNaN(n)){sv(n);sr(String(n));}else sr(String(v));}}
                     onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}} onFocus={e=>e.target.select()}
                     style={{width:'100%',boxSizing:'border-box',padding:'10px 12px',border:'1.5px solid #e2e8f0',borderRadius:'8px',fontSize:'1rem',fontWeight:700,color:'#1e293b',fontFamily:'monospace',outline:'none'}}
@@ -10848,9 +10864,11 @@ const PumpSelector = () => {
         </div>
       </div>
 
-      <button onClick={findPumps} style={{padding:'16px',background:'linear-gradient(135deg,#1e40af,#2563eb)',color:'white',border:'none',borderRadius:'12px',fontWeight:800,fontSize:'1.05rem',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 6px 20px rgba(37,99,235,0.35)'}}>
-        🔍 Rechercher parmi {PUMP_DB.filter(p=>serie==='all'||p.serie===serie).length} modèles — Courbes Q/H réelles Grundfos
-      </button>
+      <div style={{padding:'16px',background:'linear-gradient(135deg,#1e40af,#2563eb)',color:'white',border:'none',borderRadius:'12px',fontWeight:800,fontSize:'1.05rem',fontFamily:'inherit',boxShadow:'0 6px 20px rgba(37,99,235,0.35)',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px'}}>
+        <span style={{display:'inline-block',width:'10px',height:'10px',borderRadius:'50%',background:'#4ade80',boxShadow:'0 0 0 0 rgba(74,222,128,0.7)',animation:'ecopump-pulse 1.6s infinite'}}/>
+        🔍 Recherche en direct parmi {PUMP_DB.filter(p=>serie==='all'||p.serie===serie).length} modèles — Courbes Q/H réelles Grundfos
+      </div>
+      <style>{`@keyframes ecopump-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,0.6);}70%{box-shadow:0 0 0 8px rgba(74,222,128,0);}100%{box-shadow:0 0 0 0 rgba(74,222,128,0);}}`}</style>
 
       {searched&&results.length===0&&(
         <div style={{background:'#fff1f2',border:'1.5px solid #fca5a5',borderRadius:'12px',padding:'24px',textAlign:'center'}}>
