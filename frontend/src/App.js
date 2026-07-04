@@ -10461,6 +10461,96 @@ const PUMP_DB = [
 
 ];
 
+// ── Courbe Q/H interactive : glisser un point verticalement pour corriger
+// sa hauteur H, cliquer une zone vide pour ajouter un point. Défini hors de
+// PumpSelector pour que l'état de glissement ne soit pas perdu à chaque
+// re-rendu (Q, H, etc. changent en direct pendant la saisie).
+const EditableCurveSVG = ({ pts, Q_target, H_target, etaPts, onChange }) => {
+  const svgRef = useRef(null);
+  const didDragRef = useRef(false);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [hoverInfo, setHoverInfo] = useState(null);
+
+  if (!pts || pts.length < 2) return null;
+  const Q_max = Math.max(...pts.map(p => p[0]), 1);
+  const H_max_curve = Math.max(...pts.map(p => p[1]), 1);
+  const eta_max = 100;
+  const W = 500, H_svg = 240, padL = 50, padR = 20, padT = 15, padB = 35;
+  const W_plot = W - padL - padR;
+  const H_plot = H_svg - padT - padB;
+  const xS = q => padL + (q / Q_max) * W_plot;
+  const yS = h => padT + H_plot - (h / H_max_curve) * H_plot;
+  const yE = e => padT + H_plot - (e / eta_max) * H_plot;
+  const qFromX = x => (x - padL) / W_plot * Q_max;
+  const hFromY = y => (padT + H_plot - y) / H_plot * H_max_curve;
+
+  const dQH = pts.map(([q, h], i) => `${i === 0 ? 'M' : 'L'} ${xS(q)} ${yS(h)}`).join(' ');
+  const dEta = etaPts && etaPts.length ? etaPts.map(([q, e], i) => `${i === 0 ? 'M' : 'L'} ${xS(q)} ${yE(e)}`).join(' ') : '';
+
+  const clientToSvg = (clientX, clientY) => {
+    const rect = svgRef.current.getBoundingClientRect();
+    return { x: (clientX - rect.left) * (W / rect.width), y: (clientY - rect.top) * (H_svg / rect.height) };
+  };
+
+  const handlePointerMove = (e) => {
+    if (dragIdx === null) return;
+    didDragRef.current = true;
+    const { y } = clientToSvg(e.clientX, e.clientY);
+    let h = Math.max(0, parseFloat(hFromY(y).toFixed(2)));
+    const q = pts[dragIdx][0];
+    setHoverInfo({ x: xS(q), y: yS(h), q, h });
+    const next = pts.map(p => [...p]);
+    next[dragIdx][1] = h;
+    onChange(next);
+  };
+  const endDrag = () => { setDragIdx(null); setHoverInfo(null); };
+
+  const handleChartClick = (e) => {
+    if (didDragRef.current) { didDragRef.current = false; return; } // ignore le clic généré juste après un glisser
+    const { x, y } = clientToSvg(e.clientX, e.clientY);
+    if (x < padL || x > padL + W_plot || y < padT || y > padT + H_plot) return;
+    const q = parseFloat(qFromX(x).toFixed(1));
+    const h = parseFloat(hFromY(y).toFixed(1));
+    const next = [...pts.map(p => [...p]), [q, h]].sort((a, b) => a[0] - b[0]);
+    onChange(next);
+  };
+
+  const gridQ = [0, Q_max*0.25, Q_max*0.5, Q_max*0.75, Q_max].map(v=>parseFloat(v.toFixed(1)));
+  const gridH = [0, H_max_curve*0.25, H_max_curve*0.5, H_max_curve*0.75, H_max_curve].map(v=>parseFloat(v.toFixed(0)));
+
+  return (
+    <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H_svg}`}
+      style={{ background:'#fffbeb', borderRadius:'8px', border:'2px dashed #fbbf24', cursor: dragIdx!==null?'grabbing':'crosshair', touchAction:'none' }}
+      onPointerDown={(e)=>{ didDragRef.current=false; }}
+      onPointerMove={handlePointerMove}
+      onPointerUp={endDrag}
+      onPointerLeave={endDrag}
+      onClick={handleChartClick}>
+      {gridQ.map(q=><line key={'gq'+q} x1={xS(q)} y1={padT} x2={xS(q)} y2={padT+H_plot} stroke="#fde68a" strokeWidth="0.5"/>)}
+      {gridH.map(h=><line key={'gh'+h} x1={padL} y1={yS(h)} x2={padL+W_plot} y2={yS(h)} stroke="#fde68a" strokeWidth="0.5"/>)}
+      {gridQ.map(q=><text key={'tq'+q} x={xS(q)} y={padT+H_plot+14} textAnchor="middle" fontSize="8" fill="#92400e">{q}</text>)}
+      {gridH.map(h=><text key={'th'+h} x={padL-5} y={yS(h)+3} textAnchor="end" fontSize="8" fill="#92400e">{h}</text>)}
+      <text x={W/2} y={H_svg-2} textAnchor="middle" fontSize="8" fill="#92400e">Q (m³/h)</text>
+      <text x={12} y={H_svg/2} textAnchor="middle" fontSize="8" fill="#92400e" transform={`rotate(-90,12,${H_svg/2})`}>H (m)</text>
+      {dEta&&<path d={dEta} fill="none" stroke="#d97706" strokeWidth="1.5" strokeDasharray="5 2"/>}
+      <path d={dQH} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round"/>
+      {pts.map(([q,h],i)=>(
+        <circle key={i} cx={xS(q)} cy={yS(h)} r={dragIdx===i?9:6.5} fill={dragIdx===i?'#dc2626':'#2563eb'} stroke="white" strokeWidth="2"
+          style={{cursor:'grab'}}
+          onPointerDown={(e)=>{ e.stopPropagation(); didDragRef.current=false; setDragIdx(i); svgRef.current.setPointerCapture(e.pointerId); }}
+          onDoubleClick={(e)=>{ e.stopPropagation(); if (pts.length>2) onChange(pts.filter((_,idx)=>idx!==i)); }}
+        />
+      ))}
+      {hoverInfo&&(
+        <g>
+          <rect x={Math.min(hoverInfo.x+10, W-110)} y={Math.max(hoverInfo.y-26,2)} width={106} height={24} rx={4} fill="rgba(15,23,42,0.92)"/>
+          <text x={Math.min(hoverInfo.x+16, W-104)} y={Math.max(hoverInfo.y-10,18)} fontSize="9" fontWeight="700" fill="white">Q={hoverInfo.q} · H={hoverInfo.h.toFixed(1)}m</text>
+        </g>
+      )}
+    </svg>
+  );
+};
+
 const PumpSelector = () => {
   const [Q, setQ] = useState(30);
   const [H, setH] = useState(25);
@@ -11011,10 +11101,21 @@ const PumpSelector = () => {
                       </div>
                     )}
                   </div>
-                  <SVGCurve pump={selected} Q_target={Q} H_target={H}/>
-                  <div style={{display:'flex',gap:'12px',marginTop:'6px',fontSize:'0.7rem',color:'#64748b'}}>
-                    <span>— Courbe Q/H (bleu) · - - Rendement η (orange) · ⬤ Point de fonctionnement (rouge)</span>
-                  </div>
+                  {editingCurve?(
+                    <>
+                      <EditableCurveSVG pts={draftPts} Q_target={Q} H_target={H} etaPts={getPumpEtaCurve(selected)} onChange={setDraftPts}/>
+                      <div style={{display:'flex',gap:'12px',marginTop:'6px',fontSize:'0.7rem',color:'#92400e'}}>
+                        <span>🖱️ Glisse un point verticalement pour ajuster sa hauteur · Clique une zone vide pour en ajouter un · Double-clic pour supprimer</span>
+                      </div>
+                    </>
+                  ):(
+                    <>
+                      <SVGCurve pump={selected} Q_target={Q} H_target={H}/>
+                      <div style={{display:'flex',gap:'12px',marginTop:'6px',fontSize:'0.7rem',color:'#64748b'}}>
+                        <span>— Courbe Q/H (bleu) · - - Rendement η (orange) · ⬤ Point de fonctionnement (rouge)</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Tableau points courbe — lecture ou édition */}
