@@ -10055,6 +10055,11 @@ const PUMP_DB = [
   { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-19', stages:19, P_kw:1.1, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-21', stages:21, P_kw:1.1, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-23', stages:23, P_kw:1.1, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-25', stages:25, P_kw:1.5, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-27', stages:27, P_kw:1.5, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-30', stages:30, P_kw:1.5, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-33', stages:33, P_kw:2.2, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 1', model:'CR 1-36', stages:36, P_kw:2.2, IP:55, conn:'G 1/2', pn:16, DN_mm:25, temp_max:120, code:null, prix_ht:null, app:'Domestique,surpression légère,château eau' },
 
   // ── CR 3 ──────────────────────────────
   { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-2', stages:2, P_kw:0.37, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
@@ -10074,6 +10079,12 @@ const PUMP_DB = [
   { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-19', stages:19, P_kw:1.5, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-21', stages:21, P_kw:2.2, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-23', stages:23, P_kw:2.2, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-25', stages:25, P_kw:2.2, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-27', stages:27, P_kw:2.2, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-29', stages:29, P_kw:2.2, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-31', stages:31, P_kw:3.0, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-33', stages:33, P_kw:3.0, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 3', model:'CR 3-36', stages:36, P_kw:3.0, IP:55, conn:'G 1', pn:16, DN_mm:32, temp_max:120, code:null, prix_ht:null, app:'Domestique,HVAC,irrigation' },
 
   // ── CR 5 ──────────────────────────────
   { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-2', stages:2, P_kw:0.37, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
@@ -10094,6 +10105,11 @@ const PUMP_DB = [
   { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-18', stages:18, P_kw:3.0, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-20', stages:20, P_kw:3.0, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-22', stages:22, P_kw:4.0, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-24', stages:24, P_kw:4.0, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-26', stages:26, P_kw:4.0, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-29', stages:29, P_kw:4.0, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-32', stages:32, P_kw:5.5, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 5', model:'CR 5-36', stages:36, P_kw:5.5, IP:55, conn:'G 1 1/4', pn:16, DN_mm:40, temp_max:120, code:null, prix_ht:null, app:'Industrie,HVAC' },
 
   // ── CR 10 ──────────────────────────────
   { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-1', stages:1, P_kw:0.37, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
@@ -10109,6 +10125,9 @@ const PUMP_DB = [
   { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-12', stages:12, P_kw:4.0, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-14', stages:14, P_kw:5.5, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-16', stages:16, P_kw:5.5, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-18', stages:18, P_kw:7.5, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-20', stages:20, P_kw:7.5, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 10', model:'CR 10-22', stages:22, P_kw:7.5, IP:55, conn:'DN 50 flange', pn:16, DN_mm:50, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
 
   // ── CR 15 ──────────────────────────────
   { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-1', stages:1, P_kw:1.1, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
@@ -10118,6 +10137,12 @@ const PUMP_DB = [
   { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-5', stages:5, P_kw:4.0, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-6', stages:6, P_kw:5.5, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-7', stages:7, P_kw:5.5, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-8', stages:8, P_kw:7.5, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-9', stages:9, P_kw:7.5, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-10', stages:10, P_kw:11.0, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-12', stages:12, P_kw:11.0, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-14', stages:14, P_kw:11.0, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 15', model:'CR 15-17', stages:17, P_kw:15.0, IP:55, conn:'DN 65 flange', pn:16, DN_mm:65, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment' },
 
   // ── CR 20 ──────────────────────────────
   { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-1', stages:1, P_kw:1.1, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
@@ -10127,6 +10152,11 @@ const PUMP_DB = [
   { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-5', stages:5, P_kw:5.5, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-6', stages:6, P_kw:7.5, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
   { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-7', stages:7, P_kw:7.5, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-8', stages:8, P_kw:11.0, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-10', stages:10, P_kw:11.0, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-12', stages:12, P_kw:15.0, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-14', stages:14, P_kw:15.0, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
+  { brand:'Grundfos', serie:'CR', cr_family:'CR 20', model:'CR 20-17', stages:17, P_kw:18.5, IP:55, conn:'DN 80 flange', pn:16, DN_mm:80, temp_max:120, code:null, prix_ht:null, app:'Industrie,bâtiment,HVAC' },
 
   // ── CR 32 ──────────────────────────────
   { brand:'Grundfos', serie:'CR', cr_family:'CR 32', model:'CR 32-1', stages:1, P_kw:2.2, IP:55, conn:'DN 100 flange', pn:16, DN_mm:100, temp_max:120, code:null, prix_ht:null, app:'Industrie,collectivités' },
