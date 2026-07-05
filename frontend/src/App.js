@@ -9949,6 +9949,51 @@ const getPumpCurveQH = (pump) => {
   }
 };
 
+// ── Rendement moteur réel par diamètre (") et puissance (kW) ──────────
+// Source : Grundfos SP Data Booklet 50Hz, section "Electrical data",
+// moteurs standards 3×400V (MS/MMS), valeurs η100% moyennées par gamme.
+// Permet de calculer P1 (puissance électrique) en plus de P2/Pa (puissance
+// mécanique à l'arbre, déjà calculée via le rendement pompe seul).
+const MOTOR_ETA_BY_SIZE = {
+  4:  {0.37:64.0, 0.55:64.0, 0.75:72.9, 1.1:73.7, 1.5:74.3, 2.2:75.2, 3.0:75.2, 4.0:78.0, 5.5:79.8, 7.5:78.2},
+  6:  {5.5:78.2, 7.5:79.5, 9.2:78.8, 11:80.2, 13:80.5, 15:81.2, 18.5:82.2, 22:83.2, 26:83.5, 30:84.0, 37:83.0},
+  8:  {22:82.0, 26:82.0, 30:84.0, 37:84.0, 45:86.0, 55:86.0, 63:87.0, 75:87.0, 92:87.0, 110:87.0},
+  10: {75:87.0, 92:87.0, 110:88.0, 132:88.0, 147:87.0, 170:87.0, 190:87.0},
+  12: {147:88.0, 170:88.0, 190:88.0, 220:88.0, 250:88.0},
+};
+// ── Rendement moteur CR — norme IEC 60034-30-1, classe IE4, moteurs 2 pôles
+// (2900 tr/min), 50Hz. Grundfos annonce explicitement "Efficiency class IE4"
+// pour ses moteurs MG (0.75-18.5kW) et Innomotics (22-200kW) sur les CR — le
+// livret ne publie pas de valeurs chiffrées propres à la marque, donc ce sont
+// les seuils MINIMUMS officiels de la norme IE4 (valeur réelle Grundfos ≥ ceci,
+// généralement très proche). Non applicable en dessous de 0.75kW (non classé
+// par Grundfos à ces puissances).
+const MOTOR_ETA_CR_IE4_2POLE = {
+  0.75:83.5, 1.1:85.2, 1.5:86.5, 2.2:88.0, 3:89.1, 4:90.0, 5.5:90.9, 7.5:91.7,
+  11:92.6, 15:93.3, 18.5:93.7, 22:94.0, 30:94.5, 37:94.8, 45:95.0, 55:95.3,
+  75:95.6, 90:95.8, 110:96.0, 132:96.2, 160:96.3, 200:96.5,
+};
+const getMotorEta = (pump) => {
+  if (pump.serie === 'SP') {
+    if (!pump.borehole_min || !pump.P_kw) return null;
+    const sizeInch = pump.borehole_min / 25.4;
+    const sizes = Object.keys(MOTOR_ETA_BY_SIZE).map(Number);
+    const closestSize = sizes.reduce((a,b) => Math.abs(b-sizeInch) < Math.abs(a-sizeInch) ? b : a);
+    const table = MOTOR_ETA_BY_SIZE[closestSize];
+    const kws = Object.keys(table).map(Number);
+    const closestKw = kws.reduce((a,b) => Math.abs(b-pump.P_kw) < Math.abs(a-pump.P_kw) ? b : a);
+    return table[closestKw];
+  }
+  if (pump.serie === 'CR') {
+    if (!pump.P_kw || pump.P_kw < 0.75) return null; // non classé par Grundfos sous 0.75kW
+    const kws = Object.keys(MOTOR_ETA_CR_IE4_2POLE).map(Number);
+    const closestKw = kws.reduce((a,b) => Math.abs(b-pump.P_kw) < Math.abs(a-pump.P_kw) ? b : a);
+    return MOTOR_ETA_CR_IE4_2POLE[closestKw];
+  }
+  return null;
+};
+const isMotorEtaEstimated = (pump) => pump.serie === 'CR'; // valeur = seuil norme IE4, pas une donnée Grundfos chiffrée
+
 const getPumpEtaCurve = (pump) => {
   if (pump.serie === 'SP') {
     const sc = SP_STAGE_CURVES[pump.sp_family];
@@ -9968,12 +10013,19 @@ const getPumpAtQ = (pump, Q_target, qhOverride = null, etaOverride = null) => {
   if (H === null || H <= 0) return null;
   const eta = eta_curve ? (interpolate(eta_curve, Q_target) || 0) : 0;
   const Ph = (Q_target * 9.81 * 1000 * H) / 3600000;
-  const Pa = eta > 0 ? Ph / (eta/100) : Ph * 2;
+  const Pa = eta > 0 ? Ph / (eta/100) : Ph * 2; // P2 — puissance mécanique à l'arbre (rendement pompe seul)
+  const eta_motor = getMotorEta(pump); // % ou null si non disponible (ex: CR)
+  const eta_total = (eta_motor !== null && eta > 0) ? parseFloat((eta * eta_motor / 100).toFixed(1)) : null;
+  const P1 = (eta_total !== null && eta_total > 0) ? Ph / (eta_total/100) : null; // puissance électrique absorbée (pompe+moteur)
   return {
     H: parseFloat(H.toFixed(2)),
     eta: parseFloat(eta.toFixed(1)),
     Ph: parseFloat(Ph.toFixed(3)),
     Pa: parseFloat(Pa.toFixed(2)),
+    eta_motor: eta_motor !== null ? parseFloat(eta_motor.toFixed(1)) : null,
+    motor_eta_estimated: isMotorEtaEstimated(pump),
+    eta_total,
+    P1: P1 !== null ? parseFloat(P1.toFixed(2)) : null,
     Q_max_curve
   };
 };
@@ -11164,12 +11216,16 @@ const PumpSelector = () => {
                 {/* Point de fonctionnement mis en valeur */}
                 <div style={{background:'linear-gradient(135deg,#f0fdf4,#dcfce7)',borderRadius:'12px',padding:'16px 18px',marginBottom:'16px',border:'2px solid #86efac'}}>
                   <div style={{fontSize:'0.72rem',fontWeight:700,color:'#065f46',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'10px'}}>📍 Point de fonctionnement — Valeurs lues sur courbe à Q = {Q} m³/h</div>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'10px'}}>
+                  <div style={{display:'grid',gridTemplateColumns:`repeat(${at?.P1!=null?6:4},1fr)`,gap:'10px'}}>
                     {[
                       {l:'Q demandé',v:`${Q} m³/h`,c:'#2563eb',icon:'💧'},
                       {l:'HMT réelle',v:`${at?.H} m`,c:'#059669',icon:'📐', sub:`cible ${H}m · écart ${selected.delta_H}%`},
-                      {l:'Rendement η',v:`${at?.eta}%`,c:'#d97706',icon:'⚡'},
-                      {l:'Pa absorbée',v:`${at?.Pa} kW`,c:'#7c3aed',icon:'🔌'},
+                      {l:'Rendement pompe η',v:`${at?.eta}%`,c:'#d97706',icon:'⚡'},
+                      {l:'P2 (arbre)',v:`${at?.Pa} kW`,c:'#7c3aed',icon:'🔧', sub:'puissance mécanique'},
+                      ...(at?.P1!=null?[
+                        {l:'Rendement pompe+moteur',v:`${at.eta_total}%`,c:'#b45309',icon:'⚙️', sub:`η moteur ≈ ${at.eta_motor}%${at.motor_eta_estimated?' (estim. IE4)':''}`},
+                        {l:'P1 (électrique)',v:`${at.P1} kW`,c:'#dc2626',icon:'🔌', sub:'à prévoir côté réseau/variateur'},
+                      ]:[]),
                     ].map(({l,v,c,icon,sub})=>(
                       <div key={l} style={{background:'white',borderRadius:'10px',padding:'10px 12px',border:`2px solid ${c}22`,textAlign:'center'}}>
                         <div style={{fontSize:'1.2rem',marginBottom:'2px'}}>{icon}</div>
@@ -11179,6 +11235,8 @@ const PumpSelector = () => {
                       </div>
                     ))}
                   </div>
+                  {at?.P1==null&&<div style={{fontSize:'0.65rem',color:'#92400e',marginTop:'8px'}}>ℹ️ Rendement moteur non disponible pour ce modèle (puissance &lt; 0,75kW ou non classée) — seule la puissance mécanique (P2) est affichée.</div>}
+                  {at?.P1!=null&&at?.motor_eta_estimated&&<div style={{fontSize:'0.65rem',color:'#92400e',marginTop:'8px'}}>ℹ️ Pour les CR, le rendement moteur est estimé à partir du seuil minimum de la norme IE4 (2 pôles, 50Hz) — Grundfos confirme la classe IE4 mais ne publie pas de valeur chiffrée précise par modèle. La valeur réelle du moteur est probablement légèrement supérieure.</div>}
                 </div>
 
                 {/* Courbe SVG */}
