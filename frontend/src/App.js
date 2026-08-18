@@ -4101,8 +4101,15 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
 
   const calc = async () => {
     setLoading(true);
-    try { const r = await axios.post(`${API}/calculate-performance`, inputData); setResult(r.data); }
-    catch(e) { console.error(e); } finally { setLoading(false); }
+    try {
+      // Le backend attend un entier pour voltage (ex: 400), pas une chaîne "400V"
+      const payload = { ...inputData, voltage: parseInt(inputData.voltage, 10) };
+      const r = await axios.post(`${API}/calculate-performance`, payload);
+      setResult(r.data);
+    } catch(e) {
+      console.error(e);
+      alert("Erreur lors de l'analyse : " + (e.response?.data?.detail || e.message));
+    } finally { setLoading(false); }
   };
 
   const effWarn = inputData.pump_efficiency < 60;
