@@ -665,6 +665,7 @@ class HMTCalculationInput(BaseModel):
     fluid_type: str
     temperature: float = 20  # °C
     flow_rate: float  # m³/h
+    pump_efficiency: float = 70  # % - used only for the indicative absorbed power shown in this tab
 
 class PerformanceAnalysisInput(BaseModel):
     flow_rate: float  # m³/h
@@ -714,6 +715,17 @@ class HMTResult(BaseModel):
     useful_pressure_head: float  # m
     hmt: float  # m
     warnings: List[str]
+    # Champs détaillés attendus par l'interface (décomposition HMT + KPIs)
+    velocity_suction: Optional[float] = None  # m/s - alias de suction_velocity
+    velocity_discharge: float = 0  # m/s - alias de discharge_velocity
+    geometric_height: float = 0  # m - alias de static_head
+    suction_linear_loss: Optional[float] = None  # m
+    suction_singular_loss: Optional[float] = None  # m
+    discharge_linear_loss: float = 0  # m
+    discharge_singular_loss: float = 0  # m
+    total_hmt: float = 0  # m - alias de hmt
+    absorbed_power: Optional[float] = None  # kW - estimation indicative
+    recommendations: List[str] = []
 
 class ExpertAnalysisInput(BaseModel):
     # Paramètres hydrauliques
@@ -838,6 +850,13 @@ class PerformanceAnalysisResult(BaseModel):
     recommendations: List[str]
     warnings: List[str]
     alerts: List[str]  # Added alerts field
+    # Champs détaillés attendus par l'interface (onglet Performance)
+    hydraulic_power: float = 0  # kW - Ph, puissance hydraulique pure
+    mechanical_power: float = 0  # kW - Pm, puissance mécanique à l'arbre
+    absorbed_power: float = 0  # kW - P1, puissance électrique absorbée
+    cable_section: float = 0  # mm² - alias de recommended_cable_section
+    voltage_drop: float = 0  # V
+    voltage_drop_percent: float = 0  # %
 
 # Legacy models for backward compatibility
 class CalculationInput(BaseModel):
@@ -1487,6 +1506,8 @@ def calculate_hmt_enhanced(input_data: HMTCalculationInput) -> HMTResult:
     else:  # submersible - no suction calculations
         suction_velocity = None
         suction_head_loss = 0
+        suction_linear_loss = None
+        suction_singular_loss = None
     
     discharge_linear_loss = calculate_linear_head_loss_enhanced(
         discharge_velocity, input_data.discharge_pipe_length,
@@ -1520,7 +1541,18 @@ def calculate_hmt_enhanced(input_data: HMTCalculationInput) -> HMTResult:
         warnings.append(f"HMT très élevée ({hmt:.1f} m) - vérifier le dimensionnement")
     if input_data.useful_pressure > 10:
         warnings.append(f"Pression utile élevée ({input_data.useful_pressure} bar)")
-    
+
+    recommendations = []
+    if suction_velocity is not None and suction_velocity > 1.5:
+        recommendations.append("Augmentez le diamètre de la conduite d'aspiration pour réduire la vitesse.")
+    if discharge_velocity > 3.0:
+        recommendations.append("Augmentez le diamètre de la conduite de refoulement pour réduire la vitesse.")
+
+    # Estimation indicative de la puissance absorbée (P1 ≈ (Q x HMT) / (367 x rendement pompe))
+    absorbed_power = None
+    if input_data.pump_efficiency and input_data.pump_efficiency > 0:
+        absorbed_power = ((input_data.flow_rate * hmt) / (input_data.pump_efficiency * 367)) * 100
+
     return HMTResult(
         input_data=input_data,
         fluid_properties=fluid_props,
@@ -1532,7 +1564,18 @@ def calculate_hmt_enhanced(input_data: HMTCalculationInput) -> HMTResult:
         static_head=static_head,
         useful_pressure_head=useful_pressure_head,
         hmt=hmt,
-        warnings=warnings
+        warnings=warnings,
+        # Champs détaillés pour l'interface
+        velocity_suction=suction_velocity,
+        velocity_discharge=discharge_velocity,
+        geometric_height=static_head,
+        suction_linear_loss=suction_linear_loss,
+        suction_singular_loss=suction_singular_loss,
+        discharge_linear_loss=discharge_linear_loss,
+        discharge_singular_loss=discharge_singular_loss,
+        total_hmt=hmt,
+        absorbed_power=absorbed_power,
+        recommendations=recommendations
     )
 
 def calculate_darcy_head_loss(flow_rate: float, pipe_diameter: float, pipe_length: float, 
@@ -1748,7 +1791,21 @@ def calculate_performance_analysis(input_data: PerformanceAnalysisInput) -> Perf
         # Round to standard cable sections
         standard_sections = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300]
         recommended_cable_section = next((s for s in standard_sections if s >= required_section), 300)
-    
+
+    # Puissance hydraulique pure Ph (sans pertes de rendement), à partir de rho.g.Q.H
+    true_hydraulic_power = (fluid_props.density * 9.81 * (input_data.flow_rate / 3600) * input_data.hmt) / 1000  # kW
+
+    # Chute de tension câble (formule NF C 15-100 simplifiée)
+    cable_resistivity = {"copper": 0.0225, "aluminum": 0.036}.get(getattr(input_data, 'cable_material', 'copper'), 0.0225)
+    if input_data.voltage == 230:  # monophasé
+        voltage_drop = (2 * cable_resistivity * input_data.cable_length * nominal_current * input_data.power_factor) / recommended_cable_section
+    else:  # triphasé
+        voltage_drop = (1.732 * cable_resistivity * input_data.cable_length * nominal_current * input_data.power_factor) / recommended_cable_section
+    voltage_drop_percent = (voltage_drop / input_data.voltage) * 100
+    if voltage_drop_percent > 3:
+        warnings.append(f"Chute de tension excessive ({voltage_drop_percent:.1f}% > 3% autorisé NF C 15-100)")
+        recommendations.append("Augmentez la section de câble ou réduisez la longueur de câble")
+
     # Generate performance curves (débit en fonction de HMT)
     performance_curves = generate_performance_curves(input_data)
     
@@ -1816,7 +1873,14 @@ def calculate_performance_analysis(input_data: PerformanceAnalysisInput) -> Perf
         performance_curves=performance_curves,
         recommendations=recommendations,
         warnings=warnings,
-        alerts=alerts
+        alerts=alerts,
+        # Champs détaillés pour l'interface
+        hydraulic_power=true_hydraulic_power,
+        mechanical_power=hydraulic_power,
+        absorbed_power=absorbed_power,
+        cable_section=recommended_cable_section,
+        voltage_drop=voltage_drop,
+        voltage_drop_percent=voltage_drop_percent
     )
 
 def calculate_expert_analysis(input_data: ExpertAnalysisInput) -> ExpertAnalysisResult:
