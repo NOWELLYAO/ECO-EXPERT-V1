@@ -6855,761 +6855,314 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
 };
 
 // Composant pour le schéma d'installation expert
+// ════════════════════════════════════════════════════════════════
+// SCHÉMA D'INSTALLATION EXPERT — Version professionnelle
+// ════════════════════════════════════════════════════════════════
+
+// Coefficients physiques par fluide (identiques aux valeurs utilisées ailleurs dans l'app)
+const EIS_FLUID_TABLE = {
+  water:          { d0:1000, dD:-0.2,  v0:0.001,   dV:-0.00005,  vp0:2340,  dVp:100    },
+  oil:            { d0:850,  dD:-0.7,  v0:0.05,    dV:-0.002,    vp0:100,   dVp:20     },
+  acid:           { d0:1200, dD:-0.3,  v0:0.002,   dV:-0.0001,   vp0:3000,  dVp:150    },
+  glycol:         { d0:1113, dD:-0.8,  v0:0.0161,  dV:-0.0008,   vp0:10,    dVp:5      },
+  palm_oil:       { d0:915,  dD:-0.65, v0:0.045,   dV:-0.0018,   vp0:0.001, dVp:0.0001 },
+  gasoline:       { d0:740,  dD:-0.9,  v0:0.00055, dV:-0.000015, vp0:13000, dVp:850    },
+  diesel:         { d0:840,  dD:-0.75, v0:0.0035,  dV:-0.00012,  vp0:300,   dVp:25     },
+  hydraulic_oil:  { d0:875,  dD:-0.65, v0:0.046,   dV:-0.0019,   vp0:0.1,   dVp:0.02   },
+  ethanol:        { d0:810,  dD:-1.05, v0:0.0012,  dV:-0.00004,  vp0:5870,  dVp:420    },
+  seawater:       { d0:1025, dD:-0.25, v0:0.00107, dV:-0.000052, vp0:2280,  dVp:95     },
+  methanol:       { d0:792,  dD:-1.2,  v0:0.00059, dV:-0.000025, vp0:12800, dVp:780    },
+  glycerol:       { d0:1260, dD:-0.65, v0:1.48,    dV:-0.058,    vp0:0.001, dVp:0.0002 },
+  milk:           { d0:1030, dD:-0.3,  v0:0.0015,  dV:-0.00006,  vp0:2200,  dVp:95     },
+  honey:          { d0:1400, dD:-0.8,  v0:8.5,     dV:-0.25,     vp0:0.1,   dVp:0.02   },
+  wine:           { d0:990,  dD:-0.9,  v0:0.0012,  dV:-0.00004,  vp0:2800,  dVp:120    },
+  bleach:         { d0:1050, dD:-0.25, v0:0.0011,  dV:-0.000045, vp0:2100,  dVp:90     },
+  yogurt:         { d0:1050, dD:-0.35, v0:0.15,    dV:-0.008,    vp0:2150,  dVp:92     },
+  tomato_sauce:   { d0:1100, dD:-0.4,  v0:2.5,     dV:-0.12,     vp0:1800,  dVp:75     },
+  soap_solution:  { d0:1010, dD:-0.28, v0:0.0013,  dV:-0.00005,  vp0:2250,  dVp:95     },
+  fruit_juice:    { d0:1045, dD:-0.35, v0:0.0018,  dV:-0.00007,  vp0:2100,  dVp:88     },
+};
+
 const ExpertInstallationSchema = ({ inputData, results, pipeMaterials, fluids }) => {
   const isFlooded = inputData.suction_type === 'flooded';
-  
-  // Configuration dynamique plus prononcée selon le type d'aspiration
-  const config = {
-    flooded: {
-      reservoirY: 120,
-      reservoirHeight: 150,
-      pumpY: 320,
-      statusColor: '#10b981',
-      statusIcon: '⬇️',
-      statusText: 'EN CHARGE',
-      description: 'Pompe en contrebas - Aspiration gravitaire'
-    },
-    suction_lift: {
-      reservoirY: 320,
-      reservoirHeight: 120,
-      pumpY: 200,
-      statusColor: '#ef4444',
-      statusIcon: '⬆️',
-      statusText: 'EN DÉPRESSION',
-      description: 'Pompe en surélévation - Aspiration par dépression'
-    }
-  };
-  
-  const currentConfig = isFlooded ? config.flooded : config.suction_lift;
-  const waterLevel = currentConfig.reservoirY + 25;
-  
-  // Calcul dynamique de la position de la pompe selon la hauteur
-  const heightScale = Math.min(Math.max(Math.abs(inputData.suction_height) * 12, 20), 100);
-  const actualPumpY = isFlooded 
-    ? waterLevel + heightScale + 20  // Pompe encore plus bas en charge
-    : waterLevel - heightScale - 60; // Pompe encore plus haut en dépression
-  
-  // Configuration des couleurs selon le type d'installation
-  const aspirationColor = currentConfig.statusColor;
-  const statusIcon = currentConfig.statusIcon;
-  const statusText = currentConfig.statusText;
-  
+
+  // ─── Propriétés physiques du fluide ───
+  const fp = EIS_FLUID_TABLE[inputData.fluid_type] || EIS_FLUID_TABLE.water;
+  const dT = (inputData.temperature ?? 20) - 20;
+  const density = Math.max(fp.d0 + fp.dD * dT, 500);
+  const viscosity = Math.max(fp.v0 + fp.dV * dT, 0.0001);
+  const vaporPressure = Math.max(fp.vp0 + fp.dVp * dT, 1) / 1000; // kPa
+  const fluidName = fluids?.find(f => f.id === inputData.fluid_type)?.name || 'Fluide';
+
+  // ─── Palette selon la configuration ───
+  const accent = isFlooded ? DS.green[600] : DS.amber[600];
+  const accentDark = isFlooded ? DS.green[700] : DS.amber[700];
+  const accentBg = isFlooded ? DS.green[50] : DS.amber[50];
+  const statusIcon = isFlooded ? '⬇' : '⬆';
+  const statusText = isFlooded ? 'EN CHARGE' : 'EN ASPIRATION';
+  const statusDesc = isFlooded
+    ? 'Réservoir surélevé — alimentation gravitaire de la pompe'
+    : 'Réservoir en contrebas — la pompe aspire le fluide par dépression';
+  const cavitationRisk = !!results?.npshd_analysis?.cavitation_risk;
+
+  // ─── Valeurs de résultats (avec repli propre si non calculées) ───
+  const npshd = results?.npshd_analysis?.npshd;
+  const npshMargin = results?.npshd_analysis?.npsh_margin;
+  const velocity = results?.npshd_analysis?.velocity;
+  const reynolds = results?.npshd_analysis?.reynolds_number;
+  const regime = reynolds > 4000 ? 'Turbulent' : reynolds > 2300 ? 'Transitoire' : reynolds ? 'Laminaire' : 'N/A';
+  const hmt = results?.hmt_analysis?.hmt;
+  const suctionLoss = results?.npshd_analysis?.total_head_loss;
+  const dischargeLoss = results?.hmt_analysis?.total_head_loss;
+  const totalLoss = results?.total_head_loss;
+  const kTotal = (totalLoss && velocity) ? (totalLoss / (velocity ** 2 / (2 * 9.81))) : null;
+  const overallEff = results?.overall_efficiency;
+  const hydraulicPower = results?.performance_analysis?.hydraulic_power;
+
+  const fmt = (v, d = 2) => (v === undefined || v === null || Number.isNaN(v)) ? 'N/A' : v.toFixed(d);
+
+  // ─── Géométrie du schéma (fixe, lisible, sans chevauchement) ───
+  const W = 1200;
+  const resX = 70, resW = 210, resH = 140;
+  const pumpX = 470, pumpW = 110, pumpH = 86;
+  const elbowX = 690, outletY = 130;
+  const panelX = 900, panelW = 270;
+
+  const resY = isFlooded ? 150 : 470;
+  const waterY = resY + 28;
+  const pumpY = isFlooded ? 430 : 180;
+  const pumpMidY = pumpY + pumpH / 2;
+  const suctionMidY = (waterY + 12 + pumpMidY) / 2;
+  const dischargeMidY = (pumpMidY + outletY) / 2;
+
+  const suctionPipeW = Math.min(Math.max((inputData.suction_pipe_diameter || 100) / 9, 8), 20);
+  const dischargePipeW = Math.min(Math.max((inputData.discharge_pipe_diameter || 80) / 9, 8), 20);
+
+  // ─── Panneau technique : sections calculées dynamiquement (hauteur adaptative) ───
+  const sectionsDef = [
+    { title: '💧 PROPRIÉTÉS DU FLUIDE', color: DS.blue[700], bg: DS.blue[50], lines: [
+      `Type : ${fluidName}`,
+      `Température : ${inputData.temperature}°C`,
+      `Masse volumique : ${density.toFixed(1)} kg/m³`,
+      `Viscosité : ${viscosity.toFixed(4)} Pa·s`,
+      `P. vapeur : ${vaporPressure.toFixed(1)} kPa`,
+    ]},
+    { title: `${statusIcon} CONFIGURATION ${statusText}`, color: accentDark, bg: accentBg, lines: [
+      `Installation : ${inputData.installation_type === 'surface' ? 'Surface' : 'Immergée'}`,
+      `Aspiration : ${isFlooded ? 'Gravitaire (charge)' : 'Dépression (lift)'}`,
+      `Hauteur : ${Math.abs(inputData.suction_height || 0).toFixed(1)}m ${isFlooded ? '(sous pompe)' : '(à aspirer)'}`,
+    ]},
+    { title: '⚡ HYDRAULIQUE', color: DS.blue[700], bg: DS.blue[50], lines: [
+      `Débit : ${inputData.flow_rate} m³/h (${((inputData.flow_rate || 0) / 3.6).toFixed(3)} m³/s)`,
+      `NPSHd calculé : ${fmt(npshd)} m`,
+      `NPSH requis : ${inputData.npsh_required ?? 'N/A'} m`,
+      `Marge sécurité : ${fmt(npshMargin)} m`,
+      `HMT totale : ${fmt(hmt)} m`,
+      `Vitesse aspiration : ${fmt(velocity)} m/s`,
+      `Régime : ${regime}${reynolds ? ` (Re=${reynolds.toFixed(0)})` : ''}`,
+    ]},
+    { title: '📉 PERTES DE CHARGE', color: DS.amber[700], bg: DS.amber[50], lines: [
+      `Aspiration : ${fmt(suctionLoss)} m`,
+      `Refoulement : ${fmt(dischargeLoss)} m`,
+      `Totales : ${fmt(totalLoss)} m`,
+      `Coefficient K total : ${kTotal !== null ? kTotal.toFixed(1) : 'N/A'}`,
+    ]},
+    { title: '📈 PERFORMANCE', color: DS.green[700], bg: DS.green[50], lines: [
+      `Rendement global : ${fmt(overallEff, 1)}% (P:${inputData.pump_efficiency}% × M:${inputData.motor_efficiency}%)`,
+      `Puissance hydraulique : ${fmt(hydraulicPower, 1)} kW`,
+    ]},
+  ];
+
+  const GAP = 12, LINE_H = 15, TITLE_H = 26, PAD_BOTTOM = 12;
+  const panelHeaderH = 50;
+  const panelTop = 100;
+  let cursorY = panelTop + panelHeaderH + 16;
+  const sections = sectionsDef.map(s => {
+    const hgt = TITLE_H + s.lines.length * LINE_H + PAD_BOTTOM;
+    const y = cursorY;
+    cursorY += hgt + GAP;
+    return { ...s, y, hgt };
+  });
+  const statusY = cursorY + 6;
+  const panelBottom = statusY + 36;
+
+  // ─── Hauteur totale du schéma, calculée pour englober diagramme + panneau ───
+  const diagramBottom = Math.max(resY + resH, pumpY + pumpH) + 30;
+  const contentBottom = Math.max(diagramBottom, panelBottom);
+  const legendY = contentBottom + 18;
+  const legendH = 44;
+  const groundY = legendY + legendH + 16;
+  const groundH = 28;
+  const H = groundY + groundH + 16;
+
+  // Petit sous-composant : bloc d'information du panneau technique
+  const Section = ({ y, hgt, title, color, bg, lines }) => (
+    <g>
+      <rect x={panelX} y={y} width={panelW} height={hgt} rx="10" fill={bg} stroke={color} strokeWidth="1.5" />
+      <text x={panelX + 14} y={y + 20} fontSize="11.5" fontWeight="800" fill={color}>{title}</text>
+      {lines.map((l, i) => (
+        <text key={i} x={panelX + 14} y={y + 38 + i * LINE_H} fontSize="10" fill={DS.slate[700]}>{l}</text>
+      ))}
+    </g>
+  );
+
   return (
-    <svg width="1200" height="800" viewBox="0 0 1200 800" className="border border-gray-200 rounded-lg">
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="rounded-xl border border-slate-200"
+      style={{ fontFamily: DS.fontHead, background: '#f8fafc' }}>
       <defs>
-        <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style={{stopColor:'#3b82f6', stopOpacity:0.8}} />
-          <stop offset="100%" style={{stopColor:'#1e40af', stopOpacity:0.9}} />
+        <linearGradient id="eisWater" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#60a5fa" />
+          <stop offset="100%" stopColor="#1d4ed8" />
         </linearGradient>
-        <linearGradient id="pumpGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style={{stopColor:'#10b981', stopOpacity:1}} />
-          <stop offset="100%" style={{stopColor:'#059669', stopOpacity:1}} />
+        <linearGradient id="eisPump" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={accent} stopOpacity="1" />
+          <stop offset="100%" stopColor={accentDark} stopOpacity="1" />
         </linearGradient>
-        <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style={{stopColor:'#f8fafc', stopOpacity:1}} />
-          <stop offset="100%" style={{stopColor:'#e2e8f0', stopOpacity:1}} />
+        <linearGradient id="eisTank" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f1f5f9" />
+          <stop offset="100%" stopColor="#cbd5e1" />
         </linearGradient>
-        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="3" dy="3" stdDeviation="4" floodColor="rgba(0,0,0,0.3)"/>
+        <linearGradient id="eisHeader" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={accent} />
+          <stop offset="100%" stopColor={accentDark} />
+        </linearGradient>
+        <filter id="eisShadow" x="-40%" y="-40%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(15,23,42,0.18)" />
         </filter>
-        <marker id="arrowRed" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#ef4444" />
+        <marker id="eisArrowFlow" markerWidth="9" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill={DS.blue[600]} />
         </marker>
-        <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" />
+        <marker id="eisArrowAccent" markerWidth="9" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill={accent} />
         </marker>
-        <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#10b981" />
+        <marker id="eisArrowSlate" markerWidth="9" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill={DS.slate[500]} />
         </marker>
+        <pattern id="eisGround" width="14" height="14" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <rect width="14" height="14" fill={DS.slate[100]} />
+          <line x1="0" y1="0" x2="0" y2="14" stroke={DS.slate[300]} strokeWidth="4" />
+        </pattern>
       </defs>
-      
-      <rect width="1200" height="800" fill="url(#bgGradient)" />
-      
-      {/* Grille de fond */}
-      <pattern id="grid" width="25" height="25" patternUnits="userSpaceOnUse">
-        <path d="M 25 0 L 0 0 0 25" fill="none" stroke="#e5e7eb" strokeWidth="1" opacity="0.3"/>
-      </pattern>
-      <rect width="1200" height="800" fill="url(#grid)" />
-      
-      {/* Sol/Base avec référence */}
-      <rect x="0" y="750" width="1200" height="50" fill="#8b5cf6" opacity="0.3" />
-      <text x="600" y="775" textAnchor="middle" className="text-sm font-medium" fill="#6b7280">
-        🌍 NIVEAU SOL - RÉFÉRENCE ALTIMÉTRIQUE
+
+      {/* ─── Bandeau titre ─── */}
+      <rect x="20" y="20" width={W - 40} height="66" rx="14" fill="url(#eisHeader)" filter="url(#eisShadow)" />
+      <text x="42" y="48" fontSize="18" fontWeight="800" fill="white">{statusIcon} INSTALLATION {statusText}</text>
+      <text x="42" y="68" fontSize="12" fill="white" opacity="0.9">{statusDesc}</text>
+      <text x={W - 42} y="48" fontSize="13" fontWeight="700" fill="white" textAnchor="end">
+        Q = {inputData.flow_rate} m³/h · T = {inputData.temperature}°C
       </text>
-      
-      {/* Titre dynamique avec configuration amélioré */}
-      <rect x="20" y="20" width="600" height="100" fill="white" stroke={aspirationColor} strokeWidth="3" rx="12" filter="url(#shadow)"/>
-      <text x="320" y="45" textAnchor="middle" className="text-lg font-bold" fill={aspirationColor}>
-        {statusIcon} CONFIGURATION {statusText}
+      <text x={W - 42} y="68" fontSize="11" fill="white" opacity="0.85" textAnchor="end">
+        {inputData.engineer_firstname} {inputData.engineer_name}{inputData.company_name ? ' — ' + inputData.company_name : ''}
       </text>
-      <text x="320" y="65" textAnchor="middle" className="text-sm" fill="#6b7280">
-        {currentConfig.description}
-      </text>
-      <text x="320" y="85" textAnchor="middle" className="text-sm font-medium" fill="#4b5563">
-        Q={inputData.flow_rate} m³/h • H={Math.abs(inputData.suction_height)}m • T={inputData.temperature}°C
-      </text>
-      <text x="320" y="105" textAnchor="middle" className="text-xs" fill="#6b7280">
-        {inputData.engineer_firstname} {inputData.engineer_name} - {inputData.company_name}
-      </text>
-      
-      {/* Réservoir avec détails selon la configuration */}
-      <rect 
-        x="50" 
-        y={currentConfig.reservoirY} 
-        width="220" 
-        height={currentConfig.reservoirHeight} 
-        fill="#d1d5db" 
-        stroke="#6b7280" 
-        strokeWidth="4"
-        rx="10"
-        filter="url(#shadow)"
-      />
-      
-      {/* Niveau d'eau dynamique */}
-      <rect 
-        x="58" 
-        y={waterLevel} 
-        width="204" 
-        height={currentConfig.reservoirHeight - 35} 
-        fill="url(#waterGradient)"
-        rx="6"
-      />
-      
-      {/* Vagues animées sur le niveau d'eau */}
-      <path 
-        d={`M 58 ${waterLevel} Q 78 ${waterLevel-4} 98 ${waterLevel} T 138 ${waterLevel} T 178 ${waterLevel} T 218 ${waterLevel} T 262 ${waterLevel}`}
-        stroke="#1d4ed8" 
-        strokeWidth="4" 
-        fill="none"
-        opacity="0.8"
-      />
-      
-      {/* Étiquettes du réservoir améliorées */}
-      <text x="160" y={currentConfig.reservoirY - 15} textAnchor="middle" className="text-sm font-bold" fill="#1f2937">
-        🏛️ RÉSERVOIR
-      </text>
-      <text x="160" y={currentConfig.reservoirY - 2} textAnchor="middle" className="text-xs" fill="#6b7280">
-        {fluids.find(f => f.id === inputData.fluid_type)?.name || 'Fluide'} - {inputData.temperature}°C
-      </text>
-      
-      {/* Indication du niveau d'eau */}
-      <text x="280" y={waterLevel + 5} className="text-xs font-bold" fill="#1d4ed8">
-        💧 Niveau
-      </text>
-      <text x="280" y={waterLevel + 16} className="text-xs" fill="#6b7280">
-        Référence
-      </text>
-      
-      {/* Tuyauterie d'aspiration avec épaisseur proportionnelle */}
-      <line 
-        x1="270" 
-        y1={waterLevel} 
-        x2="450" 
-        y2={actualPumpY + 40} 
-        stroke={aspirationColor} 
-        strokeWidth={Math.max(10, inputData.suction_pipe_diameter / 10)}
-        strokeLinecap="round"
-        filter="url(#shadow)"
-        opacity="0.9"
-      />
-      
-      {/* Crépine d'aspiration détaillée */}
-      <g transform={`translate(270, ${waterLevel})`}>
-        <circle cx="0" cy="0" r="12" fill="#6b7280" stroke="#374151" strokeWidth="3" />
-        <circle cx="0" cy="0" r="8" fill="none" stroke="#ffffff" strokeWidth="2" />
-        <path d="M -6 -6 L 6 6 M -6 6 L 6 -6" stroke="#ffffff" strokeWidth="1" />
+
+      {/* ═══ RÉSERVOIR ═══ */}
+      <rect x={resX} y={resY} width={resW} height={resH} rx="10" fill="url(#eisTank)" stroke={DS.slate[400]} strokeWidth="3" filter="url(#eisShadow)" />
+      <rect x={resX + 8} y={waterY} width={resW - 16} height={resY + resH - waterY - 10} rx="6" fill="url(#eisWater)" />
+      <path d={`M ${resX + 8} ${waterY} Q ${resX + 38} ${waterY - 5} ${resX + 68} ${waterY} T ${resX + 128} ${waterY} T ${resX + resW - 8} ${waterY}`}
+        stroke="#1d4ed8" strokeWidth="3" fill="none" opacity="0.7" />
+      <text x={resX + resW / 2} y={resY - 16} textAnchor="middle" fontSize="13" fontWeight="800" fill={DS.slate[700]}>RÉSERVOIR</text>
+      <text x={resX + resW / 2} y={resY - 3} textAnchor="middle" fontSize="11" fill={DS.slate[500]}>{fluidName} · {inputData.temperature}°C</text>
+
+      {/* Crépine */}
+      <g transform={`translate(${resX + resW - 15}, ${waterY + 12})`}>
+        <circle r="10" fill="white" stroke={DS.slate[500]} strokeWidth="2.5" />
+        <circle r="5" fill="none" stroke={DS.slate[500]} strokeWidth="1.5" />
       </g>
-      <text x="270" y={waterLevel + 23} textAnchor="middle" className="text-xs font-medium" fill="#6b7280">
-        🔧 Crépine
-      </text>
-      
-      {/* Pompe - Position et design selon configuration */}
-      <g transform={`translate(450, ${actualPumpY})`}>
-        <rect 
-          x="0" 
-          y="0" 
-          width="100" 
-          height="80" 
-          fill="url(#pumpGradient)"
-          stroke="#047857" 
-          strokeWidth="5"
-          rx="15"
-          filter="url(#shadow)"
-        />
-        
-        {/* Détails internes de la pompe */}
-        <circle cx="50" cy="40" r="25" fill="none" stroke="white" strokeWidth="4" />
-        <path d="M 35 40 Q 50 25 65 40 Q 50 55 35 40" fill="white" opacity="0.9" />
-        
-        {/* Roue et flèches de rotation */}
-        <circle cx="50" cy="40" r="15" fill="none" stroke="white" strokeWidth="2" />
-        <path d="M 45 35 Q 55 35 55 45 Q 45 45 45 35" fill="white" opacity="0.7" />
-        
-        {/* Étiquettes pompe */}
-        <text x="50" y="15" textAnchor="middle" className="text-xs font-bold" fill="white">
-          🔄 POMPE
-        </text>
-        <text x="50" y="70" textAnchor="middle" className="text-xs font-medium" fill="white">
-          η={inputData.pump_efficiency}%
-        </text>
-        
-        {/* Indicateur de direction */}
-        <path 
-          d={`M 10 40 Q 25 ${isFlooded ? 30 : 50} 40 40 Q 25 ${isFlooded ? 50 : 30} 10 40`}
-          fill={aspirationColor} 
-          opacity="0.6"
-        />
+      <text x={resX + resW - 15} y={waterY + 38} textAnchor="middle" fontSize="10" fill={DS.slate[500]}>Crépine</text>
+
+      {/* ═══ CANALISATION ASPIRATION ═══ */}
+      <path
+        d={`M ${resX + resW - 15} ${waterY + 12} L ${pumpX - 40} ${waterY + 12} L ${pumpX} ${pumpMidY}`}
+        stroke={accent} strokeWidth={suctionPipeW} fill="none" strokeLinecap="round" strokeLinejoin="round" filter="url(#eisShadow)" />
+      <circle cx={pumpX - 40} cy={waterY + 12} r={suctionPipeW / 2 + 2} fill="white" stroke={accent} strokeWidth="2" />
+      <path
+        d={`M ${resX + resW + 30} ${waterY + 12} L ${pumpX - 25} ${(waterY + 12 + pumpMidY) / 2}`}
+        stroke={DS.blue[600]} strokeWidth="3" fill="none" markerEnd="url(#eisArrowFlow)" opacity="0.85" />
+
+      {/* ═══ POMPE ═══ */}
+      <g transform={`translate(${pumpX}, ${pumpY})`}>
+        <rect width={pumpW} height={pumpH} rx="16" fill="url(#eisPump)" stroke={accentDark} strokeWidth="3" filter="url(#eisShadow)" />
+        <circle cx={pumpW / 2} cy={pumpH / 2} r="26" fill="none" stroke="white" strokeWidth="3.5" opacity="0.95" />
+        <path d={`M ${pumpW / 2 - 14} ${pumpH / 2} Q ${pumpW / 2} ${pumpH / 2 - 16} ${pumpW / 2 + 14} ${pumpH / 2} Q ${pumpW / 2} ${pumpH / 2 + 16} ${pumpW / 2 - 14} ${pumpH / 2}`} fill="white" opacity="0.9" />
+        <text x={pumpW / 2} y="17" textAnchor="middle" fontSize="11" fontWeight="800" fill="white">POMPE</text>
+        <text x={pumpW / 2} y={pumpH - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="white">η = {inputData.pump_efficiency}%</text>
       </g>
-      
-      {/* Étiquette de pompe avec spécifications */}
-      <text x="500" y={actualPumpY + 100} textAnchor="middle" className="text-xs font-bold" fill="#047857">
-        {inputData.pump_type || 'CENTRIFUGE'} • {inputData.installation_type?.toUpperCase() || 'SURFACE'}
+      <text x={pumpX + pumpW / 2} y={pumpY + pumpH + 18} textAnchor="middle" fontSize="11" fontWeight="700" fill={accentDark}>
+        {(inputData.pump_type || 'CENTRIFUGE').toUpperCase()} · {(inputData.installation_type || 'surface').toUpperCase()}
       </text>
-      
-      {/* Tuyauterie de refoulement */}
-      <line 
-        x1="550" 
-        y1={actualPumpY + 40} 
-        x2="650" 
-        y2={actualPumpY + 40} 
-        stroke="#4b5563" 
-        strokeWidth={Math.max(10, inputData.discharge_pipe_diameter / 10)}
-        strokeLinecap="round"
-        filter="url(#shadow)"
-      />
-      
-      {/* Coude de refoulement avec raccordement vertical */}
-      <path 
-        d={`M 650 ${actualPumpY + 40} Q 680 ${actualPumpY + 40} 680 ${actualPumpY + 10} L 680 140`}
-        stroke="#4b5563" 
-        strokeWidth={Math.max(10, inputData.discharge_pipe_diameter / 10)}
-        fill="none"
-        strokeLinecap="round"
-        filter="url(#shadow)"
-      />
-      
-      {/* Sortie finale avec détails */}
-      <g transform="translate(680, 120)">
-        <rect x="-10" y="0" width="20" height="25" fill="#10b981" rx="8" filter="url(#shadow)" />
-        <circle cx="0" cy="12" r="6" fill="#ffffff" />
-        <text x="0" y="17" textAnchor="middle" className="text-xs font-bold" fill="#10b981">
-          💧
+
+      {/* ═══ CANALISATION REFOULEMENT ═══ */}
+      <path
+        d={`M ${pumpX + pumpW} ${pumpMidY} L ${elbowX} ${pumpMidY} L ${elbowX} ${outletY}`}
+        stroke={DS.slate[600]} strokeWidth={dischargePipeW} fill="none" strokeLinecap="round" strokeLinejoin="round" filter="url(#eisShadow)" />
+      <circle cx={elbowX} cy={pumpMidY} r={dischargePipeW / 2 + 2} fill="white" stroke={DS.slate[600]} strokeWidth="2" />
+      <path d={`M ${pumpX + pumpW + 15} ${pumpMidY} L ${elbowX - 15} ${pumpMidY}`}
+        stroke={DS.blue[600]} strokeWidth="3" markerEnd="url(#eisArrowFlow)" opacity="0.85" />
+
+      {/* Sortie */}
+      <g transform={`translate(${elbowX}, ${outletY - 24})`}>
+        <rect x="-11" y="0" width="22" height="26" rx="7" fill={accentDark} filter="url(#eisShadow)" />
+        <circle cx="0" cy="13" r="6" fill="white" />
+      </g>
+      <text x={elbowX + 26} y={outletY - 14} fontSize="11" fontWeight="800" fill={accentDark}>SORTIE</text>
+      <text x={elbowX + 26} y={outletY - 1} fontSize="10" fill={DS.slate[500]}>H = {Number(inputData.discharge_height || 0).toFixed(1)}m</text>
+
+      {/* ═══ COTE : HAUTEUR D'ASPIRATION ═══ */}
+      <line x1="40" y1={waterY + 12} x2="40" y2={pumpMidY} stroke={accent} strokeWidth="2" markerStart="url(#eisArrowAccent)" markerEnd="url(#eisArrowAccent)" />
+      <rect x="8" y={suctionMidY - 28} width="64" height="56" rx="8" fill="white" stroke={accent} strokeWidth="2" filter="url(#eisShadow)" />
+      <text x="40" y={suctionMidY - 8} textAnchor="middle" fontSize="15" fontWeight="800" fill={accentDark}>
+        {Math.abs(inputData.suction_height || 0).toFixed(1)}m
+      </text>
+      <text x="40" y={suctionMidY + 10} textAnchor="middle" fontSize="9" fontWeight="700" fill={accentDark}>
+        {isFlooded ? 'CHARGE' : 'ASPIR.'}
+      </text>
+
+      {/* ═══ COTE : HAUTEUR DE REFOULEMENT ═══ */}
+      <line x1={elbowX + 60} y1={pumpMidY} x2={elbowX + 60} y2={outletY} stroke={DS.slate[500]} strokeWidth="2" markerStart="url(#eisArrowSlate)" markerEnd="url(#eisArrowSlate)" />
+      <rect x={elbowX + 75} y={dischargeMidY - 20} width="70" height="40" rx="8" fill="white" stroke={DS.slate[400]} strokeWidth="2" filter="url(#eisShadow)" />
+      <text x={elbowX + 110} y={dischargeMidY - 3} textAnchor="middle" fontSize="13" fontWeight="800" fill={DS.slate[700]}>
+        {Number(inputData.discharge_height || 0).toFixed(1)}m
+      </text>
+      <text x={elbowX + 110} y={dischargeMidY + 13} textAnchor="middle" fontSize="9" fontWeight="700" fill={DS.slate[500]}>REFOUL.</text>
+
+      {/* ═══ PANNEAU TECHNIQUE ═══ */}
+      <rect x={panelX - 10} y={panelTop} width={panelW + 20} height={panelBottom - panelTop + 16} rx="18" fill="white" stroke={DS.slate[200]} strokeWidth="2" filter="url(#eisShadow)" />
+      <rect x={panelX - 10} y={panelTop} width={panelW + 20} height={panelHeaderH} rx="18" fill="url(#eisHeader)" />
+      <rect x={panelX - 10} y={panelTop + 26} width={panelW + 20} height="24" fill="url(#eisHeader)" />
+      <text x={panelX + panelW / 2 - 10} y={panelTop + 32} textAnchor="middle" fontSize="14" fontWeight="800" fill="white">EXPERT HYDRAULIQUE</text>
+
+      {sections.map((s, i) => <Section key={i} {...s} />)}
+
+      {/* Statut de sécurité (compact, intégré au panneau) */}
+      <g transform={`translate(${panelX}, ${statusY})`}>
+        <rect width={panelW} height="30" rx="8" fill={cavitationRisk ? DS.red[50] : DS.green[50]} stroke={cavitationRisk ? DS.red[600] : DS.green[600]} strokeWidth="1.5" />
+        <circle cx="18" cy="15" r="9" fill={cavitationRisk ? DS.red[600] : DS.green[600]} />
+        <text x="18" y="19" textAnchor="middle" fontSize="11" fontWeight="800" fill="white">{cavitationRisk ? '!' : '✓'}</text>
+        <text x="34" y="19" fontSize="12" fontWeight="800" fill={cavitationRisk ? DS.red[700] : DS.green[700]}>
+          {cavitationRisk ? 'RISQUE DE CAVITATION' : 'SYSTÈME SÉCURISÉ'}
         </text>
       </g>
-      <text x="720" y="120" className="text-xs font-bold" fill="#10b981">
-        🎯 SORTIE
-      </text>
-      <text x="720" y="132" className="text-xs" fill="#6b7280">
-        H={inputData.discharge_height}m
-      </text>
-      
-      {/* Cotes dynamiques renforcées */}
-      
-      {/* Hauteur d'aspiration avec double flèche */}
-      <line 
-        x1="20" 
-        y1={waterLevel} 
-        x2="20" 
-        y2={actualPumpY + 40} 
-        stroke="#ef4444" 
-        strokeWidth="2"
-        markerEnd="url(#arrowRed)"
-      />
-      <line 
-        x1="20" 
-        y1={actualPumpY + 40} 
-        x2="20" 
-        y2={waterLevel} 
-        stroke="#ef4444" 
-        strokeWidth="2"
-        markerEnd="url(#arrowRed)"
-      />
-      
-      {/* Encadré de cote avec couleur d'aspiration */}
-      <rect 
-        x="0" 
-        y={(waterLevel + actualPumpY + 40) / 2 - 35} 
-        width="60" 
-        height="70" 
-        fill="white" 
-        stroke={aspirationColor} 
-        strokeWidth="3" 
-        rx="8"
-        filter="url(#shadow)"
-      />
-      <text 
-        x="30" 
-        y={(waterLevel + actualPumpY + 40) / 2 - 15} 
-        textAnchor="middle" 
-        className="text-lg font-bold" 
-        fill={aspirationColor}
-      >
-        {Math.abs(inputData.suction_height).toFixed(1)}m
-      </text>
-      <text 
-        x="30" 
-        y={(waterLevel + actualPumpY + 40) / 2 + 5} 
-        textAnchor="middle" 
-        className="text-xs font-medium" 
-        fill={aspirationColor}
-      >
-        {statusText}
-      </text>
-      <text 
-        x="30" 
-        y={(waterLevel + actualPumpY + 40) / 2 + 20} 
-        textAnchor="middle" 
-        className="text-xs" 
-        fill="#6b7280"
-      >
-        {isFlooded ? 'Gravitaire' : 'Aspiration'}
-      </text>
-      
-      {/* Hauteur de refoulement */}
-      <line 
-        x1="720" 
-        y1={actualPumpY + 40} 
-        x2="720" 
-        y2="140" 
-        stroke="#10b981" 
-        strokeWidth="2"
-        markerEnd="url(#arrowGreen)"
-      />
-      <line 
-        x1="720" 
-        y1="140" 
-        x2="720" 
-        y2={actualPumpY + 40} 
-        stroke="#10b981" 
-        strokeWidth="2"
-        markerEnd="url(#arrowGreen)"
-      />
-      
-      <rect 
-        x="730" 
-        y={(actualPumpY + 40 + 140) / 2 - 20} 
-        width="80" 
-        height="40" 
-        fill="white" 
-        stroke="#10b981" 
-        strokeWidth="3" 
-        rx="8"
-        filter="url(#shadow)"
-      />
-      <text 
-        x="770" 
-        y={(actualPumpY + 40 + 140) / 2 - 5} 
-        textAnchor="middle" 
-        className="text-sm font-bold" 
-        fill="#10b981"
-      >
-        {inputData.discharge_height.toFixed(1)}m
-      </text>
-      <text 
-        x="770" 
-        y={(actualPumpY + 40 + 140) / 2 + 10} 
-        textAnchor="middle" 
-        className="text-xs" 
-        fill="#6b7280"
-      >
-        REFOULEMENT
-      </text>
-      
-      {/* Flèches de débit avec dimensions optimisées */}
-      <line 
-        x1="320" 
-        y1={waterLevel + 20} 
-        x2="420" 
-        y2={actualPumpY + 20} 
-        stroke="#3b82f6" 
-        strokeWidth="4"
-        markerEnd="url(#arrowBlue)"
-        opacity="0.9"
-      />
-      <text 
-        x="370" 
-        y={(waterLevel + actualPumpY + 40) / 2 - 20} 
-        textAnchor="middle" 
-        className="text-sm font-bold" 
-        fill="#3b82f6"
-      >
-        Q = {inputData.flow_rate} m³/h
-      </text>
-      <text 
-        x="370" 
-        y={(waterLevel + actualPumpY + 40) / 2 - 5} 
-        textAnchor="middle" 
-        className="text-xs" 
-        fill="#3b82f6"
-      >
-        V = {results.npshd_analysis?.velocity?.toFixed(2) || 'N/A'} m/s
-      </text>
-      <text 
-        x="370" 
-        y={(waterLevel + actualPumpY + 40) / 2 + 10} 
-        textAnchor="middle" 
-        className="text-xs" 
-        fill="#6b7280"
-      >
-        ⌀{inputData.suction_pipe_diameter}mm
-      </text>
-      
-      {/* Flèche de refoulement */}
-      <line 
-        x1="570" 
-        y1={actualPumpY + 40} 
-        x2="630" 
-        y2={actualPumpY + 40} 
-        stroke="#3b82f6" 
-        strokeWidth="4"
-        markerEnd="url(#arrowBlue)"
-        opacity="0.9"
-      />
-      <text 
-        x="600" 
-        y={actualPumpY + 65} 
-        textAnchor="middle" 
-        className="text-xs font-bold" 
-        fill="#3b82f6"
-      >
-        {results.hmt_analysis?.discharge_velocity?.toFixed(2) || 'N/A'} m/s
-      </text>
-      <text 
-        x="600" 
-        y={actualPumpY + 80} 
-        textAnchor="middle" 
-        className="text-xs" 
-        fill="#6b7280"
-      >
-        ⌀{inputData.discharge_pipe_diameter}mm
-      </text>
-      
-      {/* Panel d'informations techniques expert étendu */}
-      <rect x="840" y="80" width="340" height="660" fill="white" stroke="#d1d5db" strokeWidth="4" rx="20" filter="url(#shadow)" />
-      <rect x="840" y="80" width="340" height="70" fill={aspirationColor} rx="20" />
-      <text x="1010" y="125" textAnchor="middle" className="text-xl font-bold" fill="white">
-        📊 EXPERT HYDRAULIQUE
-      </text>
-      
-      {/* Section Propriétés du Fluide avec calculs automatiques */}
-      <rect x="850" y="160" width="320" height="150" fill="#f0f9ff" stroke="#0284c7" strokeWidth="2" rx="10" />
-      <text x="860" y="180" className="text-sm font-bold" fill="#0c4a6e">💧 PROPRIÉTÉS DU FLUIDE</text>
-      
-      <text x="860" y="200" className="text-xs" fill="#1f2937">
-        Type: {fluids.find(f => f.id === inputData.fluid_type)?.name || 'N/A'}
-      </text>
-      <text x="860" y="215" className="text-xs" fill="#1f2937">
-        Température: {inputData.temperature}°C
-      </text>
-      <text x="860" y="230" className="text-xs" fill="#1f2937">
-        Masse volumique: {(() => {
-          // Calcul direct des propriétés pour le SVG
-          let density = 1000; // valeur par défaut eau
-          
-          if (inputData.fluid_type === 'water') {
-            density = 1000 - 0.2 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'oil') {
-            density = 850 - 0.7 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'acid') {
-            density = 1200 - 0.3 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'glycol') {
-            density = 1113 - 0.8 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'palm_oil') {
-            density = 915 - 0.65 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'gasoline') {
-            density = 740 - 0.9 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'diesel') {
-            density = 840 - 0.75 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'hydraulic_oil') {
-            density = 875 - 0.65 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'ethanol') {
-            density = 810 - 1.05 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'seawater') {
-            density = 1025 - 0.25 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'methanol') {
-            density = 792 - 1.2 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'glycerol') {
-            density = 1260 - 0.65 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'milk') {
-            density = 1030 - 0.3 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'honey') {
-            density = 1400 - 0.8 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'wine') {
-            density = 990 - 0.9 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'bleach') {
-            density = 1050 - 0.25 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'yogurt') {
-            density = 1050 - 0.35 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'tomato_sauce') {
-            density = 1100 - 0.4 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'soap_solution') {
-            density = 1010 - 0.28 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'fruit_juice') {
-            density = 1045 - 0.35 * (inputData.temperature - 20);
-          }
-          
-          return Math.max(density, 500).toFixed(1);
-        })()} kg/m³
-      </text>
-      <text x="860" y="245" className="text-xs" fill="#1f2937">
-        Viscosité: {(() => {
-          // Calcul direct de la viscosité pour tous les fluides
-          let viscosity = 0.001; // valeur par défaut eau
-          
-          if (inputData.fluid_type === 'water') {
-            viscosity = 0.001 - 0.00005 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'oil') {
-            viscosity = 0.05 - 0.002 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'acid') {
-            viscosity = 0.002 - 0.0001 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'glycol') {
-            viscosity = 0.0161 - 0.0008 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'palm_oil') {
-            viscosity = 0.045 - 0.0018 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'gasoline') {
-            viscosity = 0.00055 - 0.000015 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'diesel') {
-            viscosity = 0.0035 - 0.00012 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'hydraulic_oil') {
-            viscosity = 0.046 - 0.0019 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'ethanol') {
-            viscosity = 0.0012 - 0.00004 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'seawater') {
-            viscosity = 0.00107 - 0.000052 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'methanol') {
-            viscosity = 0.00059 - 0.000025 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'glycerol') {
-            viscosity = 1.48 - 0.058 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'milk') {
-            viscosity = 0.0015 - 0.00006 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'honey') {
-            viscosity = 8.5 - 0.25 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'wine') {
-            viscosity = 0.0012 - 0.00004 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'bleach') {
-            viscosity = 0.0011 - 0.000045 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'yogurt') {
-            viscosity = 0.15 - 0.008 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'tomato_sauce') {
-            viscosity = 2.5 - 0.12 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'soap_solution') {
-            viscosity = 0.0013 - 0.00005 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'fruit_juice') {
-            viscosity = 0.0018 - 0.00007 * (inputData.temperature - 20);
-          }
-          
-          return Math.max(viscosity, 0.0001).toFixed(4);
-        })()} Pa·s
-      </text>
-      <text x="860" y="260" className="text-xs" fill="#1f2937">
-        P. vapeur: {(() => {
-          // Calcul direct de la pression de vapeur pour tous les fluides
-          let vaporPressure = 2340; // valeur par défaut eau
-          
-          if (inputData.fluid_type === 'water') {
-            vaporPressure = 2340 + 100 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'oil') {
-            vaporPressure = 100 + 20 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'acid') {
-            vaporPressure = 3000 + 150 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'glycol') {
-            vaporPressure = 10 + 5 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'palm_oil') {
-            vaporPressure = 0.001 + 0.0001 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'gasoline') {
-            vaporPressure = 13000 + 850 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'diesel') {
-            vaporPressure = 300 + 25 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'hydraulic_oil') {
-            vaporPressure = 0.1 + 0.02 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'ethanol') {
-            vaporPressure = 5870 + 420 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'seawater') {
-            vaporPressure = 2280 + 95 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'methanol') {
-            vaporPressure = 12800 + 780 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'glycerol') {
-            vaporPressure = 0.001 + 0.0002 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'milk') {
-            vaporPressure = 2200 + 95 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'honey') {
-            vaporPressure = 0.1 + 0.02 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'wine') {
-            vaporPressure = 2800 + 120 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'bleach') {
-            vaporPressure = 2100 + 90 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'yogurt') {
-            vaporPressure = 2150 + 92 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'tomato_sauce') {
-            vaporPressure = 1800 + 75 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'soap_solution') {
-            vaporPressure = 2250 + 95 * (inputData.temperature - 20);
-          } else if (inputData.fluid_type === 'fruit_juice') {
-            vaporPressure = 2100 + 88 * (inputData.temperature - 20);
-          }
-          
-          return (Math.max(vaporPressure, 1) / 1000).toFixed(1);
-        })()} kPa
-      </text>
-      <text x="860" y="275" className="text-xs" fill="#1f2937">
-        P. atmosphérique: {results.npshd_analysis?.atmospheric_pressure ? 
-          (results.npshd_analysis.atmospheric_pressure / 1000).toFixed(1) : '101.3'} kPa
-      </text>
-      <text x="860" y="290" className="text-xs" fill="#1f2937">
-        Altitude: {inputData.altitude || 0}m
-      </text>
-      <text x="860" y="305" className="text-xs" fill="#1f2937">
-        Temp. ambiante: {inputData.ambient_temperature || 25}°C
-      </text>
-      
-      {/* Section Configuration */}
-      <rect x="850" y="320" width="320" height="100" fill={isFlooded ? "#e0f2fe" : "#fef2f2"} stroke={aspirationColor} strokeWidth="2" rx="10" />
-      <text x="860" y="340" className="text-sm font-bold" fill={aspirationColor}>
-        {statusIcon} CONFIGURATION {statusText}
-      </text>
-      
-      <text x="860" y="360" className="text-xs" fill="#1f2937">
-        Installation: {inputData.installation_type === 'surface' ? 'Surface' : 'Immergée'}
-      </text>
-      <text x="860" y="375" className="text-xs" fill="#1f2937">
-        Type aspiration: {isFlooded ? 'Gravitaire (charge)' : 'Dépression (lift)'}
-      </text>
-      <text x="860" y="390" className="text-xs" fill="#1f2937">
-        Hauteur: {Math.abs(inputData.suction_height).toFixed(1)}m {isFlooded ? '(sous pompe)' : '(à aspirer)'}
-      </text>
-      <text x="860" y="405" className="text-xs" fill="#1f2937">
-        Avantages: {isFlooded ? 'Amorçage auto, fiabilité' : 'Pompe protégée, maintenance'}
-      </text>
-      
-      {/* Section Hydraulique */}
-      <rect x="850" y="430" width="320" height="140" fill="#eff6ff" stroke="#3b82f6" strokeWidth="2" rx="10" />
-      <text x="860" y="450" className="text-sm font-bold" fill="#1e40af">⚡ HYDRAULIQUE</text>
-      
-      <text x="860" y="470" className="text-xs" fill="#1f2937">
-        Débit nominal: {inputData.flow_rate} m³/h ({((inputData.flow_rate || 0) / 3.6).toFixed(3)} m³/s)
-      </text>
-      <text x="860" y="485" className="text-xs" fill="#1f2937">
-        NPSHd calculé: {results.npshd_analysis?.npshd?.toFixed(2) || 'N/A'} m
-      </text>
-      <text x="860" y="500" className="text-xs" fill="#1f2937">
-        NPSH requis: {inputData.npsh_required} m
-      </text>
-      <text x="860" y="515" className="text-xs" fill="#1f2937">
-        Marge sécurité: {results.npshd_analysis?.npsh_margin?.toFixed(2) || 'N/A'} m
-      </text>
-      <text x="860" y="530" className="text-xs" fill="#1f2937">
-        HMT total: {results.hmt_analysis?.hmt?.toFixed(2) || 'N/A'} m
-      </text>
-      <text x="860" y="545" className="text-xs" fill="#1f2937">
-        Vitesse aspiration: {results.npshd_analysis?.velocity?.toFixed(2) || 'N/A'} m/s
-      </text>
-      <text x="860" y="560" className="text-xs" fill="#1f2937">
-        Régime écoulement: {results.npshd_analysis?.reynolds_number > 4000 ? 'Turbulent' : 
-                  results.npshd_analysis?.reynolds_number > 2300 ? 'Transitoire' : 'Laminaire'} 
-        (Re={results.npshd_analysis?.reynolds_number?.toFixed(0) || 'N/A'})
-      </text>
-      
-      {/* Section Pertes de charge */}
-      <rect x="850" y="580" width="320" height="100" fill="#fef3c7" stroke="#f59e0b" strokeWidth="2" rx="10" />
-      <text x="860" y="600" className="text-sm font-bold" fill="#92400e">📉 PERTES DE CHARGE</text>
-      
-      <text x="860" y="620" className="text-xs" fill="#1f2937">
-        Pertes aspiration: {results.npshd_analysis?.total_head_loss?.toFixed(2) || 'N/A'} m
-      </text>
-      <text x="860" y="635" className="text-xs" fill="#1f2937">
-        Pertes refoulement: {results.hmt_analysis?.total_head_loss?.toFixed(2) || 'N/A'} m
-      </text>
-      <text x="860" y="650" className="text-xs" fill="#1f2937">
-        Pertes totales: {results.total_head_loss?.toFixed(2) || 'N/A'} m
-      </text>
-      <text x="860" y="665" className="text-xs" fill="#1f2937">
-        Coefficient K total: {((results.total_head_loss || 0) / ((results.npshd_analysis?.velocity || 1)**2 / (2 * 9.81))).toFixed(1)}
-      </text>
-      
-      {/* Section Performance */}
-      <rect x="850" y="690" width="320" height="60" fill="#f0fdf4" stroke="#10b981" strokeWidth="2" rx="10" />
-      <text x="860" y="710" className="text-sm font-bold" fill="#166534">📈 PERFORMANCE</text>
-      
-      <text x="860" y="730" className="text-xs" fill="#1f2937">
-        Rendement global: {results.overall_efficiency?.toFixed(1) || 'N/A'}% 
-        (Pompe: {inputData.pump_efficiency}% × Moteur: {inputData.motor_efficiency}%)
-      </text>
-      <text x="860" y="745" className="text-xs" fill="#1f2937">
-        Puissance: {results.performance_analysis?.hydraulic_power?.toFixed(1) || 'N/A'} kW hydraulique
-      </text>
-      
-      {/* Indicateurs de statut dynamiques */}
-      <g transform="translate(1010, 745)">
-        <circle 
-          cx="0" 
-          cy="0" 
-          r="18" 
-          fill={results.npshd_analysis?.cavitation_risk ? "#ef4444" : "#10b981"}
-          stroke="white"
-          strokeWidth="4"
-          filter="url(#shadow)"
-        />
-        <text 
-          x="0" 
-          y="7" 
-          textAnchor="middle" 
-          className="text-lg font-bold" 
-          fill="white"
-        >
-          {results.npshd_analysis?.cavitation_risk ? "!" : "✓"}
-        </text>
-        <text 
-          x="0" 
-          y="40" 
-          textAnchor="middle" 
-          className="text-sm font-bold" 
-          fill={results.npshd_analysis?.cavitation_risk ? "#ef4444" : "#10b981"}
-        >
-          {results.npshd_analysis?.cavitation_risk ? "CAVITATION" : "SÉCURISÉ"}
-        </text>
-      </g>
-      
-      {/* Légende enrichie dynamique */}
-      <rect x="20" y="720" width="800" height="60" fill="white" stroke="#d1d5db" strokeWidth="3" rx="10" filter="url(#shadow)" />
-      <text x="30" y="740" className="text-sm font-bold" fill="#1f2937">
-        LÉGENDE TECHNIQUE - CONFIGURATION {statusText}:
-      </text>
-      
-      <line x1="30" y1="755" x2="50" y2="755" stroke={aspirationColor} strokeWidth="2" markerEnd="url(#arrowRed)" />
-      <text x="55" y="760" className="text-xs font-medium" fill={aspirationColor}>
-        {isFlooded ? 'Charge gravitaire' : 'Aspiration dépression'}
-      </text>
-      
-      <line x1="200" y1="755" x2="220" y2="755" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
-      <text x="225" y="760" className="text-xs font-medium" fill="#3b82f6">
-        Sens d'écoulement
-      </text>
-      
-      <rect x="350" y="750" width="18" height="10" fill="url(#waterGradient)" />
-      <text x="375" y="760" className="text-xs font-medium" fill="#3b82f6">
-        {fluids.find(f => f.id === inputData.fluid_type)?.name || 'Fluide'}
-      </text>
-      
-      <rect x="450" y="750" width="18" height="10" fill="url(#pumpGradient)" />
-      <text x="475" y="760" className="text-xs font-medium" fill="#10b981">
-        Pompe centrifuge
-      </text>
-      
-      <circle cx="570" cy="755" r="8" fill={results.npshd_analysis?.cavitation_risk ? "#ef4444" : "#10b981"} />
-      <text x="585" y="760" className="text-xs font-medium" fill="#6b7280">
-        Statut hydraulique
-      </text>
-      
-      <text x="700" y="760" className="text-xs font-medium" fill="#6b7280">
-        {currentConfig.description}
-      </text>
-      
-      <text x="30" y="775" className="text-xs" fill="#6b7280">
-        ⚙️ {statusText}: {isFlooded ? 'Pompe alimentée par gravité - Fiabilité optimale' : 'Pompe aspire le fluide - Attention NPSHd'}
+
+      {/* ═══ LÉGENDE ═══ */}
+      <rect x="20" y={legendY} width="860" height={legendH} rx="10" fill="white" stroke={DS.slate[200]} strokeWidth="2" filter="url(#eisShadow)" />
+      <text x="34" y={legendY + 18} fontSize="11" fontWeight="800" fill={DS.slate[700]}>LÉGENDE — {statusText} :</text>
+      <line x1="220" y1={legendY + 14} x2="244" y2={legendY + 14} stroke={accent} strokeWidth="3" markerEnd="url(#eisArrowAccent)" />
+      <text x="250" y={legendY + 18} fontSize="10" fontWeight="600" fill={accentDark}>{isFlooded ? 'Charge gravitaire' : 'Aspiration par dépression'}</text>
+      <line x1="450" y1={legendY + 14} x2="474" y2={legendY + 14} stroke={DS.blue[600]} strokeWidth="3" markerEnd="url(#eisArrowFlow)" />
+      <text x="480" y={legendY + 18} fontSize="10" fontWeight="600" fill={DS.blue[600]}>Sens d'écoulement</text>
+      <circle cx="640" cy={legendY + 14} r="6" fill={cavitationRisk ? DS.red[600] : DS.green[600]} />
+      <text x="652" y={legendY + 18} fontSize="10" fontWeight="600" fill={DS.slate[500]}>Statut hydraulique</text>
+      <text x="34" y={legendY + 34} fontSize="10" fill={DS.slate[400]}>{statusDesc}</text>
+
+      {/* ─── Sol ─── */}
+      <rect x="20" y={groundY} width={W - 40} height={groundH} rx="6" fill="url(#eisGround)" />
+      <text x={W / 2} y={groundY + groundH / 2 + 4} textAnchor="middle" fontSize="11" fontWeight="700" fill={DS.slate[500]} letterSpacing="1">
+        NIVEAU SOL — RÉFÉRENCE ALTIMÉTRIQUE
       </text>
     </svg>
   );
 };
+
 
 
 // Component pour Tab 3 - Analyse de Performance
