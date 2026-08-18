@@ -138,6 +138,8 @@ const AuditSystem = () => {
       // Générer les résultats d'audit basés sur les données
       const results = generateAuditResults();
       setAuditResults(results);
+      // Bascule automatiquement vers l'onglet Résultats pour que l'utilisateur voie l'analyse
+      setActiveAuditTab('results');
     } catch (error) {
       console.error('Erreur analyse audit:', error);
     } finally {
@@ -4099,7 +4101,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
 
   const calc = async () => {
     setLoading(true);
-    try { const r = await axios.post(`${API}/analyze-performance`, inputData); setResult(r.data); }
+    try { const r = await axios.post(`${API}/calculate-performance`, inputData); setResult(r.data); }
     catch(e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -11629,22 +11631,57 @@ function App() {
   const [pipeMaterials, setPipeMaterials] = useState([]);
   const [fittings, setFittings] = useState([]);
   const [history, setHistory] = useState([]);
+  const [dataLoadError, setDataLoadError] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
-    try {
-      const [fluidsRes, materialsRes, fittingsRes, historyRes] = await Promise.all([
-        axios.get(`${API}/fluids`),
-        axios.get(`${API}/pipe-materials`),
-        axios.get(`${API}/fittings`),
-        axios.get(`${API}/history`)
-      ]);
-      setFluids(fluidsRes.data.fluids);
-      setPipeMaterials(materialsRes.data.materials);
-      setFittings(fittingsRes.data.fittings);
-      setHistory(historyRes.data);
-    } catch (error) { console.error('Erreur chargement données:', error); }
+    setDataLoadError(null);
+    // Promise.allSettled : chaque appel réussi met à jour ses propres données,
+    // même si un autre appel échoue (contrairement à Promise.all qui abandonne
+    // tout dès qu'une seule requête échoue).
+    const [fluidsRes, materialsRes, fittingsRes, historyRes] = await Promise.allSettled([
+      axios.get(`${API}/fluids`),
+      axios.get(`${API}/pipe-materials`),
+      axios.get(`${API}/fittings`),
+      axios.get(`${API}/history`)
+    ]);
+
+    const failedCalls = [];
+
+    if (fluidsRes.status === 'fulfilled') {
+      setFluids(fluidsRes.value.data.fluids);
+    } else {
+      failedCalls.push('fluides');
+      console.error('Erreur chargement fluides:', fluidsRes.reason);
+    }
+
+    if (materialsRes.status === 'fulfilled') {
+      setPipeMaterials(materialsRes.value.data.materials);
+    } else {
+      failedCalls.push('matériaux');
+      console.error('Erreur chargement matériaux:', materialsRes.reason);
+    }
+
+    if (fittingsRes.status === 'fulfilled') {
+      setFittings(fittingsRes.value.data.fittings);
+    } else {
+      failedCalls.push('raccords');
+      console.error('Erreur chargement raccords:', fittingsRes.reason);
+    }
+
+    if (historyRes.status === 'fulfilled') {
+      setHistory(historyRes.value.data);
+    } else {
+      failedCalls.push('historique');
+      console.error('Erreur chargement historique:', historyRes.reason);
+    }
+
+    if (failedCalls.length > 0) {
+      setDataLoadError(
+        `Impossible de charger : ${failedCalls.join(', ')}. Vérifiez la connexion au serveur (${API}).`
+      );
+    }
   };
 
   const renderTabContent = () => {
@@ -11736,6 +11773,25 @@ function App() {
           </nav>
         </div>
       </header>
+      {dataLoadError && (
+        <div className="no-print" style={{
+          maxWidth: '1280px', margin: '12px auto 0', padding: '12px 20px',
+          background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: '10px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '1.3rem' }}>⚠️</span>
+            <div>
+              <div style={{ fontWeight: 700, color: '#991b1b', fontSize: '0.85rem' }}>Connexion au serveur impossible</div>
+              <div style={{ fontSize: '0.78rem', color: '#b91c1c' }}>{dataLoadError}</div>
+            </div>
+          </div>
+          <button onClick={loadData} style={{
+            padding: '8px 16px', background: '#dc2626', color: 'white', border: 'none',
+            borderRadius: '7px', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap'
+          }}>↺ Réessayer</button>
+        </div>
+      )}
       <main className="app-main"><ErrorBoundary key={activeTab}>{renderTabContent()}</ErrorBoundary></main>
     </div>
   );
