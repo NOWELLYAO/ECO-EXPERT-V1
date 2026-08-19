@@ -169,12 +169,10 @@ input[type="number"] { -moz-appearance: textfield; }
 .app-nav {
   display: flex;
   align-items: center;
-  gap: 2px;
-  overflow-x: auto;
-  padding: 8px 0 4px;
-  scrollbar-width: none;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  padding: 8px 0 10px;
 }
-.app-nav::-webkit-scrollbar { display: none; }
 
 .nav-btn {
   display: flex;
@@ -835,6 +833,10 @@ canvas { max-height: 400px; }
 
   /* Cartes (ProCard) : padding resserré pour laisser plus de place au contenu */
   [style*="padding: 20px 22px"] { padding: 14px 16px !important; }
+
+  /* Navigation par onglets : plus compacte pour que davantage d'onglets tiennent par ligne */
+  .nav-btn { padding: 6px 10px; font-size: 0.72rem; }
+  .nav-icon { font-size: 0.9rem; }
 
   /* Filet de sécurité : toute rangée flex (boutons, badges, tags, en-têtes) passe
      à la ligne plutôt que de déborder horizontalement. Sans effet quand le contenu
