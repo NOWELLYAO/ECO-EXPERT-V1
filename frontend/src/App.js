@@ -10576,6 +10576,12 @@ const PumpSelector = () => {
   const [draftPts, setDraftPts] = useState(null);
   const [draftEtaPts, setDraftEtaPts] = useState(null);
   const [showExport, setShowExport] = useState(false);
+  const [customPumps, setCustomPumps] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ecopump_custom_pumps') || '[]'); } catch { return []; }
+  });
+  const [showAddCustomPump, setShowAddCustomPump] = useState(false);
+  const [customPumpDraft, setCustomPumpDraft] = useState({ brand: '', model: '', pointsText: '' });
+  const [customPumpError, setCustomPumpError] = useState(null);
   const getFamilyKey = (pump) => pump.serie === 'SP' ? pump.sp_family : pump.cr_family;
 
   const computePumpResults = () => {
@@ -10874,6 +10880,62 @@ const PumpSelector = () => {
     e.target.value = '';
   };
 
+  // ── Pompes personnalisées (import constructeur) ──
+  // Parse un texte "Q,H" ou "Q,H,eta" (une paire/triplet par ligne, séparateur , ou ; ou tab)
+  const parsePointsText = (text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const points = [], etaPoints = [];
+    for (const line of lines) {
+      const parts = line.split(/[,;\t]+/).map(s => parseFloat(s.trim().replace(',', '.')));
+      if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        points.push([parts[0], parts[1]]);
+        if (parts.length >= 3 && !isNaN(parts[2])) etaPoints.push([parts[0], parts[2]]);
+      }
+    }
+    points.sort((a, b) => a[0] - b[0]);
+    etaPoints.sort((a, b) => a[0] - b[0]);
+    return { points, etaPoints: etaPoints.length >= 2 ? etaPoints : null };
+  };
+
+  const saveCustomPump = () => {
+    setCustomPumpError(null);
+    if (!customPumpDraft.model.trim()) { setCustomPumpError('Le nom/modèle de la pompe est requis.'); return; }
+    const { points, etaPoints } = parsePointsText(customPumpDraft.pointsText);
+    if (points.length < 2) { setCustomPumpError('Il faut au moins 2 points Q/H valides (un par ligne, ex: "10,25").'); return; }
+    const newPump = {
+      id: `custom_${Date.now()}`,
+      brand: customPumpDraft.brand.trim() || 'Personnalisée',
+      model: customPumpDraft.model.trim(),
+      points, etaPoints,
+      addedAt: new Date().toISOString(),
+    };
+    const next = [...customPumps, newPump];
+    setCustomPumps(next);
+    localStorage.setItem('ecopump_custom_pumps', JSON.stringify(next));
+    setCustomPumpDraft({ brand: '', model: '', pointsText: '' });
+    setShowAddCustomPump(false);
+  };
+
+  const deleteCustomPump = (id) => {
+    if (!window.confirm('Supprimer cette pompe personnalisée ?')) return;
+    const next = customPumps.filter(p => p.id !== id);
+    setCustomPumps(next);
+    localStorage.setItem('ecopump_custom_pumps', JSON.stringify(next));
+  };
+
+  const importCustomPumpCSV = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      // Ignore une éventuelle ligne d'en-tête non numérique (ex: "Q,H,eta")
+      const text = String(ev.target.result).split('\n').filter((l, i) => i > 0 || /^[\d\-.,;]+$/.test(l.trim())).join('\n');
+      setCustomPumpDraft(d => ({ ...d, pointsText: text }));
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:'16px', fontFamily:"'Inter','Segoe UI',sans-serif" }}>
 
@@ -10894,6 +10956,76 @@ const PumpSelector = () => {
             </label>
           </div>
         </div>
+      </div>
+
+      {/* ── Pompes personnalisées (import constructeur) ── */}
+      <div style={{ background:'white', borderRadius:'14px', border:'1px solid #f1f5f9', boxShadow:'0 2px 8px rgba(0,0,0,0.04)', padding:'16px 20px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px', marginBottom: customPumps.length > 0 || showAddCustomPump ? '12px' : '0' }}>
+          <div>
+            <div style={{ fontSize:'0.9rem', fontWeight:800, color:'#0f172a' }}>🔧 Pompes personnalisées</div>
+            <div style={{ fontSize:'0.72rem', color:'#64748b' }}>Ajoutez une pompe hors catalogue à partir de sa courbe constructeur (Q/H, et η optionnel)</div>
+          </div>
+          <button onClick={() => setShowAddCustomPump(s => !s)}
+            style={{ fontSize:'0.75rem', fontWeight:700, color:'white', background:'#7c3aed', border:'none', borderRadius:'8px', padding:'8px 14px', cursor:'pointer', whiteSpace:'nowrap' }}>
+            {showAddCustomPump ? '✕ Annuler' : '➕ Ajouter une pompe'}
+          </button>
+        </div>
+
+        {showAddCustomPump && (
+          <div style={{ background:'#faf5ff', border:'1.5px solid #e9d5ff', borderRadius:'10px', padding:'14px', display:'flex', flexDirection:'column', gap:'10px', marginBottom:'12px' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+              <input placeholder="Marque (ex: KSB, Xylem, Caprari...)" value={customPumpDraft.brand}
+                onChange={e => setCustomPumpDraft(d => ({ ...d, brand: e.target.value }))}
+                style={{ padding:'9px 12px', border:'1.5px solid #ddd6fe', borderRadius:'8px', fontSize:'0.85rem', outline:'none' }}/>
+              <input placeholder="Modèle (ex: Etanorm 65-160)" value={customPumpDraft.model}
+                onChange={e => setCustomPumpDraft(d => ({ ...d, model: e.target.value }))}
+                style={{ padding:'9px 12px', border:'1.5px solid #ddd6fe', borderRadius:'8px', fontSize:'0.85rem', outline:'none' }}/>
+            </div>
+            <div>
+              <label style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:'0.72rem', fontWeight:700, color:'#7c3aed', marginBottom:'5px' }}>
+                <span>Points de la courbe — un par ligne : Débit,Hauteur[,Rendement%]</span>
+                <label style={{ fontSize:'0.68rem', fontWeight:700, color:'#7c3aed', background:'white', border:'1.5px solid #ddd6fe', borderRadius:'6px', padding:'4px 9px', cursor:'pointer' }}>
+                  📤 Importer CSV
+                  <input type="file" accept=".csv,text/csv,text/plain" onChange={importCustomPumpCSV} style={{ display:'none' }}/>
+                </label>
+              </label>
+              <textarea rows={6} value={customPumpDraft.pointsText}
+                onChange={e => setCustomPumpDraft(d => ({ ...d, pointsText: e.target.value }))}
+                placeholder={"0,32\n10,30\n20,26\n30,20,68\n40,10,60"}
+                style={{ width:'100%', boxSizing:'border-box', padding:'9px 12px', border:'1.5px solid #ddd6fe', borderRadius:'8px', fontSize:'0.8rem', fontFamily:'monospace', outline:'none', resize:'vertical' }}/>
+              <p style={{ fontSize:'0.68rem', color:'#94a3b8', margin:'4px 0 0' }}>Débit en m³/h, hauteur en m, rendement en % (optionnel, 3ᵉ colonne). Copiez ces valeurs depuis la fiche technique du constructeur, ou uploadez un fichier CSV (colonnes Q,H,eta).</p>
+            </div>
+            {customPumpError && <div style={{ fontSize:'0.75rem', color:'#dc2626', fontWeight:600 }}>{customPumpError}</div>}
+            <button onClick={saveCustomPump}
+              style={{ padding:'10px', background:'#7c3aed', color:'white', border:'none', borderRadius:'8px', fontWeight:700, fontSize:'0.82rem', cursor:'pointer' }}>
+              ✓ Enregistrer cette pompe
+            </button>
+          </div>
+        )}
+
+        {customPumps.length > 0 && (
+          <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+            {customPumps.map(cp => {
+              const at = getPumpAtQ(cp, Q, cp.points, cp.etaPoints);
+              return (
+                <div key={cp.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'9px', padding:'10px 14px' }}>
+                  <div>
+                    <div style={{ fontSize:'0.85rem', fontWeight:700, color:'#0f172a' }}>{cp.brand} — {cp.model}</div>
+                    <div style={{ fontSize:'0.72rem', color:'#64748b' }}>
+                      {at
+                        ? `À Q=${Q}m³/h → H=${at.H}m${at.eta ? `, η=${at.eta}%` : ''}${at.Pa ? `, P=${at.Pa}kW` : ''}`
+                        : `Hors plage de la courbe pour Q=${Q}m³/h (max ${cp.points[cp.points.length-1][0]}m³/h)`}
+                    </div>
+                  </div>
+                  <button onClick={() => deleteCustomPump(cp.id)}
+                    style={{ background:'#fff1f2', border:'1px solid #fca5a5', color:'#dc2626', width:'28px', height:'28px', borderRadius:'7px', cursor:'pointer', fontSize:'0.78rem' }}>
+                    🗑️
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px' }}>
