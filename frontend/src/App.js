@@ -3907,17 +3907,30 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
           <ProCard>
             <SectionHead icon="🏗️" title="Type d'installation" color="#059669"/>
             <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+              <div style={{ display:'grid', gridTemplateColumns: inputData.installation_type==='surface' ? '1fr 1fr' : '1fr', gap:'8px' }}>
                 <ProSelect label="Installation" value={inputData.installation_type} icon="⚙️"
-                  onChange={v=>set('installation_type',v)}
+                  onChange={v=>{
+                    set('installation_type',v);
+                    if (v !== 'surface') set('hasp', 0); // pompe immergée : pas de hauteur d'aspiration à dimensionner
+                  }}
                   options={[{v:'surface',l:'En surface'},{v:'forage',l:'Forage/Puits'},{v:'relevage',l:'Relevage'}]}/>
-                <ProSelect label="Type aspiration" value={inputData.suction_type} icon="🔧"
-                  onChange={v=>set('suction_type',v)}
-                  options={[{v:'flooded',l:'En charge'},{v:'suction_lift',l:'En dépression'}]}/>
+                {inputData.installation_type === 'surface' && (
+                  <ProSelect label="Type aspiration" value={inputData.suction_type} icon="🔧"
+                    onChange={v=>set('suction_type',v)}
+                    options={[{v:'flooded',l:'En charge'},{v:'suction_lift',l:'En dépression'}]}/>
+                )}
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
-                <ProInput label="Hasp" value={inputData.hasp} onChange={v=>set('hasp',v)} unit="m"
-                  warn={inputData.suction_type!=='flooded'&&inputData.hasp>6}/>
+              {inputData.installation_type !== 'surface' && (
+                <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'10px 12px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'8px', fontSize:'0.78rem', color:'#166534' }}>
+                  <span style={{ fontSize:'1rem' }}>🔽</span>
+                  <span>Pompe immergée ({inputData.installation_type === 'forage' ? 'forage/puits' : 'relevage'}) — aucune tuyauterie d'aspiration à dimensionner, la pompe est directement en eau.</span>
+                </div>
+              )}
+              <div style={{ display:'grid', gridTemplateColumns: inputData.installation_type==='surface' ? '1fr 1fr 1fr' : '1fr 1fr', gap:'8px' }}>
+                {inputData.installation_type === 'surface' && (
+                  <ProInput label="Hasp" value={inputData.hasp} onChange={v=>set('hasp',v)} unit="m"
+                    warn={inputData.suction_type!=='flooded'&&inputData.hasp>6}/>
+                )}
                 <ProInput label="H. refoulement" value={inputData.discharge_height} onChange={v=>set('discharge_height',v)} unit="m"/>
                 <ProInput label="P. utile" value={inputData.useful_pressure} onChange={v=>set('useful_pressure',v)} unit="bar"
                   note="0 si réseau libre"/>
@@ -3937,19 +3950,21 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
             </div>
           </ProCard>
 
-          {/* Tuyauterie aspiration */}
-          <ProCard>
-            <SectionHead icon="🔵" title="Tuyauterie aspiration" color="#2563eb" sub={`DN${inputData.suction_pipe_diameter} — ${inputData.suction_pipe_length}m`}/>
-            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProInput label="Diamètre DN" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} unit="mm" warn={inputData.suction_pipe_diameter<50}/>
-                <ProInput label="Longueur" value={inputData.suction_pipe_length} onChange={v=>set('suction_pipe_length',v)} unit="m"/>
+          {/* Tuyauterie aspiration — uniquement pour une installation en surface */}
+          {inputData.installation_type === 'surface' && (
+            <ProCard>
+              <SectionHead icon="🔵" title="Tuyauterie aspiration" color="#2563eb" sub={`DN${inputData.suction_pipe_diameter} — ${inputData.suction_pipe_length}m`}/>
+              <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                  <ProInput label="Diamètre DN" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} unit="mm" warn={inputData.suction_pipe_diameter<50}/>
+                  <ProInput label="Longueur" value={inputData.suction_pipe_length} onChange={v=>set('suction_pipe_length',v)} unit="m"/>
+                </div>
+                <ProSelect label="Matériau" value={inputData.suction_pipe_material} onChange={v=>set('suction_pipe_material',v)}
+                  options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
+                <RaccordsSection side="suction" label="Raccords aspiration" color="#2563eb"/>
               </div>
-              <ProSelect label="Matériau" value={inputData.suction_pipe_material} onChange={v=>set('suction_pipe_material',v)}
-                options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
-              <RaccordsSection side="suction" label="Raccords aspiration" color="#2563eb"/>
-            </div>
-          </ProCard>
+            </ProCard>
+          )}
 
           {/* Tuyauterie refoulement */}
           <ProCard>
@@ -3981,9 +3996,9 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
               {[
                 ['Débit Q', `${inputData.flow_rate} m³/h`],
                 ['H. géo.', `${inputData.discharge_height} m`],
-                ['Hasp', `${inputData.hasp} m`],
+                ...(inputData.installation_type === 'surface' ? [['Hasp', `${inputData.hasp} m`]] : []),
                 ['P. utile', `${inputData.useful_pressure} bar`],
-                ['ASP DN', `${inputData.suction_pipe_diameter}mm — ${inputData.suction_pipe_length}m`],
+                ...(inputData.installation_type === 'surface' ? [['ASP DN', `${inputData.suction_pipe_diameter}mm — ${inputData.suction_pipe_length}m`]] : []),
                 ['REF DN', `${inputData.discharge_pipe_diameter}mm — ${inputData.discharge_pipe_length}m`],
               ].map(([l,v])=>(
                 <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'5px 8px', background:'white', borderRadius:'5px', border:'1px solid #e2e8f0' }}>
@@ -3999,7 +4014,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
             const va = inputData.flow_rate / 3.6 / (Math.PI * (inputData.suction_pipe_diameter/1000/2)**2);
             const vr = inputData.flow_rate / 3.6 / (Math.PI * (inputData.discharge_pipe_diameter/1000/2)**2);
             return <>
-              {va > 1.5 && <ProAlert type="warning" title="Vitesse aspiration élevée">Va ≈ {va.toFixed(2)} m/s &gt; 1.5 m/s recommandé. Augmentez le DN aspiration.</ProAlert>}
+              {inputData.installation_type === 'surface' && va > 1.5 && <ProAlert type="warning" title="Vitesse aspiration élevée">Va ≈ {va.toFixed(2)} m/s &gt; 1.5 m/s recommandé. Augmentez le DN aspiration.</ProAlert>}
               {vr > 3.0 && <ProAlert type="warning" title="Vitesse refoulement élevée">Vr ≈ {vr.toFixed(2)} m/s &gt; 3.0 m/s recommandé. Augmentez le DN refoulement.</ProAlert>}
             </>;
           })()}
@@ -4019,9 +4034,11 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                 color="#059669" bg="#f0fdf4"/>
               <KPICard big icon="⚡" label="Puissance absorbée" value={result.absorbed_power?.toFixed(1)} unit="kW"
                 color="#7c3aed" bg="#faf5ff"/>
-              <KPICard label="Vitesse aspiration" value={result.velocity_suction?.toFixed(2)} unit="m/s"
-                color={vaWarn?'#d97706':'#2563eb'} bg={vaWarn?'#fffbeb':'#eff6ff'}
-                icon={vaWarn?'⚠️':'💧'} sub={vaWarn?'Trop élevée!':'≤ 1.5 m/s ✓'}/>
+              {inputData.installation_type === 'surface' && (
+                <KPICard label="Vitesse aspiration" value={result.velocity_suction?.toFixed(2)} unit="m/s"
+                  color={vaWarn?'#d97706':'#2563eb'} bg={vaWarn?'#fffbeb':'#eff6ff'}
+                  icon={vaWarn?'⚠️':'💧'} sub={vaWarn?'Trop élevée!':'≤ 1.5 m/s ✓'}/>
+              )}
               <KPICard label="Vitesse refoulement" value={result.velocity_discharge?.toFixed(2)} unit="m/s"
                 color={vrWarn?'#d97706':'#059669'} bg={vrWarn?'#fffbeb':'#f0fdf4'}
                 icon={vrWarn?'⚠️':'🟢'} sub={vrWarn?'Trop élevée!':'≤ 3.0 m/s ✓'}/>
@@ -4033,8 +4050,10 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
               <div style={{ display:'flex', flexDirection:'column', gap:'5px', fontSize:'0.8rem' }}>
                 {[
                   ['Hauteur géométrique', `${result.geometric_height?.toFixed(2)} m`, '#1e293b'],
-                  ['J. aspiration (linéaires)', `${result.suction_linear_loss?.toFixed(3)} m`, '#2563eb'],
-                  ['J. aspiration (singuliers)', `${result.suction_singular_loss?.toFixed(3)} m`, '#2563eb'],
+                  ...(inputData.installation_type === 'surface' ? [
+                    ['J. aspiration (linéaires)', `${result.suction_linear_loss?.toFixed(3)} m`, '#2563eb'],
+                    ['J. aspiration (singuliers)', `${result.suction_singular_loss?.toFixed(3)} m`, '#2563eb'],
+                  ] : []),
                   ['J. refoulement (linéaires)', `${result.discharge_linear_loss?.toFixed(3)} m`, '#059669'],
                   ['J. refoulement (singuliers)', `${result.discharge_singular_loss?.toFixed(3)} m`, '#059669'],
                   ['Pression utile converti', `${(result.useful_pressure_head||0).toFixed(2)} m`, '#7c3aed'],
