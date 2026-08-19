@@ -1007,7 +1007,7 @@ const SolarExpertSystem = () => {
           const diameterMM = diameterM * 1000; // en millimètres
           
           // Normalisation vers DN standard
-          const standardDNs = [20, 25, 32, 40, 50, 63, 80, 100, 125, 150, 200, 250, 300];
+          const standardDNs = [16, 20, 25, 32, 40, 50, 63, 75, 90, 110, 125, 140, 160, 180, 200, 225, 250, 280, 315];
           const recommendedDN = standardDNs.find(dn => dn >= diameterMM) || 300;
           updated.pipe_diameter = recommendedDN;
           
@@ -1023,7 +1023,7 @@ const SolarExpertSystem = () => {
         const diameterM = Math.sqrt((4 * flowM3s) / (Math.PI * velocity));
         const diameterMM = diameterM * 1000;
         
-        const standardDNs = [20, 25, 32, 40, 50, 63, 80, 100, 125, 150, 200, 250, 300];
+        const standardDNs = [16, 20, 25, 32, 40, 50, 63, 75, 90, 110, 125, 140, 160, 180, 200, 225, 250, 280, 315];
         const recommendedDN = standardDNs.find(dn => dn >= diameterMM) || 300;
         updated.pipe_diameter = recommendedDN;
       }
@@ -1431,7 +1431,7 @@ const SolarExpertSystem = () => {
                     const diameterMM = diameterM * 1000; // conversion en mm
                     
                     // Normalisation vers DN standard
-                    const standardDNs = [20, 25, 32, 40, 50, 63, 80, 100, 125, 150, 200, 250, 300];
+                    const standardDNs = [16, 20, 25, 32, 40, 50, 63, 75, 90, 110, 125, 140, 160, 180, 200, 225, 250, 280, 315];
                     const calculatedDN = standardDNs.find(dn => dn >= diameterMM) || standardDNs[standardDNs.length - 1];
                     
                     return calculatedDN;
@@ -1455,7 +1455,7 @@ const SolarExpertSystem = () => {
                   const velocity = 2.0;
                   const diameterM = Math.sqrt((4 * flowM3s) / (Math.PI * velocity));
                   const diameterMM = diameterM * 1000;
-                  const standardDNs = [20, 25, 32, 40, 50, 63, 80, 100, 125, 150, 200, 250, 300];
+                  const standardDNs = [16, 20, 25, 32, 40, 50, 63, 75, 90, 110, 125, 140, 160, 180, 200, 225, 250, 280, 315];
                   const calculatedDN = standardDNs.find(dn => dn >= diameterMM) || standardDNs[standardDNs.length - 1];
                   const actualVelocity = flowM3s / (Math.PI * Math.pow(calculatedDN/2000, 2));
                   
@@ -3426,6 +3426,109 @@ const DS = {
 
 // Composant : Label + input stylé avec unité
 // Palette de couleurs partagée par ProInput/ProSelect (style "carte encadrée" de l'onglet Solaire)
+// ════════════════════════════════════════════════════════════════
+// TABLE DE RÉFÉRENCE DN → DIAMÈTRE INTÉRIEUR RÉEL (par matériau / pression)
+// ════════════════════════════════════════════════════════════════
+// Principe : pour les matériaux plastiques (PVC, PEHD), le "DN" affiché sur un
+// tuyau est en réalité son diamètre EXTÉRIEUR exact — le diamètre intérieur
+// dépend de l'épaisseur de paroi, elle-même fixée par la classe de pression
+// (PN), via le SDR (Standard Dimension Ratio, norme ISO) :
+//   épaisseur = Ø extérieur / SDR   →   Ø intérieur = Ø ext × (SDR-2)/SDR
+// Pour l'acier / acier galvanisé, le DN est un code commercial historique
+// (norme EN 10241) qui ne correspond exactement ni à l'Ø extérieur ni à
+// l'Ø intérieur — table de correspondance directe utilisée à la place.
+const PIPE_OD_SERIES_PLASTIC = [16, 20, 25, 32, 40, 50, 63, 75, 90, 110, 125, 140, 160, 180, 200, 225, 250, 280, 315, 355, 400];
+const PIPE_DN_SERIES_STEEL = [15, 20, 25, 32, 40, 50, 65, 80, 100, 125, 150, 200, 250, 300];
+
+// Ø intérieur réel (mm) par DN, norme EN 10241 (acier / acier galvanisé — série moyenne)
+// Sourcé jusqu'à DN100 ; DN125 et au-delà estimés sur la base des séries Schedule 40 (ASME B36.10)
+const STEEL_DN_TO_ID = {
+  15: 16.7, 20: 22.3, 25: 28.5, 32: 37.2, 40: 42.5, 50: 54.5, 65: 69.7,
+  80: 81.7, 100: 106.3, 125: 128.2, 150: 154.1, 200: 202.7, 250: 254.5, 300: 304.8,
+};
+
+// SDR (Standard Dimension Ratio) selon la classe de pression PN, par matériau plastique
+const PLASTIC_SDR_BY_PN = {
+  pvc: { 10: 21, 16: 13.6 },              // PN25 PVC réservé aux petits diamètres (≤25mm), non couvert ici
+  pehd: { 10: 17, 16: 11, 25: 7.4 },
+};
+
+const idFromSDR = (od, sdr) => od * (sdr - 2) / sdr;
+
+const isPlasticMaterial = (material) => material === 'pvc' || material === 'pehd';
+const isSteelMaterial = (material) => material === 'steel' || material === 'steel_galvanized';
+
+// Composant : sélecteur de diamètre — s'adapte au matériau choisi (liste de DN
+// réels du matériau + PN si pertinent) et renvoie TOUJOURS le diamètre
+// INTÉRIEUR réel en mm via onChange (jamais le simple numéro DN), car c'est
+// cette valeur qui compte dans les formules hydrauliques.
+const DiameterDNSelector = ({ label, value, onChange, material, color = 'blue', icon }) => {
+  const [pn, setPn] = React.useState(16);
+  const c = PRO_FIELD_COLORS[color] || PRO_FIELD_COLORS.blue;
+
+  const plastic = isPlasticMaterial(material);
+  const steel = isSteelMaterial(material);
+  const hasTable = plastic || steel;
+
+  // Construit la liste des options { dn, id } pour le matériau/PN courants
+  let options = [];
+  if (plastic) {
+    const sdr = (PLASTIC_SDR_BY_PN[material] || {})[pn];
+    if (sdr) options = PIPE_OD_SERIES_PLASTIC.map(od => ({ dn: od, id: idFromSDR(od, sdr) }));
+  } else if (steel) {
+    options = PIPE_DN_SERIES_STEEL.map(dn => ({ dn, id: STEEL_DN_TO_ID[dn] }));
+  }
+
+  // Sélectionne l'option dont l'Ø intérieur correspond à la valeur actuelle (au 0.5mm près)
+  const selectedDN = options.find(o => Math.abs(o.id - value) < 0.5)?.dn ?? '';
+
+  if (!hasTable) {
+    // Matériau sans table DN fiable (fonte, béton...) : saisie libre du diamètre intérieur
+    return (
+      <ProInput label={label} value={value} onChange={onChange} unit="mm" icon={icon} color={color}
+        note="Saisissez directement le diamètre intérieur réel (mm)" />
+    );
+  }
+
+  return (
+    <div style={{ background: c.bg, borderRadius: '10px', borderLeft: `4px solid ${c.border}`, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: c.label, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+        {icon && <span style={{ marginRight: '5px' }}>{icon}</span>}{label}
+      </label>
+      <div style={{ display: 'grid', gridTemplateColumns: plastic ? '1fr 0.7fr' : '1fr', gap: '8px' }}>
+        <select
+          value={selectedDN}
+          onChange={e => {
+            const opt = options.find(o => String(o.dn) === e.target.value);
+            if (opt) onChange(Math.round(opt.id * 10) / 10);
+          }}
+          style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: `2px solid ${c.border}55`, borderRadius: '8px', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', background: 'white', outline: 'none', cursor: 'pointer' }}>
+          <option value="" disabled>Choisir un DN…</option>
+          {options.map(o => (
+            <option key={o.dn} value={o.dn}>DN{o.dn} → Ø int. {o.id.toFixed(1)}mm</option>
+          ))}
+        </select>
+        {plastic && (
+          <select value={pn} onChange={e => {
+            const newPn = parseInt(e.target.value, 10);
+            setPn(newPn);
+            const sdr = (PLASTIC_SDR_BY_PN[material] || {})[newPn];
+            const currentOD = options.find(o => Math.abs(o.id - value) < 0.5)?.dn;
+            if (sdr && currentOD) onChange(Math.round(idFromSDR(currentOD, sdr) * 10) / 10);
+          }}
+            style={{ padding: '9px 8px', border: `2px solid ${c.border}55`, borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', background: 'white', outline: 'none', cursor: 'pointer' }}>
+            {Object.keys(PLASTIC_SDR_BY_PN[material] || {}).map(p => <option key={p} value={p}>PN{p}</option>)}
+          </select>
+        )}
+      </div>
+      <p style={{ fontSize: '0.67rem', color: c.label, margin: 0, fontWeight: 500 }}>
+        Diamètre intérieur utilisé dans les calculs : <strong>{value} mm</strong>
+        {plastic && ' (le diamètre extérieur DN est indicatif, sans effet direct sur le calcul)'}
+      </p>
+    </div>
+  );
+};
+
 const PRO_FIELD_COLORS = {
   blue:   { border:'#3b82f6', bg:'#eff6ff', label:'#1d4ed8' },
   green:  { border:'#22c55e', bg:'#f0fdf4', label:'#15803d' },
@@ -3754,10 +3857,8 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
             <SectionHead icon="🔩" title="Tuyauterie d'aspiration" color="#059669" sub="Diamètre, longueur, matériau"/>
             <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
-                <ProInput label="Diamètre DN" value={inputData.pipe_diameter}
-                  onChange={v=>set('pipe_diameter',v)} unit="mm" icon="⌀" color="green"
-                  warn={inputData.pipe_diameter < 50}
-                  note={inputData.pipe_diameter < 50 ? 'DN trop faible → vitesse excessive' : ''}/>
+                <DiameterDNSelector label="Diamètre" value={inputData.pipe_diameter}
+                  onChange={v=>set('pipe_diameter',v)} icon="⌀" color="green" material={inputData.pipe_material}/>
                 <ProInput label="Longueur" value={inputData.pipe_length}
                   onChange={v=>set('pipe_length',v)} unit="m" icon="📏" color="green"
                   warn={inputData.pipe_length > 20}
@@ -4056,7 +4157,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
               <SectionHead icon="🔵" title="Tuyauterie aspiration" color="#2563eb" sub={`DN${inputData.suction_pipe_diameter} — ${inputData.suction_pipe_length}m`}/>
               <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                  <ProInput label="Diamètre DN" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} unit="mm" color="blue" warn={inputData.suction_pipe_diameter<50}/>
+                  <DiameterDNSelector label="Diamètre" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} color="blue" material={inputData.suction_pipe_material}/>
                   <ProInput label="Longueur" value={inputData.suction_pipe_length} onChange={v=>set('suction_pipe_length',v)} unit="m" color="blue"/>
                 </div>
                 <ProSelect label="Matériau" value={inputData.suction_pipe_material} onChange={v=>set('suction_pipe_material',v)}
@@ -4071,7 +4172,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
             <SectionHead icon="🟢" title="Tuyauterie refoulement" color="#059669" sub={`DN${inputData.discharge_pipe_diameter} — ${inputData.discharge_pipe_length}m`}/>
             <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProInput label="Diamètre DN" value={inputData.discharge_pipe_diameter} onChange={v=>set('discharge_pipe_diameter',v)} unit="mm" color="green"/>
+                <DiameterDNSelector label="Diamètre" value={inputData.discharge_pipe_diameter} onChange={v=>set('discharge_pipe_diameter',v)} color="green" material={inputData.discharge_pipe_material}/>
                 <ProInput label="Longueur" value={inputData.discharge_pipe_length} onChange={v=>set('discharge_pipe_length',v)} unit="m" color="green"/>
               </div>
               <ProSelect label="Matériau" value={inputData.discharge_pipe_material} onChange={v=>set('discharge_pipe_material',v)} color="green"
@@ -4270,7 +4371,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                 <ProInput label="HMT" value={inputData.hmt} onChange={v=>set('hmt',v)} unit="m" icon="📐" color="blue"/>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProInput label="DN tuyauterie" value={inputData.pipe_diameter} onChange={v=>set('pipe_diameter',v)} unit="mm" color="blue"/>
+                <DiameterDNSelector label="Diamètre tuyauterie" value={inputData.pipe_diameter} onChange={v=>set('pipe_diameter',v)} color="blue" material={inputData.pipe_material}/>
                 <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C" color="blue"/>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
@@ -6052,41 +6153,10 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ⭐ ⌀ Aspiration (DN)
-                    </label>
-                    <select
-                      value={inputData.suction_pipe_diameter || ''}
-                      onChange={(e) => handleInputChange('suction_pipe_diameter', parseFloat(e.target.value) || 0)}
-                      onFocus={e=>e.target.select()}
-                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                      className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
-                    >
-                      <option value="">Sélectionnez un diamètre</option>
-                      {dnSizes.map(size => (
-                        <option key={size.mm} value={size.mm}>{size.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ⭐ ⌀ Refoulement (DN)
-                    </label>
-                    <select
-                      value={inputData.discharge_pipe_diameter || ''}
-                      onChange={(e) => handleInputChange('discharge_pipe_diameter', parseFloat(e.target.value) || 0)}
-                      onFocus={e=>e.target.select()}
-                      onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                      className="w-full p-2 border-2 border-yellow-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-yellow-50"
-                    >
-                      <option value="">Sélectionnez un diamètre</option>
-                      {dnSizes.map(size => (
-                        <option key={size.mm} value={size.mm}>{size.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <DiameterDNSelector label="⌀ Aspiration" value={inputData.suction_pipe_diameter}
+                    onChange={v => handleInputChange('suction_pipe_diameter', v)} color="blue" material={inputData.suction_material}/>
+                  <DiameterDNSelector label="⌀ Refoulement" value={inputData.discharge_pipe_diameter}
+                    onChange={v => handleInputChange('discharge_pipe_diameter', v)} color="green" material={inputData.discharge_material}/>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
