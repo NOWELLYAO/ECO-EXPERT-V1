@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Chart from 'chart.js/auto';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -3509,6 +3511,66 @@ const ProSelect = ({ label, value, onChange, options, icon }) => (
 );
 
 // Composant : Alerte (danger / warning / info / success)
+// Composant : bouton "Sauvegarder ce calcul" — appelle POST /save-calculation
+const SaveCalculationButton = ({ calculationType, inputData, resultData }) => {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [projectName, setProjectName] = useState('');
+  const [error, setError] = useState(null);
+
+  const doSave = async () => {
+    if (!projectName.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await axios.post(`${API}/save-calculation`, {
+        project_name: projectName.trim(),
+        calculation_type: calculationType,
+        input_data: inputData,
+        result_data: resultData,
+      });
+      setSaved(true);
+      setShowPrompt(false);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      setError(e.response?.data?.detail || "Impossible de sauvegarder. Vérifiez votre connexion.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (showPrompt) {
+    return (
+      <div style={{ background: 'white', border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Nom du projet</label>
+        <input autoFocus value={projectName} onChange={e => setProjectName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') doSave(); if (e.key === 'Escape') setShowPrompt(false); }}
+          placeholder="Ex : Station de pompage Client X"
+          style={{ padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', outline: 'none' }} />
+        {error && <div style={{ fontSize: '0.75rem', color: '#dc2626' }}>{error}</div>}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={doSave} disabled={saving || !projectName.trim()}
+            style={{ flex: 1, padding: '9px', background: saving ? '#94a3b8' : '#059669', color: 'white', border: 'none', borderRadius: '7px', fontWeight: 700, fontSize: '0.8rem', cursor: saving ? 'not-allowed' : 'pointer' }}>
+            {saving ? '⏳…' : '✓ Confirmer'}
+          </button>
+          <button onClick={() => setShowPrompt(false)}
+            style={{ padding: '9px 14px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '7px', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+            Annuler
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button onClick={() => setShowPrompt(true)}
+      style={{ padding: '11px', background: saved ? '#f0fdf4' : 'white', border: `1.5px solid ${saved ? '#86efac' : '#cbd5e1'}`, color: saved ? '#16a34a' : '#475569', borderRadius: '9px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', width: '100%' }}>
+      {saved ? '✓ Sauvegardé dans l\'historique' : '💾 Sauvegarder ce calcul'}
+    </button>
+  );
+};
+
 const ProAlert = ({ type='info', title, children, icon }) => {
   const cfg = {
     danger:  { bg:'#fff1f2', border:'#fca5a5', title:'#991b1b', text:'#dc2626', icon: icon||'🚨' },
@@ -3817,6 +3879,8 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                 </ul>
               </ProAlert>
             )}
+
+            <SaveCalculationButton calculationType="npshd" inputData={inputData} resultData={result} />
           </>)}
         </div>
       </div>
@@ -4085,6 +4149,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                 </ul>
               </ProAlert>
             )}
+            <SaveCalculationButton calculationType="hmt" inputData={inputData} resultData={result} />
           </>)}
         </div>
       </div>
@@ -4327,6 +4392,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                 </ul>
               </ProAlert>
             )}
+            <SaveCalculationButton calculationType="performance" inputData={inputData} resultData={result} />
           </>)}
         </div>
       </div>
@@ -5006,27 +5072,59 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
       </html>
     `;
 
-    // Créer un blob et télécharger le PDF
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `ECO-PUMP-AFRIK-Rapport-${inputData.company_name?.replace(/\s+/g, '-') || 'Client'}-${new Date().toISOString().split('T')[0]}.html`;
-    
-    // Ouvrir dans un nouvel onglet pour impression PDF
-    const printWindow = window.open(url, '_blank');
-    if (printWindow) {
-      printWindow.onload = function() {
-        setTimeout(() => {
-          printWindow.print();
-        }, 1000);
-      };
-    }
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Génération d'un vrai fichier PDF téléchargeable (sans étape manuelle "Imprimer > Enregistrer en PDF")
+    // 1) On rend le rapport HTML dans un iframe invisible (même contenu riche qu'avant)
+    // 2) On capture ce rendu avec html2canvas
+    // 3) On découpe l'image en pages A4 avec jsPDF et on déclenche le téléchargement direct
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-99999px';
+    iframe.style.top = '0';
+    iframe.style.width = '794px'; // largeur A4 à 96dpi
+    iframe.style.height = '1123px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    iframe.srcdoc = htmlContent;
+
+    const filename = `ECO-PUMP-AFRIK-Rapport-${inputData.company_name?.replace(/\s+/g, '-') || 'Client'}-${new Date().toISOString().split('T')[0]}.pdf`;
+
+    iframe.onload = async () => {
+      try {
+        const body = iframe.contentDocument.body;
+        // Laisse le temps aux polices/SVG de finir de se dessiner
+        await new Promise(r => setTimeout(r, 400));
+        const canvas = await html2canvas(body, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 794 });
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidthMm = 210, pageHeightMm = 297;
+        const canvasWidthPx = canvas.width, canvasHeightPx = canvas.height;
+        const pxPerMm = canvasWidthPx / pageWidthMm;
+        const pageHeightPx = pageHeightMm * pxPerMm;
+
+        let renderedHeightPx = 0;
+        let pageIndex = 0;
+        while (renderedHeightPx < canvasHeightPx) {
+          const sliceHeightPx = Math.min(pageHeightPx, canvasHeightPx - renderedHeightPx);
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = canvasWidthPx;
+          sliceCanvas.height = sliceHeightPx;
+          const ctx = sliceCanvas.getContext('2d');
+          ctx.drawImage(canvas, 0, renderedHeightPx, canvasWidthPx, sliceHeightPx, 0, 0, canvasWidthPx, sliceHeightPx);
+          const imgData = sliceCanvas.toDataURL('image/jpeg', 0.92);
+          if (pageIndex > 0) pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMm, sliceHeightPx / pxPerMm);
+          renderedHeightPx += sliceHeightPx;
+          pageIndex++;
+        }
+
+        pdf.save(filename);
+      } catch (err) {
+        console.error('Erreur génération PDF:', err);
+        alert("La génération du PDF a échoué. Réessayez, ou contactez le support si le problème persiste.");
+      } finally {
+        document.body.removeChild(iframe);
+      }
+    };
   };
 
   // Fonction d'export Excel
@@ -6869,6 +6967,12 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
           </div>
         </div>
       )}
+
+      {results && (
+        <div className="bg-white rounded-lg shadow-lg p-6 no-print">
+          <SaveCalculationButton calculationType="expert" inputData={inputData} resultData={results} />
+        </div>
+      )}
     </div>
   );
 };
@@ -8458,19 +8562,26 @@ const DrawingTool = () => {
     return <SchemaSurface/>;
   };
 
-  const doPrint = () => {
-    const el=document.getElementById('hydraulic-schema');
-    if(!el) return;
-    const svg=new XMLSerializer().serializeToString(el);
-    const w=window.open('','_blank');
-    w.document.write(`<!DOCTYPE html><html><head><title>Schéma — ${cfg.proj}</title>
-    <style>body{margin:0;padding:16px;background:white;font-family:Arial,sans-serif}
-    h2{font-size:14px;color:#1e293b;margin:0 0 4px}p{font-size:10px;color:#64748b;margin:0 0 10px}
-    svg{width:100%;max-width:1100px;height:auto;display:block}
-    @media print{body{padding:4px}@page{size:A4 landscape;margin:6mm}}</style>
-    </head><body><h2>Schéma Hydraulique — ${cfg.proj}</h2><p>ECO-PUMP AFRIK | v4.0 | ${cfg.date}</p>
-    ${svg}<script>window.onload=()=>window.print()<\/script></body></html>`);
-    w.document.close();
+  const doPrint = async () => {
+    const el = document.getElementById('hydraulic-schema');
+    if (!el) return;
+    try {
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+      const pdf = new jsPDF('l', 'mm', 'a4'); // paysage, comme le schéma
+      const pageW = 297, pageH = 210;
+      const ratio = Math.min((pageW - 12) / canvas.width, (pageH - 24) / canvas.height);
+      const imgW = canvas.width * ratio, imgH = canvas.height * ratio;
+      pdf.setFontSize(12);
+      pdf.text(`Schéma Hydraulique — ${cfg.proj}`, 6, 8);
+      pdf.setFontSize(8);
+      pdf.setTextColor(100);
+      pdf.text(`ECO-PUMP AFRIK | v4.0 | ${cfg.date}`, 6, 13);
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (pageW - imgW) / 2, 18, imgW, imgH);
+      pdf.save(`ECO-PUMP-AFRIK-Schema-${(cfg.proj || 'Installation').replace(/\s+/g, '-')}.pdf`);
+    } catch (err) {
+      console.error('Erreur génération PDF du schéma:', err);
+      alert("La génération du PDF a échoué. Réessayez.");
+    }
   };
 
   // ── UI helpers ──
@@ -11204,6 +11315,90 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// ════════════════════════════════════════════════════════════════
+// AUTHENTIFICATION — Écran de connexion / inscription
+// ════════════════════════════════════════════════════════════════
+const AuthScreen = ({ onAuthenticated }) => {
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [form, setForm] = useState({ email: '', password: '', name: '', company: '' });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const endpoint = mode === 'login' ? 'login' : 'register';
+      const payload = mode === 'login'
+        ? { email: form.email, password: form.password }
+        : { email: form.email, password: form.password, name: form.name, company: form.company || null };
+      const res = await axios.post(`${API}/auth/${endpoint}`, payload);
+      onAuthenticated(res.data.access_token, res.data.user);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Une erreur est survenue. Vérifiez votre connexion.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--navy-950), var(--navy-900) 60%, #0d1f3c)', padding: '20px', fontFamily: DS.fontHead }}>
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{ width: '56px', height: '56px', margin: '0 auto 12px', background: 'linear-gradient(135deg, var(--teal-500), var(--teal-400))', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', boxShadow: '0 4px 12px rgba(20,184,166,0.4)' }}>💧</div>
+          <div style={{ color: 'white', fontSize: '1.4rem', fontWeight: 800 }}>ECO-PUMP AFRIK</div>
+          <div style={{ color: 'var(--teal-400)', fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Calculateur Hydraulique Professionnel</div>
+        </div>
+
+        <div style={{ background: 'white', borderRadius: '16px', padding: '28px 26px', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
+          <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', borderRadius: '10px', padding: '4px', marginBottom: '20px' }}>
+            <button onClick={() => { setMode('login'); setError(null); }}
+              style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '7px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', background: mode === 'login' ? 'white' : 'transparent', color: mode === 'login' ? 'var(--navy-900)' : '#64748b', boxShadow: mode === 'login' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+              Connexion
+            </button>
+            <button onClick={() => { setMode('register'); setError(null); }}
+              style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '7px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', background: mode === 'register' ? 'white' : 'transparent', color: mode === 'register' ? 'var(--navy-900)' : '#64748b', boxShadow: mode === 'register' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+              Créer un compte
+            </button>
+          </div>
+
+          <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {mode === 'register' && (
+              <>
+                <ProInput label="Nom complet" value={form.name} onChange={v => set('name', v)} icon="👤" />
+                <ProInput label="Société (optionnel)" value={form.company} onChange={v => set('company', v)} icon="🏢" />
+              </>
+            )}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#475569', marginBottom: '4px', letterSpacing: '0.03em', textTransform: 'uppercase' }}>Email</label>
+              <input type="email" required value={form.email} onChange={e => set('email', e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#475569', marginBottom: '4px', letterSpacing: '0.03em', textTransform: 'uppercase' }}>Mot de passe</label>
+              <input type="password" required minLength={6} value={form.password} onChange={e => set('password', e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} />
+              {mode === 'register' && <p style={{ fontSize: '0.67rem', color: '#94a3b8', margin: '3px 0 0' }}>6 caractères minimum</p>}
+            </div>
+
+            {error && (
+              <div style={{ background: '#fff1f2', border: '1.5px solid #fca5a5', borderRadius: '8px', padding: '10px 12px', fontSize: '0.8rem', color: '#dc2626' }}>{error}</div>
+            )}
+
+            <button type="submit" disabled={loading}
+              style={{ padding: '13px', background: loading ? '#94a3b8' : 'linear-gradient(135deg, var(--navy-900), var(--teal-500), #0d9488)', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '6px' }}>
+              {loading ? '⏳ Patientez…' : mode === 'login' ? '🔓 Se connecter' : '✨ Créer mon compte'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [fluids, setFluids] = useState([]);
@@ -11212,18 +11407,58 @@ function App() {
   const [history, setHistory] = useState([]);
   const [dataLoadError, setDataLoadError] = useState(null);
 
+  // ── Authentification ──
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem('eco_pump_token') || null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false); // évite un flash de l'écran de login au chargement
+
+  useEffect(() => {
+    if (authToken) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+      localStorage.setItem('eco_pump_token', authToken);
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+      localStorage.removeItem('eco_pump_token');
+    }
+  }, [authToken]);
+
+  useEffect(() => {
+    (async () => {
+      if (authToken) {
+        try {
+          const res = await axios.get(`${API}/auth/me`);
+          setCurrentUser(res.data);
+        } catch (e) {
+          // Jeton invalide ou expiré : on déconnecte proprement
+          setAuthToken(null);
+          setCurrentUser(null);
+        }
+      }
+      setAuthChecked(true);
+    })();
+  }, [authToken]);
+
+  const logout = () => { setAuthToken(null); setCurrentUser(null); setHistory([]); };
+
+  const loadHistory = async () => {
+    try {
+      const res = await axios.get(`${API}/history`);
+      setHistory(res.data);
+    } catch (e) { console.error('Erreur chargement historique:', e); }
+  };
+
   useEffect(() => { loadData(); }, []);
+  useEffect(() => { if (currentUser) loadHistory(); }, [currentUser]);
 
   const loadData = async () => {
     setDataLoadError(null);
     // Promise.allSettled : chaque appel réussi met à jour ses propres données,
     // même si un autre appel échoue (contrairement à Promise.all qui abandonne
     // tout dès qu'une seule requête échoue).
-    const [fluidsRes, materialsRes, fittingsRes, historyRes] = await Promise.allSettled([
+    const [fluidsRes, materialsRes, fittingsRes] = await Promise.allSettled([
       axios.get(`${API}/fluids`),
       axios.get(`${API}/pipe-materials`),
-      axios.get(`${API}/fittings`),
-      axios.get(`${API}/history`)
+      axios.get(`${API}/fittings`)
     ]);
 
     const failedCalls = [];
@@ -11249,13 +11484,6 @@ function App() {
       console.error('Erreur chargement raccords:', fittingsRes.reason);
     }
 
-    if (historyRes.status === 'fulfilled') {
-      setHistory(historyRes.value.data);
-    } else {
-      failedCalls.push('historique');
-      console.error('Erreur chargement historique:', historyRes.reason);
-    }
-
     if (failedCalls.length > 0) {
       setDataLoadError(
         `Impossible de charger : ${failedCalls.join(', ')}. Vérifiez la connexion au serveur (${API}).`
@@ -11278,32 +11506,50 @@ function App() {
       case 'audit': return <AuditSystem />;
       case 'expert': return <ExpertCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} />;
       case 'solar': return <SolarExpertSystem />;
-      case 'history': return (
-        <div className="card fade-in">
-          <div className="card-header"><div className="card-title">📋 Historique des Calculs</div></div>
-          <div className="card-body">
-            {history.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--slate-500)' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📭</div>
-                <div style={{ fontWeight: 600, marginBottom: '4px' }}>Aucun calcul sauvegardé</div>
-                <div style={{ fontSize: '0.82rem' }}>Vos calculs apparaîtront ici.</div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {history.map((item) => (
-                  <div key={item.id} style={{ border: '1px solid var(--slate-200)', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--navy-900)', marginBottom: '3px' }}>{item.project_name}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--slate-500)' }}>{new Date(item.timestamp).toLocaleString('fr-FR')}</div>
+      case 'history': {
+        const typeLabels = { npshd: '🔷 NPSHd', hmt: '🔶 HMT', performance: '📊 Performance', expert: '🎯 Expert' };
+        const deleteEntry = async (id) => {
+          if (!window.confirm('Supprimer ce calcul de l\'historique ?')) return;
+          try {
+            await axios.delete(`${API}/history/${id}`);
+            setHistory(h => h.filter(x => x.id !== id));
+          } catch (e) { alert("Impossible de supprimer : " + (e.response?.data?.detail || e.message)); }
+        };
+        return (
+          <div className="card fade-in">
+            <div className="card-header"><div className="card-title">📋 Historique des Calculs</div></div>
+            <div className="card-body">
+              {history.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--slate-500)' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📭</div>
+                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>Aucun calcul sauvegardé</div>
+                  <div style={{ fontSize: '0.82rem' }}>Utilisez le bouton "💾 Sauvegarder ce calcul" après un calcul NPSHd, HMT, Performance ou Expert.</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {history.map((item) => (
+                    <div key={item.id} style={{ border: '1px solid var(--slate-200)', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--navy-900)', marginBottom: '3px' }}>{item.project_name}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--slate-500)' }}>{new Date(item.timestamp).toLocaleString('fr-FR')}</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ background: '#ccfbf1', color: '#0f766e', padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700 }}>
+                          {typeLabels[item.calculation_type] || item.calculation_type}
+                        </span>
+                        <button onClick={() => deleteEntry(item.id)} title="Supprimer"
+                          style={{ background: '#fff1f2', border: '1px solid #fca5a5', color: '#dc2626', width: '30px', height: '30px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          🗑️
+                        </button>
+                      </div>
                     </div>
-                    <span style={{ background: '#ccfbf1', color: '#0f766e', padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700 }}>Sauvegardé</span>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      );
+        );
+      }
       default: return null;
     }
   };
@@ -11325,6 +11571,16 @@ function App() {
     { id: 'history', icon: '📋', label: 'Historique' },
   ];
 
+  // Tant qu'on n'a pas vérifié le jeton stocké, on affiche un écran neutre (évite un flash)
+  if (!authChecked) {
+    return <div style={{ minHeight: '100vh', background: 'var(--navy-950)' }} />;
+  }
+
+  // Pas connecté : écran de connexion / inscription, l'app n'est pas accessible sans compte
+  if (!currentUser) {
+    return <AuthScreen onAuthenticated={(token, user) => { setAuthToken(token); setCurrentUser(user); }} />;
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--slate-100)' }}>
       <header className="app-header no-print">
@@ -11340,6 +11596,19 @@ function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div className="header-badge"><div className="header-badge-dot"></div><span className="header-badge-text">ACTIF</span></div>
               <span className="header-version">v4.0 PRO</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '12px', borderLeft: '1px solid rgba(255,255,255,0.15)' }}>
+                <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(20,184,166,0.2)', color: 'var(--teal-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
+                  {currentUser.name?.[0]?.toUpperCase() || '?'}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }} className="header-username">
+                  <span style={{ color: 'white', fontSize: '0.78rem', fontWeight: 600 }}>{currentUser.name}</span>
+                  {currentUser.company && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.66rem' }}>{currentUser.company}</span>}
+                </div>
+                <button onClick={logout} title="Se déconnecter"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '7px', color: 'rgba(255,255,255,0.7)', width: '28px', height: '28px', cursor: 'pointer', fontSize: '0.85rem', flexShrink: 0 }}>
+                  ⏻
+                </button>
+              </div>
             </div>
           </div>
           <nav className="app-nav">
