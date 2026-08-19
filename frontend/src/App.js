@@ -11186,30 +11186,19 @@ const MotorCableCalculator = () => {
           <div className="card-header"><div className="card-title">⚙️ Paramètres</div></div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {[
-              { label: 'Puissance hydraulique Ph (kW)', key: 'Ph' },
-              { label: 'Rendement pompe ηp (%)', key: 'eta_pump' },
-              { label: 'Rendement moteur ηm (%)', key: 'eta_motor' },
-              { label: 'Tension réseau (V)', key: 'voltage' },
-              { label: 'Facteur de puissance cos φ', key: 'pf' },
-              { label: 'Longueur câble (m)', key: 'cable_length' },
-              { label: 'Chute tension max (%)', key: 'delta_U_max' },
+              { label: 'Puissance hydraulique Ph', key: 'Ph', unit: 'kW', color: 'blue' },
+              { label: 'Rendement pompe ηp', key: 'eta_pump', unit: '%', color: 'green' },
+              { label: 'Rendement moteur ηm', key: 'eta_motor', unit: '%', color: 'green' },
+              { label: 'Tension réseau', key: 'voltage', unit: 'V', color: 'purple' },
+              { label: 'Facteur de puissance cos φ', key: 'pf', color: 'purple' },
+              { label: 'Longueur câble', key: 'cable_length', unit: 'm', color: 'orange' },
+              { label: 'Chute tension max', key: 'delta_U_max', unit: '%', color: 'orange' },
             ].map(f => (
-              <div key={f.key}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--slate-700)', marginBottom: '4px' }}>{f.label}</label>
-                <input type="text" inputMode="decimal" value={data[f.key]} step="0.1" onChange={e => set(f.key, parseFloat(e.target.value))}
-                onFocus={e=>e.target.select()}
-                onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                  style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--slate-200)', borderRadius: '6px', fontSize: '0.875rem' }}/>
-              </div>
+              <ProInput key={f.key} label={f.label} unit={f.unit} color={f.color}
+                value={data[f.key]} onChange={v => set(f.key, v)}/>
             ))}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--slate-700)', marginBottom: '4px' }}>Matériau câble</label>
-              <select value={data.cable_material} onChange={e => set('cable_material', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--slate-200)', borderRadius: '6px', fontSize: '0.875rem' }}>
-                <option value="copper">Cuivre</option>
-                <option value="aluminum">Aluminium</option>
-              </select>
-            </div>
+            <ProSelect label="Matériau câble" color="orange" value={data.cable_material} onChange={v => set('cable_material', v)}
+              options={[{v:'copper',l:'Cuivre'},{v:'aluminum',l:'Aluminium'}]}/>
             <button onClick={calculate}
               style={{ background: 'linear-gradient(135deg, #7c2d12, #431407)', color: 'white', padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem' }}>
               ⚡ Calculer le câblage

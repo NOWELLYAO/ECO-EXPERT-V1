@@ -846,6 +846,7 @@ canvas { max-height: 400px; }
 
 @media (max-width: 400px) {
   .header-subtitle { display: none; }
+  .header-username { display: none; }
   .header-badge-text { display: none; }
   .header-badge { padding: 4px 8px; }
 }
@@ -894,3 +895,37 @@ select:focus-visible {
 /* Keep existing Tailwind compat */
 .shadow-lg { box-shadow: var(--shadow-md); }
 .engineering-input { font-family: 'JetBrains Mono', monospace; }
+
+/* ════════════════════════════════════════════════════════════════
+   Harmonisation des champs bruts (onglets Audit & Expert) avec le
+   style "carte encadrée à bordure colorée" déjà utilisé sur Solaire
+   et sur NPSHd/HMT/Performance (composants ProInput/ProSelect).
+   Cible précisément le combo de classes Tailwind neutre
+   "block text-sm font-medium text-gray-700" (labels non déjà stylés),
+   sans toucher aux champs de Solaire qui ont déjà leurs propres
+   couleurs (blue-700, cyan-700, etc.).
+   ════════════════════════════════════════════════════════════════ */
+div:has(> label.block.text-sm.font-medium.text-gray-700) {
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+label.block.text-sm.font-medium.text-gray-700 {
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+input.border-gray-300, select.border-gray-300, textarea.border-gray-300 {
+  border: 2px solid rgba(59,130,246,0.35) !important;
+  border-radius: 8px !important;
+  font-weight: 700;
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input.border-gray-300:focus, select.border-gray-300:focus, textarea.border-gray-300:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+}
