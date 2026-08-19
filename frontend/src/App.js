@@ -3425,7 +3425,18 @@ const DS = {
 };
 
 // Composant : Label + input stylé avec unité
-const ProInput = ({ label, value, onChange, unit, note, warn, icon, min, max, step=1 }) => {
+// Palette de couleurs partagée par ProInput/ProSelect (style "carte encadrée" de l'onglet Solaire)
+const PRO_FIELD_COLORS = {
+  blue:   { border:'#3b82f6', bg:'#eff6ff', label:'#1d4ed8' },
+  green:  { border:'#22c55e', bg:'#f0fdf4', label:'#15803d' },
+  cyan:   { border:'#06b6d4', bg:'#ecfeff', label:'#0e7490' },
+  purple: { border:'#a855f7', bg:'#faf5ff', label:'#7e22ce' },
+  amber:  { border:'#f59e0b', bg:'#fffbeb', label:'#b45309' },
+  orange: { border:'#f97316', bg:'#fff7ed', label:'#c2410c' },
+  slate:  { border:'#64748b', bg:'#f8fafc', label:'#334155' },
+};
+
+const ProInput = ({ label, value, onChange, unit, note, warn, icon, min, max, step=1, color='blue' }) => {
   const [raw, setRaw] = React.useState(value === null || value === undefined ? '' : String(value));
   React.useEffect(() => { setRaw(value === null || value === undefined ? '' : String(value)); }, [value]);
   const commit = str => {
@@ -3433,11 +3444,15 @@ const ProInput = ({ label, value, onChange, unit, note, warn, icon, min, max, st
     if (!isNaN(n)) onChange(n);
     else setRaw(String(value ?? ''));
   };
+  const c = PRO_FIELD_COLORS[color] || PRO_FIELD_COLORS.blue;
+  const accent = warn ? '#f59e0b' : c.border;
+  const labelColor = warn ? '#b45309' : c.label;
+  const boxBg = warn ? '#fffbeb' : c.bg;
   return (
-    <div style={{ marginBottom: '0' }}>
-      <label style={{ display:'block', fontSize:'0.72rem', fontWeight:600, color:'#475569', marginBottom:'4px', letterSpacing:'0.03em', textTransform:'uppercase' }}>
+    <div style={{ background: boxBg, borderRadius:'10px', borderLeft:`4px solid ${accent}`, padding:'12px 14px' }}>
+      <label style={{ display:'block', fontSize:'0.72rem', fontWeight:700, color:labelColor, marginBottom:'6px', letterSpacing:'0.03em', textTransform:'uppercase' }}>
         {icon&&<span style={{marginRight:'5px'}}>{icon}</span>}{label}
-        {unit&&<span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', marginLeft:'4px' }}>({unit})</span>}
+        {unit&&<span style={{ fontWeight:400, textTransform:'none', marginLeft:'4px', opacity:0.7 }}>({unit})</span>}
       </label>
       <div style={{ position:'relative' }}>
         <input
@@ -3450,39 +3465,42 @@ const ProInput = ({ label, value, onChange, unit, note, warn, icon, min, max, st
           style={{
             width:'100%', boxSizing:'border-box',
             padding: unit ? '9px 44px 9px 12px' : '9px 12px',
-            border: warn ? '1.5px solid #f59e0b' : '1.5px solid #e2e8f0',
+            border: `2px solid ${warn ? '#fcd34d' : accent}55`,
             borderRadius:'8px',
-            fontSize:'0.9rem', fontWeight:500, color:'#1e293b',
-            background: warn ? '#fffbeb' : 'white',
+            fontSize:'1rem', fontWeight:700, color:'#1e293b',
+            background: 'white',
             fontFamily: DS.fontMono,
             outline:'none',
             transition:'border-color 0.15s, box-shadow 0.15s',
           }}
-          onFocusCapture={e=>{ e.target.style.borderColor='#3b82f6'; e.target.style.boxShadow='0 0 0 3px rgba(59,130,246,0.12)'; }}
-          onBlurCapture={e=>{ e.target.style.borderColor=warn?'#f59e0b':'#e2e8f0'; e.target.style.boxShadow='none'; }}
+          onFocusCapture={e=>{ e.target.style.borderColor=accent; e.target.style.boxShadow=`0 0 0 3px ${accent}22`; }}
+          onBlurCapture={e=>{ e.target.style.borderColor=`${warn?'#fcd34d':accent}55`; e.target.style.boxShadow='none'; }}
         />
         {unit&&<span style={{ position:'absolute', right:'12px', top:'50%', transform:'translateY(-50%)', fontSize:'0.75rem', color:'#94a3b8', fontWeight:600, pointerEvents:'none' }}>{unit}</span>}
       </div>
-      {note&&<p style={{ fontSize:'0.67rem', color: warn?'#d97706':'#94a3b8', margin:'3px 0 0', fontStyle:'italic' }}>{note}</p>}
+      {note&&<p style={{ fontSize:'0.67rem', color:labelColor, margin:'5px 0 0', fontWeight:500 }}>{note}</p>}
     </div>
   );
 };
 
-// Composant : Select stylé
-const ProSelect = ({ label, value, onChange, options, icon }) => (
-  <div>
-    <label style={{ display:'block', fontSize:'0.72rem', fontWeight:600, color:'#475569', marginBottom:'4px', letterSpacing:'0.03em', textTransform:'uppercase' }}>
-      {icon&&<span style={{marginRight:'5px'}}>{icon}</span>}{label}
-    </label>
-    <div style={{ position:'relative' }}>
-      <select value={value} onChange={e=>onChange(e.target.value)}
-        style={{ width:'100%', boxSizing:'border-box', padding:'9px 36px 9px 12px', border:'1.5px solid #e2e8f0', borderRadius:'8px', fontSize:'0.88rem', fontWeight:500, color:'#1e293b', background:'white', appearance:'none', cursor:'pointer', outline:'none' }}>
-        {options.map(o => <option key={o.v||o} value={o.v||o}>{o.l||o}</option>)}
-      </select>
-      <span style={{ position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', color:'#94a3b8', pointerEvents:'none', fontSize:'10px' }}>▼</span>
+// Composant : Select stylé (même style "carte encadrée" que ProInput)
+const ProSelect = ({ label, value, onChange, options, icon, color='blue' }) => {
+  const c = PRO_FIELD_COLORS[color] || PRO_FIELD_COLORS.blue;
+  return (
+    <div style={{ background:c.bg, borderRadius:'10px', borderLeft:`4px solid ${c.border}`, padding:'12px 14px' }}>
+      <label style={{ display:'block', fontSize:'0.72rem', fontWeight:700, color:c.label, marginBottom:'6px', letterSpacing:'0.03em', textTransform:'uppercase' }}>
+        {icon&&<span style={{marginRight:'5px'}}>{icon}</span>}{label}
+      </label>
+      <div style={{ position:'relative' }}>
+        <select value={value} onChange={e=>onChange(e.target.value)}
+          style={{ width:'100%', boxSizing:'border-box', padding:'9px 36px 9px 12px', border:`2px solid ${c.border}55`, borderRadius:'8px', fontSize:'0.95rem', fontWeight:700, color:'#1e293b', background:'white', appearance:'none', cursor:'pointer', outline:'none' }}>
+          {options.map(o => <option key={o.v||o} value={o.v||o}>{o.l||o}</option>)}
+        </select>
+        <span style={{ position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', color:c.border, pointerEvents:'none', fontSize:'10px' }}>▼</span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Composant : Alerte (danger / warning / info / success)
 // Composant : bouton "Sauvegarder ce calcul" — appelle POST /save-calculation
@@ -3693,16 +3711,16 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
           <ProCard>
             <SectionHead icon="⚙️" title="Configuration d'aspiration" color="#2563eb" sub="Type et géométrie de l'installation"/>
             <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
-              <ProSelect label="Type d'aspiration" value={inputData.suction_type} icon="🔧"
+              <ProSelect label="Type d'aspiration" value={inputData.suction_type} icon="🔧" color="blue"
                 onChange={v=>set('suction_type',v)}
                 options={[{v:'flooded',l:'① En charge (réservoir surélevé)'},{v:'suction_lift',l:'③ En dépression (aspiration montante)'}]}/>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
                 <ProInput label={isFlooded?'Hauteur eau / pompe':'Hauteur de levée'} value={inputData.hasp}
-                  onChange={v=>set('hasp',v)} unit="m" icon="📐"
+                  onChange={v=>set('hasp',v)} unit="m" icon="📐" color="blue"
                   note={isFlooded?'Eau au-dessus de la pompe':'Pompe au-dessus de l\'eau'}
                   warn={!isFlooded && inputData.hasp > 6}/>
                 <ProInput label="Débit de pompage" value={inputData.flow_rate}
-                  onChange={v=>set('flow_rate',v)} unit="m³/h" icon="💧"/>
+                  onChange={v=>set('flow_rate',v)} unit="m³/h" icon="💧" color="blue"/>
               </div>
               {!isFlooded && inputData.hasp > 6 && (
                 <ProAlert type="warning" title="Hauteur d'aspiration élevée">
@@ -3716,11 +3734,11 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
           <ProCard>
             <SectionHead icon="🧪" title="Fluide pompé" color="#7c3aed" sub="Propriétés physico-chimiques"/>
             <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
-              <ProSelect label="Type de fluide" value={inputData.fluid_type} icon="💧"
+              <ProSelect label="Type de fluide" value={inputData.fluid_type} icon="💧" color="purple"
                 onChange={v=>set('fluid_type',v)}
                 options={fluids.map(f=>({v:f.id,l:f.name}))}/>
               <ProInput label="Température" value={inputData.temperature}
-                onChange={v=>set('temperature',v)} unit="°C" icon="🌡️"
+                onChange={v=>set('temperature',v)} unit="°C" icon="🌡️" color="purple"
                 warn={inputData.temperature > 60}
                 note={inputData.temperature > 60 ? 'Température élevée ↑ pression vapeur → risque cavitation accru' : 'La température influe sur Pv et ρ'}/>
               {inputData.temperature > 60 && (
@@ -3737,19 +3755,19 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
             <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
                 <ProInput label="Diamètre DN" value={inputData.pipe_diameter}
-                  onChange={v=>set('pipe_diameter',v)} unit="mm" icon="⌀"
+                  onChange={v=>set('pipe_diameter',v)} unit="mm" icon="⌀" color="green"
                   warn={inputData.pipe_diameter < 50}
                   note={inputData.pipe_diameter < 50 ? 'DN trop faible → vitesse excessive' : ''}/>
                 <ProInput label="Longueur" value={inputData.pipe_length}
-                  onChange={v=>set('pipe_length',v)} unit="m" icon="📏"
+                  onChange={v=>set('pipe_length',v)} unit="m" icon="📏" color="green"
                   warn={inputData.pipe_length > 20}
                   note={inputData.pipe_length > 20 ? 'Long. élev. → pertes de charge importantes' : ''}/>
               </div>
-              <ProSelect label="Matériau" value={inputData.pipe_material} icon="🏗️"
+              <ProSelect label="Matériau" value={inputData.pipe_material} icon="🏗️" color="green"
                 onChange={v=>set('pipe_material',v)}
                 options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               <ProInput label="NPSHr constructeur" value={inputData.npsh_required}
-                onChange={v=>set('npsh_required',v)} unit="m" icon="📋"
+                onChange={v=>set('npsh_required',v)} unit="m" icon="📋" color="green"
                 note="Valeur fournie par le fabricant de la pompe"/>
             </div>
           </ProCard>
@@ -3990,14 +4008,14 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
             <SectionHead icon="🏗️" title="Type d'installation" color="#059669"/>
             <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
               <div style={{ display:'grid', gridTemplateColumns: inputData.installation_type==='surface' ? '1fr 1fr' : '1fr', gap:'8px' }}>
-                <ProSelect label="Installation" value={inputData.installation_type} icon="⚙️"
+                <ProSelect label="Installation" value={inputData.installation_type} icon="⚙️" color="green"
                   onChange={v=>{
                     set('installation_type',v);
                     if (v !== 'surface') set('hasp', 0); // pompe immergée : pas de hauteur d'aspiration à dimensionner
                   }}
                   options={[{v:'surface',l:'En surface'},{v:'forage',l:'Forage/Puits'},{v:'relevage',l:'Relevage'}]}/>
                 {inputData.installation_type === 'surface' && (
-                  <ProSelect label="Type aspiration" value={inputData.suction_type} icon="🔧"
+                  <ProSelect label="Type aspiration" value={inputData.suction_type} icon="🔧" color="green"
                     onChange={v=>set('suction_type',v)}
                     options={[{v:'flooded',l:'En charge'},{v:'suction_lift',l:'En dépression'}]}/>
                 )}
@@ -4010,14 +4028,14 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
               )}
               <div style={{ display:'grid', gridTemplateColumns: inputData.installation_type==='surface' ? '1fr 1fr 1fr' : '1fr 1fr', gap:'8px' }}>
                 {inputData.installation_type === 'surface' && (
-                  <ProInput label="Hasp" value={inputData.hasp} onChange={v=>set('hasp',v)} unit="m"
+                  <ProInput label="Hasp" value={inputData.hasp} onChange={v=>set('hasp',v)} unit="m" color="green"
                     warn={inputData.suction_type!=='flooded'&&inputData.hasp>6}/>
                 )}
-                <ProInput label="H. refoulement" value={inputData.discharge_height} onChange={v=>set('discharge_height',v)} unit="m"/>
-                <ProInput label="P. utile" value={inputData.useful_pressure} onChange={v=>set('useful_pressure',v)} unit="bar"
+                <ProInput label="H. refoulement" value={inputData.discharge_height} onChange={v=>set('discharge_height',v)} unit="m" color="green"/>
+                <ProInput label="P. utile" value={inputData.useful_pressure} onChange={v=>set('useful_pressure',v)} unit="bar" color="green"
                   note="0 si réseau libre"/>
               </div>
-              <ProInput label="Débit" value={inputData.flow_rate} onChange={v=>set('flow_rate',v)} unit="m³/h" icon="💧"/>
+              <ProInput label="Débit" value={inputData.flow_rate} onChange={v=>set('flow_rate',v)} unit="m³/h" icon="💧" color="green"/>
             </div>
           </ProCard>
 
@@ -4025,9 +4043,9 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
           <ProCard>
             <SectionHead icon="🧪" title="Fluide" color="#7c3aed"/>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
-              <ProSelect label="Type de fluide" value={inputData.fluid_type} onChange={v=>set('fluid_type',v)}
+              <ProSelect label="Type de fluide" value={inputData.fluid_type} onChange={v=>set('fluid_type',v)} color="purple"
                 options={fluids.map(f=>({v:f.id,l:f.name}))}/>
-              <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C"
+              <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C" color="purple"
                 warn={inputData.temperature>60}/>
             </div>
           </ProCard>
@@ -4038,8 +4056,8 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
               <SectionHead icon="🔵" title="Tuyauterie aspiration" color="#2563eb" sub={`DN${inputData.suction_pipe_diameter} — ${inputData.suction_pipe_length}m`}/>
               <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                  <ProInput label="Diamètre DN" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} unit="mm" warn={inputData.suction_pipe_diameter<50}/>
-                  <ProInput label="Longueur" value={inputData.suction_pipe_length} onChange={v=>set('suction_pipe_length',v)} unit="m"/>
+                  <ProInput label="Diamètre DN" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} unit="mm" color="blue" warn={inputData.suction_pipe_diameter<50}/>
+                  <ProInput label="Longueur" value={inputData.suction_pipe_length} onChange={v=>set('suction_pipe_length',v)} unit="m" color="blue"/>
                 </div>
                 <ProSelect label="Matériau" value={inputData.suction_pipe_material} onChange={v=>set('suction_pipe_material',v)}
                   options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
@@ -4053,10 +4071,10 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
             <SectionHead icon="🟢" title="Tuyauterie refoulement" color="#059669" sub={`DN${inputData.discharge_pipe_diameter} — ${inputData.discharge_pipe_length}m`}/>
             <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProInput label="Diamètre DN" value={inputData.discharge_pipe_diameter} onChange={v=>set('discharge_pipe_diameter',v)} unit="mm"/>
-                <ProInput label="Longueur" value={inputData.discharge_pipe_length} onChange={v=>set('discharge_pipe_length',v)} unit="m"/>
+                <ProInput label="Diamètre DN" value={inputData.discharge_pipe_diameter} onChange={v=>set('discharge_pipe_diameter',v)} unit="mm" color="green"/>
+                <ProInput label="Longueur" value={inputData.discharge_pipe_length} onChange={v=>set('discharge_pipe_length',v)} unit="m" color="green"/>
               </div>
-              <ProSelect label="Matériau" value={inputData.discharge_pipe_material} onChange={v=>set('discharge_pipe_material',v)}
+              <ProSelect label="Matériau" value={inputData.discharge_pipe_material} onChange={v=>set('discharge_pipe_material',v)} color="green"
                 options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               <RaccordsSection side="discharge" label="Raccords refoulement" color="#059669"/>
             </div>
@@ -4248,17 +4266,17 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
             <SectionHead icon="💧" title="Paramètres hydrauliques" color="#2563eb"/>
             <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProInput label="Débit Q" value={inputData.flow_rate} onChange={v=>set('flow_rate',v)} unit="m³/h" icon="💧"/>
-                <ProInput label="HMT" value={inputData.hmt} onChange={v=>set('hmt',v)} unit="m" icon="📐"/>
+                <ProInput label="Débit Q" value={inputData.flow_rate} onChange={v=>set('flow_rate',v)} unit="m³/h" icon="💧" color="blue"/>
+                <ProInput label="HMT" value={inputData.hmt} onChange={v=>set('hmt',v)} unit="m" icon="📐" color="blue"/>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProInput label="DN tuyauterie" value={inputData.pipe_diameter} onChange={v=>set('pipe_diameter',v)} unit="mm"/>
-                <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C"/>
+                <ProInput label="DN tuyauterie" value={inputData.pipe_diameter} onChange={v=>set('pipe_diameter',v)} unit="mm" color="blue"/>
+                <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C" color="blue"/>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProSelect label="Fluide" value={inputData.fluid_type} onChange={v=>set('fluid_type',v)}
+                <ProSelect label="Fluide" value={inputData.fluid_type} onChange={v=>set('fluid_type',v)} color="blue"
                   options={fluids.map(f=>({v:f.id,l:f.name}))}/>
-                <ProSelect label="Matériau" value={inputData.pipe_material} onChange={v=>set('pipe_material',v)}
+                <ProSelect label="Matériau" value={inputData.pipe_material} onChange={v=>set('pipe_material',v)} color="blue"
                   options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               </div>
             </div>
@@ -4269,18 +4287,18 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
             <SectionHead icon="⚡" title="Rendements & Puissance" color="#d97706" sub="IEC 60034 — IE2/IE3"/>
             <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProInput label="η pompe" value={inputData.pump_efficiency} onChange={v=>set('pump_efficiency',v)} unit="%" icon="🔄"
+                <ProInput label="η pompe" value={inputData.pump_efficiency} onChange={v=>set('pump_efficiency',v)} unit="%" icon="🔄" color="amber"
                   warn={effWarn}
                   note={effWarn?'Rendement faible — pompe dégradée?':effGood?'Bon rendement ✓':'Rendement moyen'}/>
-                <ProInput label="η moteur" value={inputData.motor_efficiency} onChange={v=>set('motor_efficiency',v)} unit="%" icon="🔌"/>
+                <ProInput label="η moteur" value={inputData.motor_efficiency} onChange={v=>set('motor_efficiency',v)} unit="%" icon="🔌" color="amber"/>
               </div>
               {effWarn && <ProAlert type="warning" title="Rendement pompe faible">
                 ηp &lt; 60% indique une pompe hors de son point de fonctionnement optimal ou usée. Vérifiez l'impulseur et les joints d'étanchéité.
               </ProAlert>}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProInput label="P1 absorbée" value={inputData.power_input||''} onChange={v=>set('power_input',v||null)} unit="kW"
+                <ProInput label="P1 absorbée" value={inputData.power_input||''} onChange={v=>set('power_input',v||null)} unit="kW" color="amber"
                   note="Optionnel — mesure réelle"/>
-                <ProInput label="P2 hydraulique" value={inputData.hydraulic_power||''} onChange={v=>set('hydraulic_power',v||null)} unit="kW"
+                <ProInput label="P2 hydraulique" value={inputData.hydraulic_power||''} onChange={v=>set('hydraulic_power',v||null)} unit="kW" color="amber"
                   note="Optionnel — mesure réelle"/>
               </div>
             </div>
@@ -4291,16 +4309,16 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
             <SectionHead icon="⚡" title="Paramètres électriques" color="#7c3aed" sub="Câblage & démarrage"/>
             <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <ProSelect label="Méthode démarrage" value={inputData.starting_method} onChange={v=>set('starting_method',v)}
+                <ProSelect label="Méthode démarrage" value={inputData.starting_method} onChange={v=>set('starting_method',v)} color="purple"
                   options={[{v:'direct',l:'Direct (DOL)'},{v:'star_delta',l:'Étoile-Triangle'},{v:'soft_starter',l:'Démarreur progressif'},{v:'vfd',l:'Variateur (VFD)'}]}/>
-                <ProSelect label="Tension réseau" value={inputData.voltage} onChange={v=>set('voltage',v)}
+                <ProSelect label="Tension réseau" value={inputData.voltage} onChange={v=>set('voltage',v)} color="purple"
                   options={['400V','230V','380V','660V'].map(v=>({v,l:v+' — 50Hz'}))}/>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
-                <ProInput label="cos φ" value={inputData.power_factor} onChange={v=>set('power_factor',v)} icon="φ"
+                <ProInput label="cos φ" value={inputData.power_factor} onChange={v=>set('power_factor',v)} icon="φ" color="purple"
                   note="0.7 → 0.9 typique"/>
-                <ProInput label="Long. câble" value={inputData.cable_length} onChange={v=>set('cable_length',v)} unit="m"/>
-                <ProSelect label="Matériau" value={inputData.cable_material} onChange={v=>set('cable_material',v)}
+                <ProInput label="Long. câble" value={inputData.cable_length} onChange={v=>set('cable_length',v)} unit="m" color="purple"/>
+                <ProSelect label="Matériau" value={inputData.cable_material} onChange={v=>set('cable_material',v)} color="purple"
                   options={[{v:'copper',l:'Cuivre'},{v:'aluminum',l:'Aluminium'}]}/>
               </div>
             </div>
