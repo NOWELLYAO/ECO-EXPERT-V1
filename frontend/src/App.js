@@ -3644,6 +3644,7 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [viewTab, setViewTab] = useState('config');
 
   const set = (k, v) => setInputData(p => ({ ...p, [k]: v }));
 
@@ -3656,6 +3657,7 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
     try {
       const res = await axios.post(`${API}/calculate-npshd`, inputData);
       setResult(res.data);
+      setViewTab('results');
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -3673,10 +3675,19 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
         <div style={{ fontSize:'0.75rem', opacity:0.6 }}>Net Positive Suction Head Available — Prévention de la cavitation · ISO 9906</div>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
+      <SubTabNav
+        active={viewTab}
+        onChange={setViewTab}
+        tabs={[
+          { id: 'config', label: '📝 Configuration', color: 'blue' },
+          { id: 'results', label: '📊 Résultats', color: 'green', disabled: !result },
+        ]}
+      />
+
+      <div style={{ display:'grid', gridTemplateColumns: '1fr', gap:'16px' }}>
 
         {/* ── Colonne gauche : formulaire ── */}
-        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {viewTab === 'config' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
 
           {/* Config aspiration */}
           <ProCard>
@@ -3773,10 +3784,10 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
             style={{ padding:'14px', background: loading?'#94a3b8':'linear-gradient(135deg,#1d4ed8,#2563eb)', color:'white', border:'none', borderRadius:'10px', fontWeight:700, fontSize:'1rem', cursor:loading?'not-allowed':'pointer', fontFamily:DS.fontHead, boxShadow:'0 4px 12px rgba(37,99,235,0.3)', transition:'all 0.2s' }}>
             {loading ? '⏳ Calcul en cours…' : '🔷 Calculer NPSHd'}
           </button>
-        </div>
+        </div>}
 
         {/* ── Colonne droite : résultats ── */}
-        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {viewTab === 'results' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
 
           {/* Aperçu instantané */}
           <ProCard style={{ background:'linear-gradient(135deg,#f8fafc,#eff6ff)' }}>
@@ -3879,7 +3890,7 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
 
             <SaveCalculationButton calculationType="npshd" inputData={inputData} resultData={result} />
           </>)}
-        </div>
+        </div>}
       </div>
     </div>
   );
@@ -3909,6 +3920,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [viewTab, setViewTab] = useState('config');
 
   const set = (k, v) => setInputData(p => ({...p,[k]:v}));
   const addF = side => setInputData(p => ({...p,[`${side}_fittings`]:[...p[`${side}_fittings`],{fitting_type:'elbow_90',quantity:1}]}));
@@ -3917,7 +3929,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
 
   const calc = async () => {
     setLoading(true);
-    try { const r = await axios.post(`${API}/calculate-hmt`, inputData); setResult(r.data); }
+    try { const r = await axios.post(`${API}/calculate-hmt`, inputData); setResult(r.data); setViewTab('results'); }
     catch(e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -3959,10 +3971,19 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
         <div style={{ fontSize:'0.75rem', opacity:0.6 }}>Hauteur Manométrique Totale — Darcy-Weisbach · Colebrook-White · NF EN 806</div>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
+      <SubTabNav
+        active={viewTab}
+        onChange={setViewTab}
+        tabs={[
+          { id: 'config', label: '📝 Configuration', color: 'green' },
+          { id: 'results', label: '📊 Résultats', color: 'blue', disabled: !result },
+        ]}
+      />
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:'16px' }}>
 
         {/* Gauche */}
-        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {viewTab === 'config' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
 
           {/* Installation */}
           <ProCard>
@@ -4045,10 +4066,10 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
             style={{ padding:'14px', background:loading?'#94a3b8':'linear-gradient(135deg,#065f46,#059669)', color:'white', border:'none', borderRadius:'10px', fontWeight:700, fontSize:'1rem', cursor:loading?'not-allowed':'pointer', fontFamily:DS.fontHead, boxShadow:'0 4px 12px rgba(5,150,105,0.3)' }}>
             {loading ? '⏳ Calcul en cours…' : '🔶 Calculer HMT'}
           </button>
-        </div>
+        </div>}
 
         {/* Droite : résultats */}
-        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {viewTab === 'results' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
 
           {/* Aperçu data */}
           <ProCard style={{ background:'linear-gradient(135deg,#f8fafc,#f0fdf4)' }}>
@@ -4148,7 +4169,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
             )}
             <SaveCalculationButton calculationType="hmt" inputData={inputData} resultData={result} />
           </>)}
-        </div>
+        </div>}
       </div>
     </div>
   );
@@ -4177,6 +4198,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [viewTab, setViewTab] = useState('config');
 
   const set = (k, v) => setInputData(p => ({...p,[k]:v}));
 
@@ -4187,6 +4209,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
       const payload = { ...inputData, voltage: parseInt(inputData.voltage, 10) };
       const r = await axios.post(`${API}/calculate-performance`, payload);
       setResult(r.data);
+      setViewTab('results');
     } catch(e) {
       console.error(e);
       alert("Erreur lors de l'analyse : " + (e.response?.data?.detail || e.message));
@@ -4206,10 +4229,19 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
         <div style={{ fontSize:'0.75rem', opacity:0.6 }}>Rendement · Puissance · Courbes · Câblage électrique · IEC 60034</div>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' }}>
+      <SubTabNav
+        active={viewTab}
+        onChange={setViewTab}
+        tabs={[
+          { id: 'config', label: '📝 Configuration', color: 'yellow' },
+          { id: 'results', label: '📊 Résultats', color: 'purple' },
+        ]}
+      />
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:'16px' }}>
 
         {/* Gauche */}
-        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {viewTab === 'config' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
 
           {/* Hydraulique */}
           <ProCard>
@@ -4278,10 +4310,10 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
             style={{ padding:'14px', background:loading?'#94a3b8':'linear-gradient(135deg,#92400e,#d97706)', color:'white', border:'none', borderRadius:'10px', fontWeight:700, fontSize:'1rem', cursor:loading?'not-allowed':'pointer', boxShadow:'0 4px 12px rgba(217,119,6,0.3)' }}>
             {loading ? '⏳ Analyse en cours…' : '📊 Analyser Performance'}
           </button>
-        </div>
+        </div>}
 
         {/* Droite */}
-        <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {viewTab === 'results' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
 
           {/* Indicateur rendement en temps réel */}
           <ProCard>
@@ -4391,7 +4423,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
             )}
             <SaveCalculationButton calculationType="performance" inputData={inputData} resultData={result} />
           </>)}
-        </div>
+        </div>}
       </div>
     </div>
   );
@@ -8891,6 +8923,7 @@ const WaterHammerCalculator = () => {
     wave_speed: null,
   });
   const [result, setResult] = useState(null);
+  const [viewTab, setViewTab] = useState('config');
 
   const materials = {
     steel: { E: 210e9, name: 'Acier' },
@@ -8927,6 +8960,7 @@ const WaterHammerCalculator = () => {
       critical: Tc < Tr,
       safe: dP_bar < 10,
     });
+    setViewTab('results');
   };
 
   return (
@@ -8944,7 +8978,16 @@ const WaterHammerCalculator = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <SubTabNav
+        active={viewTab}
+        onChange={setViewTab}
+        tabs={[
+          { id: 'config', label: '📝 Configuration', color: 'blue' },
+          { id: 'results', label: '📊 Résultats', color: 'cyan', disabled: !result },
+        ]}
+      />
+
+      {viewTab === 'config' && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         {/* Inputs */}
         <div className="card">
           <div className="card-header"><div className="card-title">⚙️ Paramètres</div></div>
@@ -9021,10 +9064,10 @@ const WaterHammerCalculator = () => {
             </svg>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Results */}
-      {result && (
+      {viewTab === 'results' && result && (
         <div className="card fade-in">
           <div className="card-header">
             <div className="card-title">📊 Résultats</div>
@@ -11083,6 +11126,7 @@ const PumpSelector = () => {
 const MotorCableCalculator = () => {
   const [data, setData] = useState({ Ph: 5, eta_pump: 75, eta_motor: 92, voltage: 400, pf: 0.85, cable_length: 50, cable_material: 'copper', delta_U_max: 3 });
   const [result, setResult] = useState(null);
+  const [viewTab, setViewTab] = useState('config');
   const set = (k, v) => setData(p => ({ ...p, [k]: v }));
 
   const cableSections = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
@@ -11098,6 +11142,7 @@ const MotorCableCalculator = () => {
     const S_chosen = cableSections.find(s => s >= S_min) || cableSections[cableSections.length - 1];
     const dU_actual = (rho_m * Math.sqrt(3) * I * data.cable_length) / (S_chosen / 1e6) / data.voltage * 100;
     setResult({ Pa, I, S_min, S_chosen, dU_actual });
+    setViewTab('results');
   };
 
   return (
@@ -11109,7 +11154,16 @@ const MotorCableCalculator = () => {
         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>Dimensionnement électrique complet : puissance absorbée, intensité, section de câble</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <SubTabNav
+        active={viewTab}
+        onChange={setViewTab}
+        tabs={[
+          { id: 'config', label: '📝 Configuration', color: 'yellow' },
+          { id: 'results', label: '📊 Résultats', color: 'blue', disabled: !result },
+        ]}
+      />
+
+      {viewTab === 'config' && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         <div className="card">
           <div className="card-header"><div className="card-title">⚙️ Paramètres</div></div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -11181,29 +11235,29 @@ const MotorCableCalculator = () => {
               </svg>
             </div>
           </div>
-
-          {/* Results */}
-          {result && (
-            <div className="card fade-in">
-              <div className="card-header"><div className="card-title">📊 Résultats électriques</div></div>
-              <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                {[
-                  { l: 'Puissance absorbée', v: result.Pa.toFixed(2), u: 'kW' },
-                  { l: 'Intensité nominale', v: result.I.toFixed(1), u: 'A' },
-                  { l: 'Section min calculée', v: result.S_min.toFixed(1), u: 'mm²' },
-                  { l: 'Section normalisée', v: result.S_chosen, u: 'mm²', highlight: true },
-                  { l: 'Chute de tension', v: result.dU_actual.toFixed(2), u: '%', ok: result.dU_actual <= data.delta_U_max },
-                ].map((r, i) => (
-                  <div key={i} style={{ background: r.highlight ? '#f0fdf4' : r.ok === false ? '#fef2f2' : 'var(--slate-50)', border: `1.5px solid ${r.highlight ? '#86efac' : r.ok === false ? '#fca5a5' : 'var(--slate-200)'}`, borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
-                    <div style={{ fontWeight: 800, fontSize: '1.2rem', color: r.highlight ? '#16a34a' : r.ok === false ? '#dc2626' : 'var(--navy-900)' }}>{r.v} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{r.u}</span></div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--slate-500)', marginTop: '2px' }}>{r.l}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
-      </div>
+      </div>}
+
+      {/* Results */}
+      {viewTab === 'results' && result && (
+        <div className="card fade-in">
+          <div className="card-header"><div className="card-title">📊 Résultats électriques</div></div>
+          <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {[
+              { l: 'Puissance absorbée', v: result.Pa.toFixed(2), u: 'kW' },
+              { l: 'Intensité nominale', v: result.I.toFixed(1), u: 'A' },
+              { l: 'Section min calculée', v: result.S_min.toFixed(1), u: 'mm²' },
+              { l: 'Section normalisée', v: result.S_chosen, u: 'mm²', highlight: true },
+              { l: 'Chute de tension', v: result.dU_actual.toFixed(2), u: '%', ok: result.dU_actual <= data.delta_U_max },
+            ].map((r, i) => (
+              <div key={i} style={{ background: r.highlight ? '#f0fdf4' : r.ok === false ? '#fef2f2' : 'var(--slate-50)', border: `1.5px solid ${r.highlight ? '#86efac' : r.ok === false ? '#fca5a5' : 'var(--slate-200)'}`, borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: r.highlight ? '#16a34a' : r.ok === false ? '#dc2626' : 'var(--navy-900)' }}>{r.v} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{r.u}</span></div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--slate-500)', marginTop: '2px' }}>{r.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
