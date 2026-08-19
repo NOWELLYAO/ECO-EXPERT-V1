@@ -229,7 +229,7 @@ const AuditSystem = () => {
     let score = 100;
     
     // Pénalités énergétiques
-    if (!energyAuditData.variable_frequency_drive && activeAuditTab === 'energy') score -= 25;
+    if (!energyAuditData.variable_frequency_drive) score -= 25;
     if (parseFloat(energyAuditData.power_factor_measured) < 0.9) score -= 15;
     if (energyAuditData.control_system === 'basic') score -= 20;
     if (energyAuditData.energy_consumption_increase) score -= 20;
@@ -5482,13 +5482,17 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
     // Analyse de performance énergétique
     const efficiency = (input.pump_efficiency / 100) * (input.motor_efficiency / 100) * 100;
     if (efficiency < 65) {
-      const potential_savings = (75 - efficiency) * 0.01 * input.operating_hours * input.electricity_cost;
+      // Économie potentielle = gain de rendement visé × puissance absorbée réelle × heures × coût
+      // (le terme de puissance était manquant dans une ancienne version : l'estimation
+      // ne dépendait alors pas de la taille réelle de l'installation, ce qui était incorrect)
+      const absorbedPower = perf?.absorbed_power || 0;
+      const potential_savings = (75 - efficiency) * 0.01 * absorbedPower * input.operating_hours * input.electricity_cost;
       recommendations.push({
         type: 'energy',
         priority: 2,
         title: '⚡ EFFICACITÉ ÉNERGÉTIQUE FAIBLE',
-        description: `Rendement global ${efficiency.toFixed(1)}% - Potentiel d'économie de ${potential_savings.toFixed(0)}€/an`,
-        impact: `Surconsommation: ${(potential_savings * 10).toFixed(0)}€ sur 10 ans`,
+        description: `Rendement global ${efficiency.toFixed(1)}% - Potentiel d'économie de ${potential_savings.toFixed(0)} FCFA/an`,
+        impact: `Surconsommation: ${(potential_savings * 10).toFixed(0)} FCFA sur 10 ans`,
         solutions: [
           'Pompe haute efficacité (gain 5-10%)',
           'Moteur haut rendement Premium (gain 2-5%)',
@@ -6895,9 +6899,9 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   <div className="text-lg font-bold text-green-600">
                     {results.electrical_analysis?.annual_energy_cost?.toFixed(0) || 'N/A'}
                   </div>
-                  <div className="text-sm text-gray-600">Coût/an (€)</div>
+                  <div className="text-sm text-gray-600">Coût/an (FCFA)</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {inputData.electricity_cost?.toFixed(3) || 'N/A'} €/kWh
+                    {inputData.electricity_cost?.toFixed(3) || 'N/A'} FCFA/kWh
                   </div>
                 </div>
               </div>
