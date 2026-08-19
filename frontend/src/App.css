@@ -40,7 +40,7 @@
 /* ---- Reset ---- */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -49,7 +49,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
+
+#root { overflow-x: hidden; }
 
 /* ---- Scrollbar ---- */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -795,6 +799,59 @@ canvas { max-height: 400px; }
 
 @media (max-width: 480px) {
   .dashboard-stats { grid-template-columns: repeat(1, 1fr); }
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE (iPhone & Android portrait)
+   Ces règles ciblent les styles inline en grille (display:grid)
+   utilisés dans presque tous les onglets, pour les empiler
+   proprement sur petit écran sans avoir à toucher chaque composant.
+   ============================================================ */
+@media (max-width: 767px) {
+  /* Empile toutes les grilles à 2 ou 3 colonnes égales */
+  [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+  [style*="grid-template-columns: 1fr 1fr 1fr"],
+  [style*="grid-template-columns: repeat(3"] { grid-template-columns: 1fr !important; }
+
+  /* Grilles à 4 ou 5 colonnes (ex: cartes KPI) → 2 colonnes, plus lisible qu'1 seule */
+  [style*="grid-template-columns: repeat(4"],
+  [style*="grid-template-columns: repeat(5"] { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Formulaires : évite le zoom automatique de Safari iOS quand la police d'un champ est < 16px */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Schémas SVG (installation, hydraulique, dessin) : toujours contenus dans leur carte */
+  .app-main svg { max-width: 100%; height: auto; }
+
+  /* En-tête plus compact */
+  .header-title { font-size: 1.15rem; }
+  .header-subtitle { font-size: 0.62rem; }
+  .header-logo { width: 38px; height: 38px; font-size: 19px; }
+  .header-version { display: none; }
+  .app-main { padding: 12px 12px 40px; }
+
+  /* Marges latérales du bandeau d'en-tête réduites (plus de place pour le contenu) */
+  [style*="padding: 0 24px"] { padding: 0 14px !important; }
+
+  /* Cartes (ProCard) : padding resserré pour laisser plus de place au contenu */
+  [style*="padding: 20px 22px"] { padding: 14px 16px !important; }
+
+  /* Filet de sécurité : toute rangée flex (boutons, badges, tags, en-têtes) passe
+     à la ligne plutôt que de déborder horizontalement. Sans effet quand le contenu
+     tient déjà sur une ligne — ne modifie rien dans ce cas. */
+  [style*="display: flex"]:not([style*="flex-direction: column"]) { flex-wrap: wrap !important; }
+}
+
+@media (max-width: 400px) {
+  .header-subtitle { display: none; }
+  .header-badge-text { display: none; }
+  .header-badge { padding: 4px 8px; }
+}
+
+/* Tablette : les grilles à 4-5 colonnes passent à 3, le reste garde 2 colonnes */
+@media (min-width: 768px) and (max-width: 1023px) {
+  [style*="grid-template-columns: repeat(4"],
+  [style*="grid-template-columns: repeat(5"] { grid-template-columns: repeat(3, 1fr) !important; }
 }
 
 /* ============================================================
