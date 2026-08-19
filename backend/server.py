@@ -1,15 +1,18 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import math
+import jwt
+from passlib.context import CryptContext
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,8 +22,32 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# ── Authentification ──
+JWT_SECRET = os.environ.get('JWT_SECRET', 'change-me-in-production-' + str(uuid.uuid4()))
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRE_DAYS = 30
+pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+bearer_scheme = HTTPBearer(auto_error=False)
+
+
 # Create the main app without a prefix
 app = FastAPI()
+
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    """Messages d'erreur de validation plus lisibles (ex: champ requis, valeur hors limites)"""
+    errors = []
+    for err in exc.errors():
+        field = ".".join(str(p) for p in err.get("loc", []) if p != "body")
+        errors.append(f"{field}: {err.get('msg')}")
+    return JSONResponse(status_code=422, content={"detail": "Données invalides — " + " | ".join(errors)})
+
+@app.exception_handler(ZeroDivisionError)
+async def zero_division_handler(request, exc):
+    return JSONResponse(status_code=400, content={"detail": "Calcul impossible : une valeur d'entrée (diamètre, longueur...) est nulle. Vérifiez vos paramètres."})
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -638,53 +665,53 @@ class FittingInput(BaseModel):
 
 class NPSHdCalculationInput(BaseModel):
     suction_type: str = "flooded"  # "flooded" or "suction_lift"
-    hasp: float  # m (suction height - positive = flooded / negative = suction lift)
-    flow_rate: float  # m³/h
+    hasp: float = Field(ge=0)  # m (suction height - positive = flooded / negative = suction lift)
+    flow_rate: float = Field(gt=0, description="Le débit doit être supérieur à 0")
     fluid_type: str
     temperature: float = 20  # °C
-    pipe_diameter: float  # mm
+    pipe_diameter: float = Field(gt=0, description="Le diamètre de tuyauterie doit être supérieur à 0")
     pipe_material: str
-    pipe_length: float  # m (suction side)
+    pipe_length: float = Field(gt=0, description="La longueur de tuyauterie doit être supérieure à 0")
     suction_fittings: List[FittingInput] = []
     npsh_required: float = 3.5  # m (NPSH requis from pump manufacturer)
 
 class HMTCalculationInput(BaseModel):
     installation_type: str = "surface"  # "surface" or "submersible"
     suction_type: str = "flooded"  # "flooded" or "suction_lift" (only for surface installation)
-    hasp: float  # m (suction height - only for surface installation)
+    hasp: float = Field(ge=0)  # m (suction height - only for surface installation)
     discharge_height: float  # m
     useful_pressure: float = 0  # bar (required delivery pressure)
-    suction_pipe_diameter: float  # mm
-    discharge_pipe_diameter: float  # mm
-    suction_pipe_length: float  # m
-    discharge_pipe_length: float  # m
+    suction_pipe_diameter: float = Field(gt=0, description="Le diamètre d'aspiration doit être supérieur à 0")
+    discharge_pipe_diameter: float = Field(gt=0, description="Le diamètre de refoulement doit être supérieur à 0")
+    suction_pipe_length: float = Field(gt=0, description="La longueur d'aspiration doit être supérieure à 0")
+    discharge_pipe_length: float = Field(gt=0, description="La longueur de refoulement doit être supérieure à 0")
     suction_pipe_material: str
     discharge_pipe_material: str
     suction_fittings: List[FittingInput] = []
     discharge_fittings: List[FittingInput] = []
     fluid_type: str
     temperature: float = 20  # °C
-    flow_rate: float  # m³/h
-    pump_efficiency: float = 70  # % - used only for the indicative absorbed power shown in this tab
+    flow_rate: float = Field(gt=0, description="Le débit doit être supérieur à 0")
+    pump_efficiency: float = Field(70, gt=0, le=100)  # % - used only for the indicative absorbed power shown in this tab
 
 class PerformanceAnalysisInput(BaseModel):
-    flow_rate: float  # m³/h
-    hmt: float  # m
-    pipe_diameter: float  # mm
+    flow_rate: float = Field(gt=0, description="Le débit doit être supérieur à 0")
+    hmt: float = Field(gt=0, description="La HMT doit être supérieure à 0")
+    pipe_diameter: float = Field(gt=0, description="Le diamètre de tuyauterie doit être supérieur à 0")
     required_npsh: Optional[float] = None  # m (from pump datasheet) - Made optional
     calculated_npshd: Optional[float] = None  # m (from Tab 1) - Made optional
     fluid_type: str
     pipe_material: str
-    pump_efficiency: float  # %
-    motor_efficiency: float  # %
+    pump_efficiency: float = Field(gt=0, le=100)  # %
+    motor_efficiency: float = Field(gt=0, le=100)  # %
     absorbed_power: Optional[float] = None  # kW (P1)
     hydraulic_power: Optional[float] = None  # kW (P2)
     starting_method: str = "star_delta"  # or "direct_on_line"
-    power_factor: float = 0.8  # cos φ
-    cable_length: float  # m
+    power_factor: float = Field(0.8, gt=0, le=1)  # cos φ
+    cable_length: float = Field(ge=0)  # m
     cable_material: str = "copper"  # or "aluminum"
     cable_section: Optional[float] = None  # mm²
-    voltage: int = 400  # V
+    voltage: int = Field(400, gt=0)  # V
 
 class NPSHdResult(BaseModel):
     input_data: NPSHdCalculationInput
@@ -910,13 +937,41 @@ class CalculationResult(BaseModel):
 
 class PumpHistory(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
     project_name: str
-    calculation_result: CalculationResult
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    calculation_type: str  # "npshd" | "hmt" | "performance" | "expert"
+    input_data: Dict[str, Any]
+    result_data: Dict[str, Any]
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class PumpHistoryCreate(BaseModel):
     project_name: str
-    calculation_result: CalculationResult
+    calculation_type: str
+    input_data: Dict[str, Any]
+    result_data: Dict[str, Any]
+
+# ── Modèles Authentification ──
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6)
+    name: str = Field(min_length=1)
+    company: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserPublic(BaseModel):
+    id: str
+    email: str
+    name: str
+    company: Optional[str] = None
+    created_at: datetime
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserPublic
 
 # ============================================================================
 # ENHANCED HYDRAULIC CALCULATION FUNCTIONS
@@ -2520,6 +2575,69 @@ def perform_hydraulic_calculation(input_data: CalculationInput) -> CalculationRe
     )
 
 # ============================================================================
+# AUTHENTIFICATION
+# ============================================================================
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return pwd_context.verify(plain, hashed)
+
+def create_access_token(user_id: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRE_DAYS)
+    payload = {"sub": user_id, "exp": expire}
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> dict:
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Authentification requise. Veuillez vous connecter.")
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get("sub")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Session expirée. Veuillez vous reconnecter.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Jeton d'authentification invalide.")
+    user = await db.users.find_one({"id": user_id})
+    if user is None:
+        raise HTTPException(status_code=401, detail="Utilisateur introuvable.")
+    return user
+
+def user_to_public(user: dict) -> UserPublic:
+    return UserPublic(id=user["id"], email=user["email"], name=user["name"],
+                       company=user.get("company"), created_at=user["created_at"])
+
+@api_router.post("/auth/register", response_model=TokenResponse)
+async def register(data: UserCreate):
+    existing = await db.users.find_one({"email": data.email.lower()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Un compte existe déjà avec cet email.")
+    user = {
+        "id": str(uuid.uuid4()),
+        "email": data.email.lower(),
+        "password_hash": hash_password(data.password),
+        "name": data.name,
+        "company": data.company,
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db.users.insert_one(user)
+    token = create_access_token(user["id"])
+    return TokenResponse(access_token=token, user=user_to_public(user))
+
+@api_router.post("/auth/login", response_model=TokenResponse)
+async def login(data: UserLogin):
+    user = await db.users.find_one({"email": data.email.lower()})
+    if not user or not verify_password(data.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect.")
+    token = create_access_token(user["id"])
+    return TokenResponse(access_token=token, user=user_to_public(user))
+
+@api_router.get("/auth/me", response_model=UserPublic)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    return user_to_public(current_user)
+
+# ============================================================================
 # ENHANCED API ENDPOINTS FOR THREE TABS
 # ============================================================================
 
@@ -2557,7 +2675,7 @@ async def get_fittings():
         ]
     }
 
-@api_router.post("/calculate-npshd")
+@api_router.post("/calculate-npshd", response_model=NPSHdResult)
 async def calculate_npshd_endpoint(input_data: NPSHdCalculationInput):
     """Calcul NPSHd - Onglet 1"""
     try:
@@ -2566,7 +2684,7 @@ async def calculate_npshd_endpoint(input_data: NPSHdCalculationInput):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@api_router.post("/calculate-hmt")
+@api_router.post("/calculate-hmt", response_model=HMTResult)
 async def calculate_hmt_endpoint(input_data: HMTCalculationInput):
     """Calcul HMT - Onglet 2"""
     try:
@@ -2575,7 +2693,7 @@ async def calculate_hmt_endpoint(input_data: HMTCalculationInput):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@api_router.post("/calculate-performance")
+@api_router.post("/calculate-performance", response_model=PerformanceAnalysisResult)
 async def calculate_performance_endpoint(input_data: PerformanceAnalysisInput):
     """Analyse de performance - Onglet 3"""
     try:
@@ -2595,25 +2713,25 @@ async def calculate_pump_performance(input_data: CalculationInput):
         raise HTTPException(status_code=400, detail=str(e))
 
 @api_router.post("/save-calculation", response_model=PumpHistory)
-async def save_calculation(input_data: PumpHistoryCreate):
-    """Save calculation to history"""
-    history_obj = PumpHistory(**input_data.dict())
+async def save_calculation(input_data: PumpHistoryCreate, current_user: dict = Depends(get_current_user)):
+    """Save calculation to history (per-user)"""
+    history_obj = PumpHistory(user_id=current_user["id"], **input_data.dict())
     await db.pump_history.insert_one(history_obj.dict())
     return history_obj
 
 @api_router.get("/history", response_model=List[PumpHistory])
-async def get_calculation_history():
-    """Get calculation history"""
-    history = await db.pump_history.find().sort("timestamp", -1).to_list(100)
+async def get_calculation_history(current_user: dict = Depends(get_current_user)):
+    """Get calculation history for the current user only"""
+    history = await db.pump_history.find({"user_id": current_user["id"]}).sort("timestamp", -1).to_list(100)
     return [PumpHistory(**item) for item in history]
 
 @api_router.delete("/history/{history_id}")
-async def delete_calculation(history_id: str):
-    """Delete calculation from history"""
-    result = await db.pump_history.delete_one({"id": history_id})
+async def delete_calculation(history_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a calculation from history — only if it belongs to the current user"""
+    result = await db.pump_history.delete_one({"id": history_id, "user_id": current_user["id"]})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Calculation not found")
-    return {"message": "Calculation deleted successfully"}
+        raise HTTPException(status_code=404, detail="Calcul introuvable")
+    return {"message": "Calcul supprimé"}
 
 # ============================================================================
 # EXPERT SOLAIRE - DIMENSIONNEMENT POMPAGE SOLAIRE
@@ -3307,10 +3425,19 @@ async def get_solar_equipment():
 # Include the router in the main app
 app.include_router(api_router)
 
+# CORS : l'authentification se fait par jeton Bearer (pas de cookies), donc
+# allow_credentials n'est pas nécessaire. Origines restreintes via env var
+# CORS_ORIGINS (liste séparée par des virgules), avec un repli raisonnable.
+_cors_origins_env = os.environ.get("CORS_ORIGINS", "")
+_allowed_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()] or [
+    "http://localhost:3000",
+    "https://eco-expert-v1.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
+    allow_credentials=False,
+    allow_origins=_allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
