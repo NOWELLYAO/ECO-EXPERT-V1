@@ -364,43 +364,17 @@ const AuditSystem = () => {
       </div>
 
       {/* Navigation sous-onglets */}
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="border-b border-gray-200">
-          <nav className="flex">
-            <button
-              onClick={() => setActiveAuditTab('hydraulic')}
-              className={`px-6 py-4 text-sm font-medium border-b-2 ${
-                activeAuditTab === 'hydraulic'
-                  ? 'border-blue-500 text-blue-600 bg-blue-50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              🔧 Audit Hydraulique
-            </button>
-            <button
-              onClick={() => setActiveAuditTab('energy')}
-              className={`px-6 py-4 text-sm font-medium border-b-2 ${
-                activeAuditTab === 'energy'
-                  ? 'border-green-500 text-green-600 bg-green-50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              ⚡ Audit Énergétique
-            </button>
-            <button
-              onClick={() => setActiveAuditTab('results')}
-              className={`px-6 py-4 text-sm font-medium border-b-2 ${
-                activeAuditTab === 'results'
-                  ? 'border-purple-500 text-purple-600 bg-purple-50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-              disabled={!auditResults}
-            >
-              📊 Résultats & Recommandations
-            </button>
-          </nav>
-        </div>
+      <SubTabNav
+        active={activeAuditTab}
+        onChange={setActiveAuditTab}
+        tabs={[
+          { id: 'hydraulic', label: '🔧 Audit Hydraulique', color: 'blue' },
+          { id: 'energy', label: '⚡ Audit Énergétique', color: 'green' },
+          { id: 'results', label: '📊 Résultats & Recommandations', color: 'purple', disabled: !auditResults },
+        ]}
+      />
 
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         {/* Contenu des sous-onglets */}
         <div className="p-6">
           {activeAuditTab === 'hydraulic' && (
@@ -3603,6 +3577,29 @@ const KPICard = ({ label, value, unit, sub, color='#2563eb', bg='#eff6ff', icon,
 );
 
 // Composant : Section header stylé
+// Composant : navigation par sous-onglets en pilules colorées (style de l'onglet Solaire,
+// généralisé à toute l'app). Couleurs limitées à celles déjà utilisées statiquement
+// ailleurs dans le projet (blue, cyan, yellow, green, purple) pour garantir que
+// Tailwind génère bien les classes correspondantes.
+const SubTabNav = ({ tabs, active, onChange }) => (
+  <div className="flex flex-wrap gap-2">
+    {tabs.map(t => (
+      <button
+        key={t.id}
+        onClick={() => !t.disabled && onChange(t.id)}
+        disabled={t.disabled}
+        className={`px-4 py-2 rounded-lg font-medium transition-all ${t.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${
+          active === t.id
+            ? `bg-${t.color}-500 text-white shadow-lg`
+            : `bg-${t.color}-100 text-${t.color}-700 hover:bg-${t.color}-200`
+        }`}
+      >
+        {t.label}
+      </button>
+    ))}
+  </div>
+);
+
 const SectionHead = ({ icon, title, color='#2563eb', sub }) => (
   <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px', paddingBottom:'10px', borderBottom:`2px solid ${color}22` }}>
     <span style={{ fontSize:'1.3rem' }}>{icon}</span>
@@ -5738,26 +5735,19 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
               <span>Excel</span>
             </button>
           </div>
-          
-          <div className="flex space-x-2">
-            {['all', 'hydraulic', 'electrical', 'analysis'].map(section => (
-              <button
-                key={section}
-                onClick={() => setActiveSection(section)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                  activeSection === section 
-                    ? 'bg-white text-purple-600' 
-                    : 'bg-purple-500 text-white hover:bg-purple-400'
-                }`}
-              >
-                {section === 'all' ? 'Tout' : 
-                 section === 'hydraulic' ? 'Hydraulique' : 
-                 section === 'electrical' ? 'Électrique' : 'Analyse'}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
+
+      <SubTabNav
+        active={activeSection}
+        onChange={setActiveSection}
+        tabs={[
+          { id: 'all', label: 'Tout', color: 'purple' },
+          { id: 'hydraulic', label: 'Hydraulique', color: 'blue' },
+          { id: 'electrical', label: 'Électrique', color: 'yellow' },
+          { id: 'analysis', label: 'Analyse', color: 'green' },
+        ]}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Panneau de saisie - Colonne 1 */}
