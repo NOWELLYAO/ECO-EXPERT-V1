@@ -92,13 +92,24 @@ PIPE_MATERIALS = {
 FITTING_COEFFICIENTS = {
     "elbow_90": {"name": "Coude 90°", "k": 0.9},
     "elbow_45": {"name": "Coude 45°", "k": 0.4},
+    "elbow_30": {"name": "Coude 30°", "k": 0.2},
     "tee_through": {"name": "Té passage direct", "k": 0.6},
+    "tee_flow": {"name": "Té passage direct", "k": 0.6},
     "tee_branch": {"name": "Té dérivation", "k": 1.8},
     "gate_valve_open": {"name": "Vanne guillotine ouverte", "k": 0.15},
     "gate_valve_half": {"name": "Vanne guillotine mi-ouverte", "k": 5.6},
+    "gate_valve": {"name": "Vanne guillotine", "k": 0.15},
+    "globe_valve": {"name": "Vanne à soupape (globe)", "k": 6.0},
+    "butterfly_valve": {"name": "Vanne papillon", "k": 0.3},
     "ball_valve": {"name": "Vanne à boule", "k": 0.05},
     "check_valve": {"name": "Clapet anti-retour", "k": 2.0},
+    "foot_valve": {"name": "Clapet de pied (crépine + anti-retour)", "k": 2.5},
+    "strainer": {"name": "Crépine / filtre", "k": 1.5},
+    "flow_meter": {"name": "Débitmètre", "k": 0.3},
+    "pressure_gauge": {"name": "Manomètre (piquage, pas dans le flux)", "k": 0.0},
     "reducer": {"name": "Réducteur", "k": 0.5},
+    "reducer_gradual": {"name": "Réducteur progressif", "k": 0.15},
+    "reducer_sudden": {"name": "Réducteur brusque", "k": 0.5},
     "enlarger": {"name": "Élargisseur", "k": 1.0},
     "entrance_sharp": {"name": "Entrée vive", "k": 0.5},
     "entrance_smooth": {"name": "Entrée arrondie", "k": 0.1},
@@ -990,6 +1001,8 @@ def calculate_singular_head_loss(velocity: float, fittings: List[FittingInput]) 
         if fitting.fitting_type in FITTING_COEFFICIENTS:
             k_value = FITTING_COEFFICIENTS[fitting.fitting_type]["k"]
             total_k += k_value * fitting.quantity
+        else:
+            logger.warning(f"Type de raccord inconnu ignoré dans le calcul de pertes de charge: '{fitting.fitting_type}'")
     
     return total_k * (velocity**2) / (2 * 9.81)  # Head loss in meters
 
@@ -1006,13 +1019,17 @@ def calculate_linear_head_loss_enhanced(velocity: float, pipe_length: float,
     relative_roughness = roughness / pipe_diameter  # Relative roughness
     
     # Calculate friction factor using Colebrook-White equation (Swamee-Jain approximation)
+    # f = 0.25 / [log10(ε/(3.7D) + 5.74/Re^0.9)]²  — formule de Swamee-Jain correcte
+    # (l'ancienne implémentation mélangeait par erreur ce coefficient 0.25 avec les
+    # termes internes de la formule de Haaland — 6.9/Re et exposant 1.11 — ce qui
+    # sous-estimait le facteur de frottement d'environ 19-20%)
     if reynolds_number < 2300:
         # Laminar flow
         friction_factor = 64 / reynolds_number
     else:
         # Turbulent flow
-        term1 = (relative_roughness / 3.7) ** 1.11
-        term2 = 6.9 / reynolds_number
+        term1 = relative_roughness / 3.7
+        term2 = 5.74 / (reynolds_number ** 0.9)
         friction_factor = 0.25 / (math.log10(term1 + term2) ** 2)
     
     # Darcy-Weisbach equation for head loss
@@ -1331,9 +1348,10 @@ def calculate_friction_factor(reynolds_number: float, roughness: float = 0.00004
         return 64 / reynolds_number
     else:
         # Turbulent flow - Swamee-Jain approximation
+        # f = 0.25 / [log10(ε/(3.7D) + 5.74/Re^0.9)]²
         relative_roughness = roughness / 1000  # Assume 1m diameter for relative roughness
-        term1 = (roughness / 3.7) ** 1.11
-        term2 = 6.9 / reynolds_number
+        term1 = relative_roughness / 3.7
+        term2 = 5.74 / (reynolds_number ** 0.9)
         return 0.25 / (math.log10(term1 + term2) ** 2)
 
 def calculate_npshd_enhanced(input_data: NPSHdCalculationInput) -> NPSHdResult:
@@ -1661,8 +1679,8 @@ def calculate_darcy_head_loss(flow_rate: float, pipe_diameter: float, pipe_lengt
         friction_factor = 64 / reynolds_number
     else:
         # Turbulent flow - Swamee-Jain approximation
-        term1 = (relative_roughness / 3.7) ** 1.11
-        term2 = 6.9 / reynolds_number
+        term1 = relative_roughness / 3.7
+        term2 = 5.74 / (reynolds_number ** 0.9)
         friction_factor = 0.25 / (math.log10(term1 + term2) ** 2)
     
     # Darcy-Weisbach formula: ΔH = f × (L/D) × (V²/2g)
@@ -2091,12 +2109,16 @@ def calculate_expert_analysis(input_data: ExpertAnalysisInput) -> ExpertAnalysis
     # Stabilité du système
     system_stability = not npshd_result.cavitation_risk and overall_efficiency > 60
     
-    # Consommation énergétique (kWh/m³)
-    hydraulic_power = perf_result.power_calculations.get("hydraulic_power", 0)
-    energy_consumption = hydraulic_power / input_data.flow_rate if input_data.flow_rate > 0 else 0
+    # Consommation énergétique (kWh/m³) — basée sur la puissance ABSORBÉE réelle (P1),
+    # c'est-à-dire ce qui est effectivement prélevé sur le réseau électrique.
+    # (perf_result.power_calculations["hydraulic_power"] est en réalité la puissance
+    # mécanique à l'arbre Pm, plus faible que P1 — l'utiliser ici sous-estimait le
+    # coût énergétique réel et les économies potentielles calculées plus bas)
+    absorbed_power_for_cost = perf_result.absorbed_power
+    energy_consumption = absorbed_power_for_cost / input_data.flow_rate if input_data.flow_rate > 0 else 0
     
     # Coût énergétique annuel
-    annual_energy_consumption = hydraulic_power * input_data.operating_hours
+    annual_energy_consumption = absorbed_power_for_cost * input_data.operating_hours
     annual_energy_cost = annual_energy_consumption * input_data.electricity_cost
     
     # Recommandations d'expert enrichies
@@ -2322,8 +2344,8 @@ def calculate_expert_analysis(input_data: ExpertAnalysisInput) -> ExpertAnalysis
             "type": "energy",
             "priority": 2,
             "title": "⚡ EFFICACITÉ ÉNERGÉTIQUE FAIBLE",
-            "description": f"Rendement global {overall_efficiency:.1f}% - Potentiel d'économie de {potential_savings:.0f}€/an",
-            "impact": f"Surconsommation: {potential_savings * 10:.0f}€ sur 10 ans",
+            "description": f"Rendement global {overall_efficiency:.1f}% - Potentiel d'économie de {potential_savings:.0f} FCFA/an",
+            "impact": f"Surconsommation: {potential_savings * 10:.0f} FCFA sur 10 ans",
             "solutions": [
                 "Pompe haute efficacité (gain 5-10%)",
                 "Moteur haut rendement Premium (gain 2-5%)",
@@ -2408,7 +2430,7 @@ def calculate_expert_analysis(input_data: ExpertAnalysisInput) -> ExpertAnalysis
             "flow": input_data.flow_rate,
             "head": hmt_result.hmt,
             "efficiency": overall_efficiency,
-            "power": hydraulic_power
+            "power": perf_result.hydraulic_power
         }
     }
     
@@ -2438,7 +2460,7 @@ def calculate_expert_analysis(input_data: ExpertAnalysisInput) -> ExpertAnalysis
             "overall_efficiency": perf_result.overall_efficiency,
             "pump_efficiency": perf_result.pump_efficiency,
             "motor_efficiency": perf_result.motor_efficiency,
-            "hydraulic_power": hydraulic_power,
+            "hydraulic_power": perf_result.hydraulic_power,
             "electrical_power": perf_result.power_calculations.get("absorbed_power", 0),
             "nominal_current": perf_result.nominal_current,
             "starting_current": perf_result.starting_current,
