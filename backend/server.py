@@ -950,6 +950,7 @@ class PumpHistory(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     project_name: str
+    client_name: Optional[str] = None
     calculation_type: str  # "npshd" | "hmt" | "performance" | "expert"
     input_data: Dict[str, Any]
     result_data: Dict[str, Any]
@@ -957,6 +958,7 @@ class PumpHistory(BaseModel):
 
 class PumpHistoryCreate(BaseModel):
     project_name: str
+    client_name: Optional[str] = None
     calculation_type: str
     input_data: Dict[str, Any]
     result_data: Dict[str, Any]
