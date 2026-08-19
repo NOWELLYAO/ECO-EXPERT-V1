@@ -1,0 +1,17 @@
+{
+  "short_name": "ECO-PUMP AFRIK",
+  "name": "ECO-PUMP AFRIK — Calculateur Hydraulique Professionnel",
+  "description": "Calculateur hydraulique professionnel : NPSHd, HMT, Performance, sélection de pompes, dimensionnement solaire.",
+  "icons": [
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0a0f1e",
+  "background_color": "#0a0f1e",
+  "lang": "fr"
+}
