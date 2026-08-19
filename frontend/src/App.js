@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Chart from 'chart.js/auto';
 import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 import './App.css';
 
@@ -5331,77 +5332,105 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
       return;
     }
 
-    // Créer les données CSV
-    const csvData = [];
-    
-    // En-tête
-    csvData.push(['Rapport d\'Analyse Expert - Système de Pompage']);
-    csvData.push(['Généré le', new Date().toLocaleDateString('fr-FR')]);
-    csvData.push([]);
-    
-    // Paramètres d'entrée
-    csvData.push(['PARAMÈTRES D\'ENTRÉE']);
-    csvData.push(['Débit (m³/h)', inputData.flow_rate]);
-    csvData.push(['Fluide', inputData.fluid_type]);
-    csvData.push(['Température (°C)', inputData.temperature]);
-    csvData.push(['Diamètre aspiration (mm)', inputData.suction_pipe_diameter]);
-    csvData.push(['Diamètre refoulement (mm)', inputData.discharge_pipe_diameter]);
-    csvData.push([]);
-    
-    // Résultats NPSHd
+    const wb = XLSX.utils.book_new();
+
+    // ── Feuille 1 : Résumé ──
+    const summaryRows = [
+      ['ECO-PUMP AFRIK — Rapport d\'Analyse Expert'],
+      ['Généré le', new Date().toLocaleDateString('fr-FR')],
+      ['Projet', inputData.project_name || '—'],
+      ['Client', inputData.company_name || '—'],
+      ['Ingénieur', `${inputData.engineer_firstname || ''} ${inputData.engineer_name || ''}`.trim() || '—'],
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+    wsSummary['!cols'] = [{ wch: 28 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Résumé');
+
+    // ── Feuille 2 : Paramètres d'entrée ──
+    const paramRows = [
+      ['Paramètre', 'Valeur'],
+      ['Débit (m³/h)', inputData.flow_rate],
+      ['Fluide', fluids.find(f => f.id === inputData.fluid_type)?.name || inputData.fluid_type],
+      ['Température (°C)', inputData.temperature],
+      ['Diamètre aspiration (mm)', inputData.suction_pipe_diameter],
+      ['Diamètre refoulement (mm)', inputData.discharge_pipe_diameter],
+      ['Matériau aspiration', pipeMaterials.find(m => m.id === inputData.suction_material)?.name || inputData.suction_material],
+      ['Matériau refoulement', pipeMaterials.find(m => m.id === inputData.discharge_material)?.name || inputData.discharge_material],
+      ['Longueur aspiration (m)', inputData.suction_length],
+      ['Longueur refoulement (m)', inputData.discharge_length],
+      ['Hauteur aspiration (m)', inputData.suction_height],
+      ['Hauteur refoulement (m)', inputData.discharge_height],
+      ['Rendement pompe (%)', inputData.pump_efficiency],
+      ['Rendement moteur (%)', inputData.motor_efficiency],
+      ['Tension (V)', inputData.voltage],
+    ];
+    const wsParams = XLSX.utils.aoa_to_sheet(paramRows);
+    wsParams['!cols'] = [{ wch: 30 }, { wch: 24 }];
+    XLSX.utils.book_append_sheet(wb, wsParams, 'Paramètres');
+
+    // ── Feuille 3 : NPSHd ──
     if (results.npshd_analysis) {
-      csvData.push(['RÉSULTATS NPSHd']);
-      csvData.push(['NPSHd calculé (m)', results.npshd_analysis.npshd?.toFixed(2)]);
-      csvData.push(['NPSH requis (m)', results.npshd_analysis.npsh_required?.toFixed(2)]);
-      csvData.push(['Marge de sécurité (m)', results.npshd_analysis.npsh_margin?.toFixed(2)]);
-      csvData.push(['Risque de cavitation', results.npshd_analysis.cavitation_risk ? 'OUI' : 'NON']);
-      csvData.push([]);
+      const n = results.npshd_analysis;
+      const rows = [
+        ['Résultat', 'Valeur', 'Unité'],
+        ['NPSHd calculé', n.npshd?.toFixed(2), 'm'],
+        ['NPSH requis', n.npsh_required?.toFixed(2), 'm'],
+        ['Marge de sécurité', n.npsh_margin?.toFixed(2), 'm'],
+        ['Vitesse', n.velocity?.toFixed(2), 'm/s'],
+        ['Nombre de Reynolds', n.reynolds_number?.toFixed(0), ''],
+        ['Risque de cavitation', n.cavitation_risk ? 'OUI ⚠️' : 'NON ✓', ''],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 26 }, { wch: 14 }, { wch: 8 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'NPSHd');
     }
-    
-    // Résultats HMT
+
+    // ── Feuille 4 : HMT ──
     if (results.hmt_analysis) {
-      csvData.push(['RÉSULTATS HMT']);
-      csvData.push(['HMT calculée (m)', results.hmt_analysis.hmt?.toFixed(2)]);
-      csvData.push(['Hauteur statique (m)', results.hmt_analysis.static_head?.toFixed(2)]);
-      csvData.push(['Pertes de charge totales (m)', results.hmt_analysis.total_head_loss?.toFixed(2)]);
-      csvData.push([]);
+      const h = results.hmt_analysis;
+      const rows = [
+        ['Résultat', 'Valeur', 'Unité'],
+        ['HMT calculée', h.hmt?.toFixed(2), 'm'],
+        ['Hauteur statique', h.static_head?.toFixed(2), 'm'],
+        ['Pertes de charge totales', h.total_head_loss?.toFixed(2), 'm'],
+        ['Vitesse aspiration', h.suction_velocity?.toFixed(2), 'm/s'],
+        ['Vitesse refoulement', h.discharge_velocity?.toFixed(2), 'm/s'],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 26 }, { wch: 14 }, { wch: 8 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'HMT');
     }
-    
-    // Performance énergétique
+
+    // ── Feuille 5 : Performance ──
     if (results.performance_analysis) {
-      csvData.push(['PERFORMANCE ÉNERGÉTIQUE']);
-      csvData.push(['Rendement global (%)', results.performance_analysis.overall_efficiency?.toFixed(1)]);
-      csvData.push(['Puissance hydraulique (kW)', results.performance_analysis.hydraulic_power?.toFixed(2)]);
-      csvData.push(['Puissance électrique (kW)', results.performance_analysis.electrical_power?.toFixed(2)]);
-      csvData.push([]);
+      const p = results.performance_analysis;
+      const rows = [
+        ['Résultat', 'Valeur', 'Unité'],
+        ['Rendement global', p.overall_efficiency?.toFixed(1), '%'],
+        ['Rendement pompe', p.pump_efficiency?.toFixed(1), '%'],
+        ['Rendement moteur', p.motor_efficiency?.toFixed(1), '%'],
+        ['Puissance hydraulique', p.hydraulic_power?.toFixed(2), 'kW'],
+        ['Puissance électrique absorbée', p.electrical_power?.toFixed(2), 'kW'],
+        ['Courant nominal', p.nominal_current?.toFixed(1), 'A'],
+        ['Courant de démarrage', p.starting_current?.toFixed(1), 'A'],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 28 }, { wch: 14 }, { wch: 8 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'Performance');
     }
-    
-    // Recommandations
+
+    // ── Feuille 6 : Recommandations ──
     if (results.expert_recommendations && results.expert_recommendations.length > 0) {
-      csvData.push(['RECOMMANDATIONS']);
-      results.expert_recommendations.forEach((rec, index) => {
-        csvData.push([`${index + 1}. ${rec.title}`]);
-        csvData.push(['Description', rec.description]);
-        csvData.push(['Impact', rec.impact]);
-        csvData.push([]);
+      const rows = [['#', 'Titre', 'Description', 'Impact']];
+      results.expert_recommendations.forEach((rec, i) => {
+        rows.push([i + 1, rec.title, rec.description, rec.impact || '—']);
       });
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 55 }, { wch: 35 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'Recommandations');
     }
-    
-    // Convertir en CSV
-    const csvContent = csvData.map(row => 
-      row.map(cell => `"${cell}"`).join(',')
-    ).join('\n');
-    
-    // Télécharger
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `donnees-pompage-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+
+    XLSX.writeFile(wb, `ECO-PUMP-AFRIK-Rapport-${(inputData.company_name || 'Client').replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const calculateExpertAnalysis = async (data = inputData) => {
