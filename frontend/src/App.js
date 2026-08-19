@@ -3598,7 +3598,12 @@ const ProInput = ({ label, value, onChange, unit, note, warn, icon, min, max, st
         <input
           type="text" inputMode="decimal"
           value={raw}
-          onChange={e=>setRaw(e.target.value)}
+          onChange={e=>{
+            const v = e.target.value;
+            setRaw(v);
+            const n = parseFloat(v);
+            if (!isNaN(n)) onChange(n); // mise à jour en temps réel (ex: suggestion DN pendant la saisie)
+          }}
           onBlur={e=>commit(e.target.value)}
           onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
           onFocus={e=>e.target.select()}
@@ -3643,7 +3648,7 @@ const ProSelect = ({ label, value, onChange, options, icon, color='blue' }) => {
 
 // Composant : Alerte (danger / warning / info / success)
 // Composant : bouton "Sauvegarder ce calcul" — appelle POST /save-calculation
-const SaveCalculationButton = ({ calculationType, inputData, resultData }) => {
+const SaveCalculationButton = ({ calculationType, inputData, resultData, onSaved }) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -3668,6 +3673,7 @@ const SaveCalculationButton = ({ calculationType, inputData, resultData }) => {
       setSaved(true);
       setShowPrompt(false);
       setTimeout(() => setSaved(false), 3000);
+      if (onSaved) onSaved(); // rafraîchit l'historique côté App pour qu'il apparaisse immédiatement
     } catch (e) {
       setError(e.response?.data?.detail || "Impossible de sauvegarder. Vérifiez votre connexion.");
     } finally {
@@ -3799,7 +3805,7 @@ const Divider = ({ label, color='#e2e8f0' }) => (
 // ════════════════════════════════════════════════════════════════
 // NPSHd CALCULATOR — Design Pro
 // ════════════════════════════════════════════════════════════════
-const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
+const NPSHdCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
   const [inputData, setInputData] = useState({
     suction_type: 'flooded',
     hasp: 3.0,
@@ -4057,7 +4063,7 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
               </ProAlert>
             )}
 
-            <SaveCalculationButton calculationType="npshd" inputData={inputData} resultData={result} />
+            <SaveCalculationButton calculationType="npshd" inputData={inputData} resultData={result} onSaved={onHistorySaved} />
           </>)}
         </div>}
       </div>
@@ -4068,7 +4074,7 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
 // ════════════════════════════════════════════════════════════════
 // HMT CALCULATOR — Design Pro
 // ════════════════════════════════════════════════════════════════
-const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
+const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
   const [inputData, setInputData] = useState({
     installation_type: 'surface',
     suction_type: 'flooded',
@@ -4336,7 +4342,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                 </ul>
               </ProAlert>
             )}
-            <SaveCalculationButton calculationType="hmt" inputData={inputData} resultData={result} />
+            <SaveCalculationButton calculationType="hmt" inputData={inputData} resultData={result} onSaved={onHistorySaved} />
           </>)}
         </div>}
       </div>
@@ -4347,7 +4353,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
 // ════════════════════════════════════════════════════════════════
 // PERFORMANCE ANALYSIS — Design Pro
 // ════════════════════════════════════════════════════════════════
-const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
+const PerformanceAnalysis = ({ fluids, pipeMaterials, onHistorySaved }) => {
   const [inputData, setInputData] = useState({
     flow_rate: 50,
     hmt: 25,
@@ -4590,7 +4596,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                 </ul>
               </ProAlert>
             )}
-            <SaveCalculationButton calculationType="performance" inputData={inputData} resultData={result} />
+            <SaveCalculationButton calculationType="performance" inputData={inputData} resultData={result} onSaved={onHistorySaved} />
           </>)}
         </div>}
       </div>
@@ -4600,7 +4606,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
 
 
 // Component pour Tab Expert - Analyse Complète Professionnelle
-const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
+const ExpertCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
   // Fonction universelle pour calculer les propriétés des fluides
   const calculateFluidProperties = (fluidType, temperature) => {
     // Base de données des propriétés des fluides (à synchroniser avec le backend)
@@ -7162,7 +7168,7 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
 
       {results && (
         <div className="bg-white rounded-lg shadow-lg p-6 no-print">
-          <SaveCalculationButton calculationType="expert" inputData={inputData} resultData={results} />
+          <SaveCalculationButton calculationType="expert" inputData={inputData} resultData={results} onSaved={onHistorySaved} />
         </div>
       )}
     </div>
@@ -11997,9 +12003,9 @@ function App() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'home': return <DashboardHome onNavigate={setActiveTab} />;
-      case 'npshd': return <NPSHdCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} />;
-      case 'hmt': return <HMTCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} />;
-      case 'performance': return <PerformanceAnalysis fluids={fluids} pipeMaterials={pipeMaterials} />;
+      case 'npshd': return <NPSHdCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} onHistorySaved={loadHistory} />;
+      case 'hmt': return <HMTCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} onHistorySaved={loadHistory} />;
+      case 'performance': return <PerformanceAnalysis fluids={fluids} pipeMaterials={pipeMaterials} onHistorySaved={loadHistory} />;
       case 'drawing': return <DrawingTool />;
       case 'pump_selector': return <PumpSelector />;
       case 'water_hammer': return <WaterHammerCalculator />;
@@ -12007,7 +12013,7 @@ function App() {
       case 'formulas': return <FormulaDatabase />;
       case 'chemical_compatibility': return <ChemicalCompatibility />;
       case 'audit': return <AuditSystem />;
-      case 'expert': return <ExpertCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} />;
+      case 'expert': return <ExpertCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} onHistorySaved={loadHistory} />;
       case 'solar': return <SolarExpertSystem />;
       case 'history': {
         const typeLabels = { npshd: '🔷 NPSHd', hmt: '🔶 HMT', performance: '📊 Performance', expert: '🎯 Expert' };
