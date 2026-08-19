@@ -3646,7 +3646,8 @@ const SaveCalculationButton = ({ calculationType, inputData, resultData }) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
-  const [projectName, setProjectName] = useState('');
+  const [projectName, setProjectName] = useState(() => localStorage.getItem('eco_pump_last_project') || '');
+  const [clientName, setClientName] = useState(() => localStorage.getItem('eco_pump_last_client') || '');
   const [error, setError] = useState(null);
 
   const doSave = async () => {
@@ -3656,10 +3657,13 @@ const SaveCalculationButton = ({ calculationType, inputData, resultData }) => {
     try {
       await axios.post(`${API}/save-calculation`, {
         project_name: projectName.trim(),
+        client_name: clientName.trim() || null,
         calculation_type: calculationType,
         input_data: inputData,
         result_data: resultData,
       });
+      localStorage.setItem('eco_pump_last_project', projectName.trim());
+      localStorage.setItem('eco_pump_last_client', clientName.trim());
       setSaved(true);
       setShowPrompt(false);
       setTimeout(() => setSaved(false), 3000);
@@ -3673,11 +3677,20 @@ const SaveCalculationButton = ({ calculationType, inputData, resultData }) => {
   if (showPrompt) {
     return (
       <div style={{ background: 'white', border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Nom du projet</label>
-        <input autoFocus value={projectName} onChange={e => setProjectName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') doSave(); if (e.key === 'Escape') setShowPrompt(false); }}
-          placeholder="Ex : Station de pompage Client X"
-          style={{ padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', outline: 'none' }} />
+        <div>
+          <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Nom du projet</label>
+          <input autoFocus value={projectName} onChange={e => setProjectName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') doSave(); if (e.key === 'Escape') setShowPrompt(false); }}
+            placeholder="Ex : Station de pompage Zone Nord"
+            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', marginTop: '4px' }} />
+        </div>
+        <div>
+          <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Client (optionnel)</label>
+          <input value={clientName} onChange={e => setClientName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') doSave(); if (e.key === 'Escape') setShowPrompt(false); }}
+            placeholder="Ex : Société ABC"
+            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', marginTop: '4px' }} />
+        </div>
         {error && <div style={{ fontSize: '0.75rem', color: '#dc2626' }}>{error}</div>}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={doSave} disabled={saving || !projectName.trim()}
@@ -11500,6 +11513,130 @@ const SlowLoadMessage = () => {
   );
 };
 
+// ════════════════════════════════════════════════════════════════
+// COMPARATEUR — champs clés à afficher côte à côte, par type de calcul
+// ════════════════════════════════════════════════════════════════
+const COMPARISON_FIELDS = {
+  npshd: {
+    inputs: [
+      ['flow_rate', 'Débit', 'm³/h'], ['hasp', 'Hauteur asp.', 'm'],
+      ['pipe_diameter', 'Diamètre', 'mm'], ['pipe_length', 'Longueur', 'm'],
+      ['pipe_material', 'Matériau', ''], ['fluid_type', 'Fluide', ''],
+      ['temperature', 'Température', '°C'], ['npsh_required', 'NPSH requis', 'm'],
+    ],
+    results: [
+      ['npshd', 'NPSHd calculé', 'm'], ['npsh_margin', 'Marge sécurité', 'm'],
+      ['velocity', 'Vitesse', 'm/s'], ['reynolds_number', 'Reynolds', ''],
+      ['cavitation_risk', 'Risque cavitation', ''],
+    ],
+  },
+  hmt: {
+    inputs: [
+      ['flow_rate', 'Débit', 'm³/h'], ['hasp', 'Hasp', 'm'], ['discharge_height', 'H. refoulement', 'm'],
+      ['useful_pressure', 'P. utile', 'bar'], ['suction_pipe_diameter', 'Ø aspiration', 'mm'],
+      ['discharge_pipe_diameter', 'Ø refoulement', 'mm'], ['fluid_type', 'Fluide', ''],
+    ],
+    results: [
+      ['total_hmt', 'HMT totale', 'm'], ['absorbed_power', 'Puissance absorbée', 'kW'],
+      ['velocity_suction', 'Vitesse asp.', 'm/s'], ['velocity_discharge', 'Vitesse ref.', 'm/s'],
+    ],
+  },
+  performance: {
+    inputs: [
+      ['flow_rate', 'Débit', 'm³/h'], ['hmt', 'HMT', 'm'], ['pipe_diameter', 'Diamètre', 'mm'],
+      ['pump_efficiency', 'η pompe', '%'], ['motor_efficiency', 'η moteur', '%'], ['voltage', 'Tension', 'V'],
+    ],
+    results: [
+      ['overall_efficiency', 'Rendement global', '%'], ['nominal_current', 'Courant nominal', 'A'],
+      ['hydraulic_power', 'Puissance hydraulique', 'kW'], ['absorbed_power', 'Puissance absorbée', 'kW'],
+      ['cable_section', 'Section câble', 'mm²'], ['voltage_drop_percent', 'Chute tension', '%'],
+    ],
+  },
+  expert: {
+    inputs: [
+      ['flow_rate', 'Débit', 'm³/h'], ['fluid_type', 'Fluide', ''],
+      ['pump_efficiency', 'η pompe', '%'], ['motor_efficiency', 'η moteur', '%'],
+    ],
+    results: [
+      ['overall_efficiency', 'Rendement global', '%'], ['annual_energy_cost', 'Coût énergétique/an', 'FCFA'],
+    ],
+  },
+};
+
+const fmtCompVal = (v, unit) => {
+  if (v === undefined || v === null || v === '') return '—';
+  if (typeof v === 'boolean') return v ? 'Oui ⚠️' : 'Non ✓';
+  if (typeof v === 'number') return `${Number.isInteger(v) ? v : v.toFixed(2)}${unit ? ' ' + unit : ''}`;
+  return `${v}${unit ? ' ' + unit : ''}`;
+};
+
+// Composant : tableau de comparaison de 2-3 calculs sauvegardés du même type
+const ComparisonTable = ({ items, fluids, pipeMaterials, onClose }) => {
+  const type = items[0]?.calculation_type;
+  const fields = COMPARISON_FIELDS[type] || { inputs: [], results: [] };
+  const fluidName = id => fluids.find(f => f.id === id)?.name || id;
+  const materialName = id => pipeMaterials.find(m => m.id === id)?.name || id;
+
+  const resolveValue = (item, key) => {
+    let v = item.input_data?.[key] ?? item.result_data?.[key];
+    if (key === 'fluid_type' && v) return fluidName(v);
+    if ((key === 'pipe_material' || key.endsWith('_pipe_material')) && v) return materialName(v);
+    return v;
+  };
+
+  const Row = ({ label, unit, dataKey, section }) => {
+    const values = items.map(it => resolveValue(it, dataKey));
+    const allSame = values.every(v => String(v) === String(values[0]));
+    return (
+      <tr style={{ borderBottom: '1px solid var(--slate-100)' }}>
+        <td style={{ padding: '9px 12px', fontSize: '0.8rem', color: 'var(--slate-500)', fontWeight: 500 }}>{label}</td>
+        {values.map((v, i) => (
+          <td key={i} style={{
+            padding: '9px 12px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'center',
+            color: allSame ? 'var(--navy-900)' : '#b45309',
+            background: allSame ? 'transparent' : '#fffbeb',
+          }}>
+            {fmtCompVal(v, unit)}
+          </td>
+        ))}
+      </tr>
+    );
+  };
+
+  const typeLabels = { npshd: '🔷 NPSHd', hmt: '🔶 HMT', performance: '📊 Performance', expert: '🎯 Expert' };
+
+  return (
+    <div className="card fade-in" style={{ marginBottom: '16px' }}>
+      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card-title">⚖️ Comparaison — {typeLabels[type] || type}</div>
+        <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: '7px', padding: '6px 12px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', color: 'var(--slate-600)' }}>✕ Fermer</button>
+      </div>
+      <div className="card-body" style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '480px' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid var(--slate-200)' }}>
+              <th style={{ padding: '9px 12px', textAlign: 'left', fontSize: '0.72rem', color: 'var(--slate-400)', textTransform: 'uppercase' }}>Paramètre</th>
+              {items.map((it, i) => (
+                <th key={i} style={{ padding: '9px 12px', textAlign: 'center', fontSize: '0.82rem', fontWeight: 800, color: 'var(--navy-900)' }}>
+                  {it.project_name}
+                  <div style={{ fontSize: '0.65rem', fontWeight: 500, color: 'var(--slate-400)', marginTop: '2px' }}>{new Date(it.timestamp).toLocaleDateString('fr-FR')}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colSpan={items.length + 1} style={{ padding: '10px 12px 4px', fontSize: '0.68rem', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📝 Configuration</td></tr>
+            {fields.inputs.map(([key, label, unit]) => <Row key={key} dataKey={key} label={label} unit={unit} />)}
+            <tr><td colSpan={items.length + 1} style={{ padding: '14px 12px 4px', fontSize: '0.68rem', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📊 Résultats</td></tr>
+            {fields.results.map(([key, label, unit]) => <Row key={key} dataKey={key} label={label} unit={unit} />)}
+          </tbody>
+        </table>
+        <p style={{ fontSize: '0.72rem', color: 'var(--slate-400)', marginTop: '10px' }}>Les valeurs surlignées en orange diffèrent entre les calculs comparés.</p>
+      </div>
+    </div>
+  );
+};
+
 const AuthScreen = ({ onAuthenticated }) => {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [form, setForm] = useState({ email: '', password: '', name: '', company: '' });
@@ -11595,6 +11732,9 @@ function App() {
   const [pipeMaterials, setPipeMaterials] = useState([]);
   const [fittings, setFittings] = useState([]);
   const [history, setHistory] = useState([]);
+  const [compareSelection, setCompareSelection] = useState([]);
+  const [showComparator, setShowComparator] = useState(false);
+  const [collapsedProjects, setCollapsedProjects] = useState([]);
   const [dataLoadError, setDataLoadError] = useState(null);
 
   // ── Authentification ──
@@ -11705,38 +11845,131 @@ function App() {
             setHistory(h => h.filter(x => x.id !== id));
           } catch (e) { alert("Impossible de supprimer : " + (e.response?.data?.detail || e.message)); }
         };
+        const selectedType = compareSelection.length > 0
+          ? history.find(h => h.id === compareSelection[0])?.calculation_type
+          : null;
+        const toggleSelect = (item) => {
+          setCompareSelection(sel => {
+            if (sel.includes(item.id)) return sel.filter(id => id !== item.id);
+            if (sel.length > 0 && item.calculation_type !== selectedType) return sel; // types différents non comparables
+            if (sel.length >= 3) return sel; // max 3
+            return [...sel, item.id];
+          });
+        };
+        const selectedItems = history.filter(h => compareSelection.includes(h.id));
+
+        // Regroupement par projet (gestion de projets/clients) — chaque projet peut
+        // contenir des calculs NPSHd + HMT + Performance + Expert mélangés.
+        const projectGroups = {};
+        history.forEach(item => {
+          const key = item.project_name || 'Sans nom';
+          if (!projectGroups[key]) projectGroups[key] = [];
+          projectGroups[key].push(item);
+        });
+        const projectNames = Object.keys(projectGroups).sort((a, b) => {
+          const latestA = Math.max(...projectGroups[a].map(i => new Date(i.timestamp).getTime()));
+          const latestB = Math.max(...projectGroups[b].map(i => new Date(i.timestamp).getTime()));
+          return latestB - latestA;
+        });
+        const toggleCollapse = (name) => {
+          setCollapsedProjects(s => s.includes(name) ? s.filter(n => n !== name) : [...s, name]);
+        };
+
         return (
-          <div className="card fade-in">
-            <div className="card-header"><div className="card-title">📋 Historique des Calculs</div></div>
-            <div className="card-body">
-              {history.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--slate-500)' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📭</div>
-                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>Aucun calcul sauvegardé</div>
-                  <div style={{ fontSize: '0.82rem' }}>Utilisez le bouton "💾 Sauvegarder ce calcul" après un calcul NPSHd, HMT, Performance ou Expert.</div>
+          <div className="fade-in">
+            {showComparator && selectedItems.length >= 2 && (
+              <ComparisonTable items={selectedItems} fluids={fluids} pipeMaterials={pipeMaterials}
+                onClose={() => setShowComparator(false)} />
+            )}
+
+            {compareSelection.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--slate-500)', fontWeight: 600 }}>{compareSelection.length} sélectionné(s) — {typeLabels[selectedType]}</span>
+                <button onClick={() => setCompareSelection([])}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '7px', padding: '7px 12px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', color: 'var(--slate-600)' }}>
+                  Annuler
+                </button>
+                <button onClick={() => setShowComparator(true)} disabled={compareSelection.length < 2}
+                  style={{ background: compareSelection.length < 2 ? '#cbd5e1' : '#7c3aed', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '0.78rem', fontWeight: 700, cursor: compareSelection.length < 2 ? 'not-allowed' : 'pointer', color: 'white' }}>
+                  ⚖️ Comparer ({compareSelection.length})
+                </button>
+              </div>
+            )}
+
+            {history.length === 0 ? (
+              <div className="card">
+                <div className="card-body">
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--slate-500)' }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📭</div>
+                    <div style={{ fontWeight: 600, marginBottom: '4px' }}>Aucun calcul sauvegardé</div>
+                    <div style={{ fontSize: '0.82rem' }}>Utilisez le bouton "💾 Sauvegarder ce calcul" après un calcul NPSHd, HMT, Performance ou Expert.</div>
+                  </div>
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {history.map((item) => (
-                    <div key={item.id} style={{ border: '1px solid var(--slate-200)', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, color: 'var(--navy-900)', marginBottom: '3px' }}>{item.project_name}</div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--slate-500)' }}>{new Date(item.timestamp).toLocaleString('fr-FR')}</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {projectNames.map(projectName => {
+                  const items = projectGroups[projectName].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                  const client = items.find(i => i.client_name)?.client_name;
+                  const collapsed = collapsedProjects.includes(projectName);
+                  const typesPresent = [...new Set(items.map(i => i.calculation_type))];
+                  return (
+                    <div key={projectName} className="card">
+                      <div className="card-header" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}
+                        onClick={() => toggleCollapse(projectName)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '0.9rem', color: 'var(--slate-400)', transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>▾</span>
+                          <div>
+                            <div className="card-title" style={{ marginBottom: '2px' }}>📁 {projectName}</div>
+                            {client && <div style={{ fontSize: '0.76rem', color: 'var(--slate-500)' }}>👤 {client}</div>}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                          {typesPresent.map(t => (
+                            <span key={t} style={{ background: '#ccfbf1', color: '#0f766e', padding: '3px 9px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 700 }}>{typeLabels[t] || t}</span>
+                          ))}
+                          <span style={{ background: '#f1f5f9', color: 'var(--slate-500)', padding: '3px 9px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 700 }}>{items.length} calcul{items.length > 1 ? 's' : ''}</span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ background: '#ccfbf1', color: '#0f766e', padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700 }}>
-                          {typeLabels[item.calculation_type] || item.calculation_type}
-                        </span>
-                        <button onClick={() => deleteEntry(item.id)} title="Supprimer"
-                          style={{ background: '#fff1f2', border: '1px solid #fca5a5', color: '#dc2626', width: '30px', height: '30px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.85rem' }}>
-                          🗑️
-                        </button>
-                      </div>
+                      {!collapsed && (
+                        <div className="card-body">
+                          {compareSelection.length > 0 && typesPresent.includes(selectedType) && (
+                            <p style={{ fontSize: '0.72rem', color: 'var(--slate-400)', margin: '0 0 10px' }}>
+                              Seuls les calculs {typeLabels[selectedType]} peuvent être ajoutés à la comparaison en cours.
+                            </p>
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {items.map((item) => {
+                              const checked = compareSelection.includes(item.id);
+                              const disabled = compareSelection.length > 0 && !checked && (item.calculation_type !== selectedType || compareSelection.length >= 3);
+                              return (
+                                <div key={item.id} style={{ border: `1.5px solid ${checked ? '#a78bfa' : 'var(--slate-200)'}`, background: checked ? '#faf5ff' : 'var(--slate-50)', borderRadius: '10px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleSelect(item)}
+                                      style={{ width: '17px', height: '17px', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1 }}
+                                      title={disabled ? 'Type différent ou limite de 3 atteinte' : 'Sélectionner pour comparer'} />
+                                    <div>
+                                      <span style={{ background: '#ccfbf1', color: '#0f766e', padding: '2px 8px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 700, marginRight: '8px' }}>
+                                        {typeLabels[item.calculation_type] || item.calculation_type}
+                                      </span>
+                                      <span style={{ fontSize: '0.76rem', color: 'var(--slate-500)' }}>{new Date(item.timestamp).toLocaleString('fr-FR')}</span>
+                                    </div>
+                                  </div>
+                                  <button onClick={() => deleteEntry(item.id)} title="Supprimer"
+                                    style={{ background: '#fff1f2', border: '1px solid #fca5a5', color: '#dc2626', width: '28px', height: '28px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                    🗑️
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       }
