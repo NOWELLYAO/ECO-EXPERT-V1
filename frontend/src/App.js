@@ -3468,7 +3468,7 @@ const isSteelMaterial = (material) => material === 'steel' || material === 'stee
 // réels du matériau + PN si pertinent) et renvoie TOUJOURS le diamètre
 // INTÉRIEUR réel en mm via onChange (jamais le simple numéro DN), car c'est
 // cette valeur qui compte dans les formules hydrauliques.
-const DiameterDNSelector = ({ label, value, onChange, material, color = 'blue', icon }) => {
+const DiameterDNSelector = ({ label, value, onChange, material, color = 'blue', icon, flowRate, targetVelocity = 2.0 }) => {
   const [pn, setPn] = React.useState(16);
   const c = PRO_FIELD_COLORS[color] || PRO_FIELD_COLORS.blue;
 
@@ -3487,21 +3487,22 @@ const DiameterDNSelector = ({ label, value, onChange, material, color = 'blue', 
     options = PIPE_DN_SERIES_STEEL.map(dn => ({ dn, id: STEEL_DN_TO_ID[dn] }));
   }
 
-  // Auto-corrige vers l'option valide la plus proche si la valeur actuelle ne correspond à
-  // aucun DN réel (ex: matériau changé, ou valeur par défaut arbitraire au premier chargement)
-  // — évite d'afficher un sélecteur vide façon "Choisir un DN…".
-  React.useEffect(() => {
-    if (!hasTable || options.length === 0) return;
-    const exact = options.find(o => Math.abs(o.id - value) < 0.5);
-    if (!exact) {
-      const closest = options.reduce((best, o) => Math.abs(o.id - value) < Math.abs(best.id - value) ? o : best, options[0]);
-      onChange(Math.round(closest.id * 10) / 10);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [material, pn, hasTable]);
-
-  const selectedDN = options.find(o => Math.abs(o.id - value) < 0.5)?.dn ?? options[0]?.dn ?? '';
+  // Pas d'auto-sélection : si la valeur actuelle ne correspond à aucun DN réel de la
+  // liste, le menu reste sur "Choisir un DN…" — l'utilisateur choisit explicitement.
+  const selectedDN = options.find(o => Math.abs(o.id - value) < 0.5)?.dn ?? '';
   const selectedOption = options.find(o => o.dn === selectedDN);
+
+  // Suggestion basée sur le débit saisi : diamètre intérieur minimal pour rester
+  // sous la vitesse cible (Ø = sqrt(4×Q / (π×v))), puis DN réel le plus proche
+  // (au-dessus) parmi les options disponibles pour ce matériau/PN.
+  let suggestion = null;
+  if (flowRate > 0 && options.length > 0) {
+    const qM3s = flowRate / 3600;
+    const targetIdMm = Math.sqrt((4 * qM3s) / (Math.PI * targetVelocity)) * 1000;
+    suggestion = options.filter(o => o.id >= targetIdMm).sort((a, b) => a.id - b.id)[0]
+      || options.reduce((best, o) => o.id > best.id ? o : best, options[0]);
+  }
+  const suggestionMatches = suggestion && selectedOption && suggestion.dn === selectedOption.dn;
 
   if (!hasTable) {
     // Matériau sans table DN fiable (fonte, béton...) : saisie libre du diamètre intérieur
@@ -3541,10 +3542,21 @@ const DiameterDNSelector = ({ label, value, onChange, material, color = 'blue', 
           if (opt) onChange(Math.round(opt.id * 10) / 10);
         }}
         style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: `2px solid ${c.border}40`, borderRadius: '8px', fontSize: '1rem', fontWeight: 600, color: '#1e293b', background: 'white', outline: 'none', cursor: 'pointer' }}>
+        <option value="" disabled>Choisir un DN…</option>
         {options.map(o => (
           <option key={o.dn} value={o.dn}>DN{o.dn} {steel ? '' : `(Ø ext. ${o.dn}mm)`}</option>
         ))}
       </select>
+
+      {suggestion && !suggestionMatches && (
+        <button type="button" onClick={() => onChange(Math.round(suggestion.id * 10) / 10)}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', background: '#fffbeb', border: '1.5px dashed #f59e0b', borderRadius: '7px', padding: '7px 10px', cursor: 'pointer', textAlign: 'left' }}>
+          <span style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 600 }}>
+            💡 Suggéré pour {flowRate}m³/h à ≤{targetVelocity}m/s : <strong>DN{suggestion.dn}</strong>
+          </span>
+          <span style={{ fontSize: '0.68rem', color: '#b45309', fontWeight: 700, whiteSpace: 'nowrap' }}>Appliquer →</span>
+        </button>
+      )}
 
       <div style={{ background: c.bg, borderRadius: '7px', padding: '8px 10px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <span style={{ fontSize: '0.68rem', color: c.label, fontWeight: 600 }}>Ø intérieur réel</span>
@@ -3884,7 +3896,8 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                 options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
                 <DiameterDNSelector label="Diamètre" value={inputData.pipe_diameter}
-                  onChange={v=>set('pipe_diameter',v)} icon="⌀" color="green" material={inputData.pipe_material}/>
+                  onChange={v=>set('pipe_diameter',v)} icon="⌀" color="green" material={inputData.pipe_material}
+                  flowRate={inputData.flow_rate} targetVelocity={1.5}/>
                 <ProInput label="Longueur" value={inputData.pipe_length}
                   onChange={v=>set('pipe_length',v)} unit="m" icon="📏" color="green"
                   warn={inputData.pipe_length > 20}
@@ -4182,7 +4195,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
                 <ProSelect label="Matériau" value={inputData.suction_pipe_material} onChange={v=>set('suction_pipe_material',v)}
                   options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                  <DiameterDNSelector label="Diamètre" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} color="blue" material={inputData.suction_pipe_material}/>
+                  <DiameterDNSelector label="Diamètre" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} color="blue" material={inputData.suction_pipe_material} flowRate={inputData.flow_rate} targetVelocity={1.5}/>
                   <ProInput label="Longueur" value={inputData.suction_pipe_length} onChange={v=>set('suction_pipe_length',v)} unit="m" color="blue"/>
                 </div>
                 <RaccordsSection side="suction" label="Raccords aspiration" color="#2563eb"/>
@@ -4197,7 +4210,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
               <ProSelect label="Matériau" value={inputData.discharge_pipe_material} onChange={v=>set('discharge_pipe_material',v)} color="green"
                 options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <DiameterDNSelector label="Diamètre" value={inputData.discharge_pipe_diameter} onChange={v=>set('discharge_pipe_diameter',v)} color="green" material={inputData.discharge_pipe_material}/>
+                <DiameterDNSelector label="Diamètre" value={inputData.discharge_pipe_diameter} onChange={v=>set('discharge_pipe_diameter',v)} color="green" material={inputData.discharge_pipe_material} flowRate={inputData.flow_rate} targetVelocity={3.0}/>
                 <ProInput label="Longueur" value={inputData.discharge_pipe_length} onChange={v=>set('discharge_pipe_length',v)} unit="m" color="green"/>
               </div>
               <RaccordsSection side="discharge" label="Raccords refoulement" color="#059669"/>
@@ -4400,7 +4413,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                   options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <DiameterDNSelector label="Diamètre tuyauterie" value={inputData.pipe_diameter} onChange={v=>set('pipe_diameter',v)} color="blue" material={inputData.pipe_material}/>
+                <DiameterDNSelector label="Diamètre tuyauterie" value={inputData.pipe_diameter} onChange={v=>set('pipe_diameter',v)} color="blue" material={inputData.pipe_material} flowRate={inputData.flow_rate} targetVelocity={2.0}/>
                 <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C" color="blue"/>
               </div>
             </div>
@@ -6209,9 +6222,9 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <DiameterDNSelector label="⌀ Aspiration" value={inputData.suction_pipe_diameter}
-                    onChange={v => handleInputChange('suction_pipe_diameter', v)} color="blue" material={inputData.suction_material}/>
+                    onChange={v => handleInputChange('suction_pipe_diameter', v)} color="blue" material={inputData.suction_material} flowRate={inputData.flow_rate} targetVelocity={1.5}/>
                   <DiameterDNSelector label="⌀ Refoulement" value={inputData.discharge_pipe_diameter}
-                    onChange={v => handleInputChange('discharge_pipe_diameter', v)} color="green" material={inputData.discharge_material}/>
+                    onChange={v => handleInputChange('discharge_pipe_diameter', v)} color="green" material={inputData.discharge_material} flowRate={inputData.flow_rate} targetVelocity={3.0}/>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
