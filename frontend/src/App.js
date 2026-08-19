@@ -893,7 +893,11 @@ const SolarExpertSystem = () => {
       if (solarData.daily_water_need > 0 && solarData.total_head > 0) {
         setLoading(true);
         try {
-          const response = await axios.post(`${API}/solar-pumping`, solarData);
+          // useful_pressure_head est saisi en BAR par l'utilisateur (voir champ "Pression
+          // utile (Bar)") mais le backend attend cette valeur déjà convertie en mètres —
+          // conversion appliquée ici uniquement, sans toucher à la valeur affichée à l'écran
+          const payload = { ...solarData, useful_pressure_head: solarData.useful_pressure_head * 10.1937 };
+          const response = await axios.post(`${API}/solar-pumping`, payload);
           setResults(response.data);
         } catch (error) {
           console.error('Erreur calcul solaire:', error);
@@ -1034,8 +1038,10 @@ const SolarExpertSystem = () => {
         const tankHeight = field === 'tank_height' ? value : prev.tank_height;
         updated.static_head = dynamicLevel + tankHeight;
         
-        // Recalcul automatique HMT
-        updated.total_head = updated.static_head + prev.dynamic_losses + prev.useful_pressure_head;
+        // Recalcul automatique HMT — la pression utile est saisie en BAR mais doit
+        // être convertie en mètres de colonne d'eau avant d'être ajoutée à la HMT
+        // (1 bar ≈ 10,19 m d'eau : P[Pa]/(ρ×g) = 100000/(1000×9.81))
+        updated.total_head = updated.static_head + prev.dynamic_losses + prev.useful_pressure_head * 10.1937;
         
         // Recalcul automatique longueur conduite
         updated.pipe_length = Math.max(30, updated.static_head * 1.5);
@@ -1044,8 +1050,8 @@ const SolarExpertSystem = () => {
       // Recalcul automatique HMT pour autres champs
       if (field === 'dynamic_losses' || field === 'useful_pressure_head') {
         const losses = field === 'dynamic_losses' ? value : prev.dynamic_losses;
-        const pressure = field === 'useful_pressure_head' ? value : prev.useful_pressure_head;
-        updated.total_head = prev.static_head + losses + pressure;
+        const pressureBar = field === 'useful_pressure_head' ? value : prev.useful_pressure_head;
+        updated.total_head = prev.static_head + losses + pressureBar * 10.1937;
       }
       
       return updated;
@@ -1387,7 +1393,7 @@ const SolarExpertSystem = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Pression utile:</span>
-                    <span className="font-semibold">{solarData.useful_pressure_head.toFixed(1)}m ({((solarData.useful_pressure_head / solarData.total_head) * 100).toFixed(0)}%)</span>
+                    <span className="font-semibold">{(solarData.useful_pressure_head * 10.1937).toFixed(1)}m ({((solarData.useful_pressure_head * 10.1937 / solarData.total_head) * 100).toFixed(0)}%)</span>
                   </div>
                 </div>
               </div>
@@ -3856,6 +3862,9 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
           <ProCard>
             <SectionHead icon="🔩" title="Tuyauterie d'aspiration" color="#059669" sub="Diamètre, longueur, matériau"/>
             <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+              <ProSelect label="Matériau" value={inputData.pipe_material} icon="🏗️" color="green"
+                onChange={v=>set('pipe_material',v)}
+                options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
                 <DiameterDNSelector label="Diamètre" value={inputData.pipe_diameter}
                   onChange={v=>set('pipe_diameter',v)} icon="⌀" color="green" material={inputData.pipe_material}/>
@@ -3864,9 +3873,6 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings }) => {
                   warn={inputData.pipe_length > 20}
                   note={inputData.pipe_length > 20 ? 'Long. élev. → pertes de charge importantes' : ''}/>
               </div>
-              <ProSelect label="Matériau" value={inputData.pipe_material} icon="🏗️" color="green"
-                onChange={v=>set('pipe_material',v)}
-                options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               <ProInput label="NPSHr constructeur" value={inputData.npsh_required}
                 onChange={v=>set('npsh_required',v)} unit="m" icon="📋" color="green"
                 note="Valeur fournie par le fabricant de la pompe"/>
@@ -4156,12 +4162,12 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
             <ProCard>
               <SectionHead icon="🔵" title="Tuyauterie aspiration" color="#2563eb" sub={`DN${inputData.suction_pipe_diameter} — ${inputData.suction_pipe_length}m`}/>
               <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+                <ProSelect label="Matériau" value={inputData.suction_pipe_material} onChange={v=>set('suction_pipe_material',v)}
+                  options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
                   <DiameterDNSelector label="Diamètre" value={inputData.suction_pipe_diameter} onChange={v=>set('suction_pipe_diameter',v)} color="blue" material={inputData.suction_pipe_material}/>
                   <ProInput label="Longueur" value={inputData.suction_pipe_length} onChange={v=>set('suction_pipe_length',v)} unit="m" color="blue"/>
                 </div>
-                <ProSelect label="Matériau" value={inputData.suction_pipe_material} onChange={v=>set('suction_pipe_material',v)}
-                  options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
                 <RaccordsSection side="suction" label="Raccords aspiration" color="#2563eb"/>
               </div>
             </ProCard>
@@ -4171,12 +4177,12 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings }) => {
           <ProCard>
             <SectionHead icon="🟢" title="Tuyauterie refoulement" color="#059669" sub={`DN${inputData.discharge_pipe_diameter} — ${inputData.discharge_pipe_length}m`}/>
             <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+              <ProSelect label="Matériau" value={inputData.discharge_pipe_material} onChange={v=>set('discharge_pipe_material',v)} color="green"
+                options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
                 <DiameterDNSelector label="Diamètre" value={inputData.discharge_pipe_diameter} onChange={v=>set('discharge_pipe_diameter',v)} color="green" material={inputData.discharge_pipe_material}/>
                 <ProInput label="Longueur" value={inputData.discharge_pipe_length} onChange={v=>set('discharge_pipe_length',v)} unit="m" color="green"/>
               </div>
-              <ProSelect label="Matériau" value={inputData.discharge_pipe_material} onChange={v=>set('discharge_pipe_material',v)} color="green"
-                options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
               <RaccordsSection side="discharge" label="Raccords refoulement" color="#059669"/>
             </div>
           </ProCard>
@@ -4371,14 +4377,14 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials }) => {
                 <ProInput label="HMT" value={inputData.hmt} onChange={v=>set('hmt',v)} unit="m" icon="📐" color="blue"/>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                <DiameterDNSelector label="Diamètre tuyauterie" value={inputData.pipe_diameter} onChange={v=>set('pipe_diameter',v)} color="blue" material={inputData.pipe_material}/>
-                <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C" color="blue"/>
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
                 <ProSelect label="Fluide" value={inputData.fluid_type} onChange={v=>set('fluid_type',v)} color="blue"
                   options={fluids.map(f=>({v:f.id,l:f.name}))}/>
                 <ProSelect label="Matériau" value={inputData.pipe_material} onChange={v=>set('pipe_material',v)} color="blue"
                   options={pipeMaterials.map(m=>({v:m.id,l:m.name}))}/>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                <DiameterDNSelector label="Diamètre tuyauterie" value={inputData.pipe_diameter} onChange={v=>set('pipe_diameter',v)} color="blue" material={inputData.pipe_material}/>
+                <ProInput label="Température" value={inputData.temperature} onChange={v=>set('temperature',v)} unit="°C" color="blue"/>
               </div>
             </div>
           </ProCard>
@@ -6153,6 +6159,38 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Matériau Asp.
+                    </label>
+                    <select
+                      value={inputData.suction_material}
+                      onChange={(e) => handleInputChange('suction_material', e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {pipeMaterials.map(material => (
+                        <option key={material.id} value={material.id}>{material.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Matériau Ref.
+                    </label>
+                    <select
+                      value={inputData.discharge_material}
+                      onChange={(e) => handleInputChange('discharge_material', e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {pipeMaterials.map(material => (
+                        <option key={material.id} value={material.id}>{material.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                   <DiameterDNSelector label="⌀ Aspiration" value={inputData.suction_pipe_diameter}
                     onChange={v => handleInputChange('suction_pipe_diameter', v)} color="blue" material={inputData.suction_material}/>
                   <DiameterDNSelector label="⌀ Refoulement" value={inputData.discharge_pipe_diameter}
@@ -6188,38 +6226,6 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings }) => {
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Longueur refoulement"
                     />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Matériau Asp.
-                    </label>
-                    <select
-                      value={inputData.suction_material}
-                      onChange={(e) => handleInputChange('suction_material', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      {pipeMaterials.map(material => (
-                        <option key={material.id} value={material.id}>{material.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Matériau Ref.
-                    </label>
-                    <select
-                      value={inputData.discharge_material}
-                      onChange={(e) => handleInputChange('discharge_material', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      {pipeMaterials.map(material => (
-                        <option key={material.id} value={material.id}>{material.name}</option>
-                      ))}
-                    </select>
                   </div>
                 </div>
                 
@@ -11443,6 +11449,27 @@ class ErrorBoundary extends React.Component {
 // ════════════════════════════════════════════════════════════════
 // AUTHENTIFICATION — Écran de connexion / inscription
 // ════════════════════════════════════════════════════════════════
+// Message affiché pendant l'écran de chargement initial. Si l'attente dépasse
+// 4 secondes, affiche une explication (réveil du serveur) pour rassurer
+// l'utilisateur plutôt que de le laisser face à un écran figé sans contexte.
+const SlowLoadMessage = () => {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div style={{ textAlign: 'center', maxWidth: '320px', padding: '0 20px' }}>
+      <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.85rem', fontWeight: 600 }}>Chargement…</div>
+      {slow && (
+        <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.75rem', marginTop: '8px', lineHeight: 1.4 }}>
+          Le serveur se réveille après une période d'inactivité — ça peut prendre jusqu'à 30-50 secondes. Merci de patienter.
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AuthScreen = ({ onAuthenticated }) => {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [form, setForm] = useState({ email: '', password: '', name: '', company: '' });
@@ -11704,9 +11731,18 @@ function App() {
     { id: 'history', icon: '📋', label: 'Historique' },
   ];
 
-  // Tant qu'on n'a pas vérifié le jeton stocké, on affiche un écran neutre (évite un flash)
+  // Tant qu'on n'a pas vérifié le jeton stocké, on affiche un écran de chargement
+  // visible (spinner + message) — un écran totalement noir donnait l'impression
+  // que l'app était plantée, notamment lors du réveil du serveur (plan gratuit
+  // Render : jusqu'à 30-50s d'attente après une période d'inactivité).
   if (!authChecked) {
-    return <div style={{ minHeight: '100vh', background: 'var(--navy-950)' }} />;
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--navy-950)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '18px', fontFamily: DS.fontHead }}>
+        <div style={{ width: '56px', height: '56px', background: 'linear-gradient(135deg, var(--teal-500), var(--teal-400))', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', boxShadow: '0 4px 12px rgba(20,184,166,0.4)' }}>💧</div>
+        <div style={{ width: '32px', height: '32px', border: '3px solid rgba(255,255,255,0.15)', borderTopColor: 'var(--teal-400)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <SlowLoadMessage />
+      </div>
+    );
   }
 
   // Pas connecté : écran de connexion / inscription, l'app n'est pas accessible sans compte
