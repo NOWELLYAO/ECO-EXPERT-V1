@@ -3479,14 +3479,29 @@ const DiameterDNSelector = ({ label, value, onChange, material, color = 'blue', 
   // Construit la liste des options { dn, id } pour le matériau/PN courants
   let options = [];
   if (plastic) {
-    const sdr = (PLASTIC_SDR_BY_PN[material] || {})[pn];
+    const availablePNs = Object.keys(PLASTIC_SDR_BY_PN[material] || {}).map(Number);
+    const effectivePn = availablePNs.includes(pn) ? pn : availablePNs[0];
+    const sdr = (PLASTIC_SDR_BY_PN[material] || {})[effectivePn];
     if (sdr) options = PIPE_OD_SERIES_PLASTIC.map(od => ({ dn: od, id: idFromSDR(od, sdr) }));
   } else if (steel) {
     options = PIPE_DN_SERIES_STEEL.map(dn => ({ dn, id: STEEL_DN_TO_ID[dn] }));
   }
 
-  // Sélectionne l'option dont l'Ø intérieur correspond à la valeur actuelle (au 0.5mm près)
-  const selectedDN = options.find(o => Math.abs(o.id - value) < 0.5)?.dn ?? '';
+  // Auto-corrige vers l'option valide la plus proche si la valeur actuelle ne correspond à
+  // aucun DN réel (ex: matériau changé, ou valeur par défaut arbitraire au premier chargement)
+  // — évite d'afficher un sélecteur vide façon "Choisir un DN…".
+  React.useEffect(() => {
+    if (!hasTable || options.length === 0) return;
+    const exact = options.find(o => Math.abs(o.id - value) < 0.5);
+    if (!exact) {
+      const closest = options.reduce((best, o) => Math.abs(o.id - value) < Math.abs(best.id - value) ? o : best, options[0]);
+      onChange(Math.round(closest.id * 10) / 10);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [material, pn, hasTable]);
+
+  const selectedDN = options.find(o => Math.abs(o.id - value) < 0.5)?.dn ?? options[0]?.dn ?? '';
+  const selectedOption = options.find(o => o.dn === selectedDN);
 
   if (!hasTable) {
     // Matériau sans table DN fiable (fonte, béton...) : saisie libre du diamètre intérieur
@@ -3497,40 +3512,44 @@ const DiameterDNSelector = ({ label, value, onChange, material, color = 'blue', 
   }
 
   return (
-    <div style={{ background: c.bg, borderRadius: '10px', borderLeft: `4px solid ${c.border}`, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: c.label, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
-        {icon && <span style={{ marginRight: '5px' }}>{icon}</span>}{label}
-      </label>
-      <div style={{ display: 'grid', gridTemplateColumns: plastic ? '1fr 0.7fr' : '1fr', gap: '8px' }}>
-        <select
-          value={selectedDN}
-          onChange={e => {
-            const opt = options.find(o => String(o.dn) === e.target.value);
-            if (opt) onChange(Math.round(opt.id * 10) / 10);
-          }}
-          style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: `2px solid ${c.border}55`, borderRadius: '8px', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', background: 'white', outline: 'none', cursor: 'pointer' }}>
-          <option value="" disabled>Choisir un DN…</option>
-          {options.map(o => (
-            <option key={o.dn} value={o.dn}>DN{o.dn} → Ø int. {o.id.toFixed(1)}mm</option>
-          ))}
-        </select>
+    <div style={{ background: 'white', borderRadius: '10px', borderLeft: `4px solid ${c.border}`, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <label style={{ fontSize: '0.84rem', fontWeight: 600, color: c.label }}>
+          {icon && <span style={{ marginRight: '5px' }}>{icon}</span>}{label}
+        </label>
         {plastic && (
-          <select value={pn} onChange={e => {
-            const newPn = parseInt(e.target.value, 10);
-            setPn(newPn);
-            const sdr = (PLASTIC_SDR_BY_PN[material] || {})[newPn];
-            const currentOD = options.find(o => Math.abs(o.id - value) < 0.5)?.dn;
-            if (sdr && currentOD) onChange(Math.round(idFromSDR(currentOD, sdr) * 10) / 10);
-          }}
-            style={{ padding: '9px 8px', border: `2px solid ${c.border}55`, borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', background: 'white', outline: 'none', cursor: 'pointer' }}>
-            {Object.keys(PLASTIC_SDR_BY_PN[material] || {}).map(p => <option key={p} value={p}>PN{p}</option>)}
-          </select>
+          <div style={{ display: 'flex', gap: '3px' }}>
+            {Object.keys(PLASTIC_SDR_BY_PN[material] || {}).map(p => (
+              <button key={p} type="button" onClick={() => setPn(parseInt(p, 10))}
+                style={{
+                  padding: '3px 9px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 800,
+                  border: `1.5px solid ${c.border}`, cursor: 'pointer',
+                  background: parseInt(p, 10) === pn ? c.border : 'white',
+                  color: parseInt(p, 10) === pn ? 'white' : c.border,
+                }}>
+                PN{p}
+              </button>
+            ))}
+          </div>
         )}
       </div>
-      <p style={{ fontSize: '0.67rem', color: c.label, margin: 0, fontWeight: 500 }}>
-        Diamètre intérieur utilisé dans les calculs : <strong>{value} mm</strong>
-        {plastic && ' (le diamètre extérieur DN est indicatif, sans effet direct sur le calcul)'}
-      </p>
+
+      <select
+        value={selectedDN}
+        onChange={e => {
+          const opt = options.find(o => String(o.dn) === e.target.value);
+          if (opt) onChange(Math.round(opt.id * 10) / 10);
+        }}
+        style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: `2px solid ${c.border}40`, borderRadius: '8px', fontSize: '1rem', fontWeight: 600, color: '#1e293b', background: 'white', outline: 'none', cursor: 'pointer' }}>
+        {options.map(o => (
+          <option key={o.dn} value={o.dn}>DN{o.dn} {steel ? '' : `(Ø ext. ${o.dn}mm)`}</option>
+        ))}
+      </select>
+
+      <div style={{ background: c.bg, borderRadius: '7px', padding: '8px 10px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: '0.68rem', color: c.label, fontWeight: 600 }}>Ø intérieur réel</span>
+        <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1e293b' }}>{selectedOption ? selectedOption.id.toFixed(1) : value} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>mm</span></span>
+      </div>
     </div>
   );
 };
@@ -3556,12 +3575,11 @@ const ProInput = ({ label, value, onChange, unit, note, warn, icon, min, max, st
   const c = PRO_FIELD_COLORS[color] || PRO_FIELD_COLORS.blue;
   const accent = warn ? '#f59e0b' : c.border;
   const labelColor = warn ? '#b45309' : c.label;
-  const boxBg = warn ? '#fffbeb' : c.bg;
   return (
-    <div style={{ background: boxBg, borderRadius:'10px', borderLeft:`4px solid ${accent}`, padding:'12px 14px' }}>
-      <label style={{ display:'block', fontSize:'0.72rem', fontWeight:700, color:labelColor, marginBottom:'6px', letterSpacing:'0.03em', textTransform:'uppercase' }}>
+    <div style={{ background: 'white', borderRadius:'10px', borderLeft:`4px solid ${accent}`, padding:'14px 16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
+      <label style={{ display:'block', fontSize:'0.84rem', fontWeight:600, color:labelColor, marginBottom:'8px' }}>
         {icon&&<span style={{marginRight:'5px'}}>{icon}</span>}{label}
-        {unit&&<span style={{ fontWeight:400, textTransform:'none', marginLeft:'4px', opacity:0.7 }}>({unit})</span>}
+        {unit&&<span style={{ fontWeight:400, marginLeft:'4px', opacity:0.7 }}>({unit})</span>}
       </label>
       <div style={{ position:'relative' }}>
         <input
@@ -3573,36 +3591,35 @@ const ProInput = ({ label, value, onChange, unit, note, warn, icon, min, max, st
           onFocus={e=>e.target.select()}
           style={{
             width:'100%', boxSizing:'border-box',
-            padding: unit ? '9px 44px 9px 12px' : '9px 12px',
-            border: `2px solid ${warn ? '#fcd34d' : accent}55`,
+            padding: unit ? '10px 44px 10px 12px' : '10px 12px',
+            border: `2px solid ${warn ? '#fde68a' : c.border+'40'}`,
             borderRadius:'8px',
-            fontSize:'1rem', fontWeight:700, color:'#1e293b',
-            background: 'white',
-            fontFamily: DS.fontMono,
+            fontSize:'1.05rem', fontWeight:600, color:'#1e293b',
+            background: warn ? '#fffbeb' : 'white',
             outline:'none',
             transition:'border-color 0.15s, box-shadow 0.15s',
           }}
           onFocusCapture={e=>{ e.target.style.borderColor=accent; e.target.style.boxShadow=`0 0 0 3px ${accent}22`; }}
-          onBlurCapture={e=>{ e.target.style.borderColor=`${warn?'#fcd34d':accent}55`; e.target.style.boxShadow='none'; }}
+          onBlurCapture={e=>{ e.target.style.borderColor=warn?'#fde68a':c.border+'40'; e.target.style.boxShadow='none'; }}
         />
         {unit&&<span style={{ position:'absolute', right:'12px', top:'50%', transform:'translateY(-50%)', fontSize:'0.75rem', color:'#94a3b8', fontWeight:600, pointerEvents:'none' }}>{unit}</span>}
       </div>
-      {note&&<p style={{ fontSize:'0.67rem', color:labelColor, margin:'5px 0 0', fontWeight:500 }}>{note}</p>}
+      {note&&<p style={{ fontSize:'0.72rem', color:labelColor, margin:'6px 0 0', fontWeight:500 }}>{note}</p>}
     </div>
   );
 };
 
-// Composant : Select stylé (même style "carte encadrée" que ProInput)
+// Composant : Select stylé (même style "carte blanche + bordure colorée" que Solaire)
 const ProSelect = ({ label, value, onChange, options, icon, color='blue' }) => {
   const c = PRO_FIELD_COLORS[color] || PRO_FIELD_COLORS.blue;
   return (
-    <div style={{ background:c.bg, borderRadius:'10px', borderLeft:`4px solid ${c.border}`, padding:'12px 14px' }}>
-      <label style={{ display:'block', fontSize:'0.72rem', fontWeight:700, color:c.label, marginBottom:'6px', letterSpacing:'0.03em', textTransform:'uppercase' }}>
+    <div style={{ background:'white', borderRadius:'10px', borderLeft:`4px solid ${c.border}`, padding:'14px 16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
+      <label style={{ display:'block', fontSize:'0.84rem', fontWeight:600, color:c.label, marginBottom:'8px' }}>
         {icon&&<span style={{marginRight:'5px'}}>{icon}</span>}{label}
       </label>
       <div style={{ position:'relative' }}>
         <select value={value} onChange={e=>onChange(e.target.value)}
-          style={{ width:'100%', boxSizing:'border-box', padding:'9px 36px 9px 12px', border:`2px solid ${c.border}55`, borderRadius:'8px', fontSize:'0.95rem', fontWeight:700, color:'#1e293b', background:'white', appearance:'none', cursor:'pointer', outline:'none' }}>
+          style={{ width:'100%', boxSizing:'border-box', padding:'10px 36px 10px 12px', border:`2px solid ${c.border}40`, borderRadius:'8px', fontSize:'1rem', fontWeight:600, color:'#1e293b', background:'white', appearance:'none', cursor:'pointer', outline:'none' }}>
           {options.map(o => <option key={o.v||o} value={o.v||o}>{o.l||o}</option>)}
         </select>
         <span style={{ position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', color:c.border, pointerEvents:'none', fontSize:'10px' }}>▼</span>

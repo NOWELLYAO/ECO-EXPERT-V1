@@ -906,22 +906,22 @@ select:focus-visible {
    couleurs (blue-700, cyan-700, etc.).
    ════════════════════════════════════════════════════════════════ */
 div:has(> label.block.text-sm.font-medium.text-gray-700) {
-  background: #eff6ff;
+  background: white;
   border-left: 4px solid #3b82f6;
   border-radius: 10px;
-  padding: 12px 14px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 label.block.text-sm.font-medium.text-gray-700 {
   color: #1d4ed8 !important;
-  font-weight: 700 !important;
-  font-size: 0.72rem !important;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-weight: 600 !important;
+  font-size: 0.84rem !important;
 }
 input.border-gray-300, select.border-gray-300, textarea.border-gray-300 {
-  border: 2px solid rgba(59,130,246,0.35) !important;
+  border: 2px solid rgba(59,130,246,0.25) !important;
   border-radius: 8px !important;
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 1rem;
   background: white;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
