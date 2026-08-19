@@ -869,6 +869,7 @@ const SolarExpertSystem = () => {
 
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [calcError, setCalcError] = useState(null);
   const [availableRegions, setAvailableRegions] = useState([]);
   const [activeSection, setActiveSection] = useState('project');
   const chartRef = useRef(null);
@@ -893,6 +894,7 @@ const SolarExpertSystem = () => {
     const calculateSolarSystem = async () => {
       if (solarData.daily_water_need > 0 && solarData.total_head > 0) {
         setLoading(true);
+        setCalcError(null);
         try {
           // useful_pressure_head est saisi en BAR par l'utilisateur (voir champ "Pression
           // utile (Bar)") mais le backend attend cette valeur déjà convertie en mètres —
@@ -901,7 +903,7 @@ const SolarExpertSystem = () => {
           const response = await axios.post(`${API}/solar-pumping`, payload);
           setResults(response.data);
         } catch (error) {
-          console.error('Erreur calcul solaire:', error);
+          setCalcError(error.response?.data?.detail || "Le calcul a échoué. Vérifiez vos paramètres et votre connexion.");
         } finally {
           setLoading(false);
         }
@@ -1099,6 +1101,10 @@ const SolarExpertSystem = () => {
           </div>
         </div>
       </div>
+
+      {calcError && (
+        <ProAlert type="danger" title="Erreur de calcul">{calcError}</ProAlert>
+      )}
 
       {/* Navigation des sections */}
       <div className="flex flex-wrap gap-2">
@@ -3721,6 +3727,21 @@ const SaveCalculationButton = ({ calculationType, inputData, resultData, onSaved
   );
 };
 
+// Vérifie que les champs requis sont bien renseignés (non vides, non NaN, > seuil minimal)
+// avant de lancer un calcul — évite d'appeler l'API avec des données incomplètes qui
+// échouent silencieusement. Retourne la liste des libellés de champs manquants/invalides.
+const validateRequiredFields = (data, fields) => {
+  const missing = [];
+  for (const f of fields) {
+    const v = data[f.key];
+    const min = f.min ?? 0;
+    if (v === undefined || v === null || v === '' || isNaN(v) || v <= min) {
+      missing.push(f.label);
+    }
+  }
+  return missing;
+};
+
 const ProAlert = ({ type='info', title, children, icon }) => {
   const cfg = {
     danger:  { bg:'#fff1f2', border:'#fca5a5', title:'#991b1b', text:'#dc2626', icon: icon||'🚨' },
@@ -3821,6 +3842,8 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =>
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [viewTab, setViewTab] = useState('config');
+  const [validationError, setValidationError] = useState(null);
+  const [apiError, setApiError] = useState(null);
 
   const set = (k, v) => setInputData(p => ({ ...p, [k]: v }));
 
@@ -3829,12 +3852,25 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =>
   const updFitting = (i, k, v) => setInputData(p => ({ ...p, suction_fittings: p.suction_fittings.map((f, j) => j===i ? {...f,[k]:v} : f) }));
 
   const calc = async () => {
+    setValidationError(null);
+    setApiError(null);
+    const missing = validateRequiredFields(inputData, [
+      { key: 'flow_rate', label: 'Débit de pompage' },
+      { key: 'pipe_diameter', label: 'Diamètre de tuyauterie' },
+      { key: 'pipe_length', label: 'Longueur de tuyauterie' },
+    ]);
+    if (missing.length > 0) {
+      setValidationError(`Champs manquants ou à 0 : ${missing.join(', ')}. Renseignez-les avant de calculer.`);
+      return;
+    }
     setLoading(true);
     try {
       const res = await axios.post(`${API}/calculate-npshd`, inputData);
       setResult(res.data);
       setViewTab('results');
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    } catch (e) {
+      setApiError(e.response?.data?.detail || "Le calcul a échoué. Vérifiez vos paramètres et votre connexion.");
+    } finally { setLoading(false); }
   };
 
   const isFlooded = inputData.suction_type === 'flooded';
@@ -3953,6 +3989,12 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =>
               </button>
             </div>
           </ProCard>
+
+          {(validationError || apiError) && (
+            <ProAlert type={validationError ? 'warning' : 'danger'} title={validationError ? 'Champs incomplets' : 'Erreur de calcul'}>
+              {validationError || apiError}
+            </ProAlert>
+          )}
 
           {/* Bouton calcul */}
           <button onClick={calc} disabled={loading}
@@ -4096,6 +4138,8 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [viewTab, setViewTab] = useState('config');
+  const [validationError, setValidationError] = useState(null);
+  const [apiError, setApiError] = useState(null);
 
   const set = (k, v) => setInputData(p => ({...p,[k]:v}));
   const addF = side => setInputData(p => ({...p,[`${side}_fittings`]:[...p[`${side}_fittings`],{fitting_type:'elbow_90',quantity:1}]}));
@@ -4103,9 +4147,28 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
   const updF = (side,i,k,v) => setInputData(p => ({...p,[`${side}_fittings`]:p[`${side}_fittings`].map((f,j)=>j===i?{...f,[k]:v}:f)}));
 
   const calc = async () => {
+    setValidationError(null);
+    setApiError(null);
+    const requiredFields = [
+      { key: 'flow_rate', label: 'Débit' },
+      { key: 'discharge_pipe_diameter', label: 'Diamètre refoulement' },
+      { key: 'discharge_pipe_length', label: 'Longueur refoulement' },
+    ];
+    if (inputData.installation_type === 'surface') {
+      requiredFields.push(
+        { key: 'suction_pipe_diameter', label: 'Diamètre aspiration' },
+        { key: 'suction_pipe_length', label: 'Longueur aspiration' },
+      );
+    }
+    const missing = validateRequiredFields(inputData, requiredFields);
+    if (missing.length > 0) {
+      setValidationError(`Champs manquants ou à 0 : ${missing.join(', ')}. Renseignez-les avant de calculer.`);
+      return;
+    }
     setLoading(true);
     try { const r = await axios.post(`${API}/calculate-hmt`, inputData); setResult(r.data); setViewTab('results'); }
-    catch(e) { console.error(e); } finally { setLoading(false); }
+    catch(e) { setApiError(e.response?.data?.detail || "Le calcul a échoué. Vérifiez vos paramètres et votre connexion."); }
+    finally { setLoading(false); }
   };
 
   const RaccordsSection = ({ side, label, color }) => (
@@ -4236,6 +4299,12 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
               <RaccordsSection side="discharge" label="Raccords refoulement" color="#059669"/>
             </div>
           </ProCard>
+
+          {(validationError || apiError) && (
+            <ProAlert type={validationError ? 'warning' : 'danger'} title={validationError ? 'Champs incomplets' : 'Erreur de calcul'}>
+              {validationError || apiError}
+            </ProAlert>
+          )}
 
           <button onClick={calc} disabled={loading}
             style={{ padding:'14px', background:loading?'#94a3b8':'linear-gradient(135deg,#065f46,#059669)', color:'white', border:'none', borderRadius:'10px', fontWeight:700, fontSize:'1rem', cursor:loading?'not-allowed':'pointer', fontFamily:DS.fontHead, boxShadow:'0 4px 12px rgba(5,150,105,0.3)' }}>
@@ -4374,10 +4443,25 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials, onHistorySaved }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [viewTab, setViewTab] = useState('config');
+  const [validationError, setValidationError] = useState(null);
+  const [apiError, setApiError] = useState(null);
 
   const set = (k, v) => setInputData(p => ({...p,[k]:v}));
 
   const calc = async () => {
+    setValidationError(null);
+    setApiError(null);
+    const missing = validateRequiredFields(inputData, [
+      { key: 'flow_rate', label: 'Débit Q' },
+      { key: 'hmt', label: 'HMT' },
+      { key: 'pipe_diameter', label: 'Diamètre tuyauterie' },
+      { key: 'pump_efficiency', label: 'Rendement pompe' },
+      { key: 'motor_efficiency', label: 'Rendement moteur' },
+    ]);
+    if (missing.length > 0) {
+      setValidationError(`Champs manquants ou à 0 : ${missing.join(', ')}. Renseignez-les avant de calculer.`);
+      return;
+    }
     setLoading(true);
     try {
       // Le backend attend un entier pour voltage (ex: 400), pas une chaîne "400V"
@@ -4386,8 +4470,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials, onHistorySaved }) => {
       setResult(r.data);
       setViewTab('results');
     } catch(e) {
-      console.error(e);
-      alert("Erreur lors de l'analyse : " + (e.response?.data?.detail || e.message));
+      setApiError(e.response?.data?.detail || "L'analyse a échoué. Vérifiez vos paramètres et votre connexion.");
     } finally { setLoading(false); }
   };
 
@@ -4480,6 +4563,12 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials, onHistorySaved }) => {
               </div>
             </div>
           </ProCard>
+
+          {(validationError || apiError) && (
+            <ProAlert type={validationError ? 'warning' : 'danger'} title={validationError ? 'Champs incomplets' : 'Erreur de calcul'}>
+              {validationError || apiError}
+            </ProAlert>
+          )}
 
           <button onClick={calc} disabled={loading}
             style={{ padding:'14px', background:loading?'#94a3b8':'linear-gradient(135deg,#92400e,#d97706)', color:'white', border:'none', borderRadius:'10px', fontWeight:700, fontSize:'1rem', cursor:loading?'not-allowed':'pointer', boxShadow:'0 4px 12px rgba(217,119,6,0.3)' }}>
@@ -4762,6 +4851,7 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [autoCalculate, setAutoCalculate] = useState(true);
+  const [validationError, setValidationError] = useState(null);
   const [activeSection, setActiveSection] = useState('all');
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
@@ -5441,7 +5531,20 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =
 
   const calculateExpertAnalysis = async (data = inputData) => {
     if (!autoCalculate && data === inputData) return;
-    
+    setValidationError(null);
+
+    const missing = validateRequiredFields(data, [
+      { key: 'flow_rate', label: 'Débit' },
+      { key: 'suction_pipe_diameter', label: 'Diamètre aspiration' },
+      { key: 'discharge_pipe_diameter', label: 'Diamètre refoulement' },
+      { key: 'pump_efficiency', label: 'Rendement pompe' },
+      { key: 'motor_efficiency', label: 'Rendement moteur' },
+    ]);
+    if (missing.length > 0) {
+      setValidationError(`Champs manquants ou à 0 : ${missing.join(', ')}. Renseignez-les avant de calculer.`);
+      return;
+    }
+
     setLoading(true);
     try {
       // Convertir les valeurs vides en 0 pour les calculs (sans affecter l'affichage)
@@ -5976,6 +6079,10 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =
           </div>
         </div>
       </div>
+
+      {validationError && (
+        <ProAlert type="warning" title="Champs incomplets">{validationError}</ProAlert>
+      )}
 
       <SubTabNav
         active={activeSection}
@@ -9100,6 +9207,7 @@ const WaterHammerCalculator = () => {
   });
   const [result, setResult] = useState(null);
   const [viewTab, setViewTab] = useState('config');
+  const [validationError, setValidationError] = useState(null);
 
   const materials = {
     steel: { E: 210e9, name: 'Acier' },
@@ -9112,6 +9220,17 @@ const WaterHammerCalculator = () => {
   const set = (k, v) => setData(p => ({ ...p, [k]: v }));
 
   const calculate = () => {
+    setValidationError(null);
+    const missing = validateRequiredFields(data, [
+      { key: 'flow_rate', label: 'Débit' },
+      { key: 'pipe_diameter', label: 'Diamètre' },
+      { key: 'pipe_length', label: 'Longueur' },
+      { key: 'valve_closure_time', label: 'Temps de fermeture vanne' },
+    ]);
+    if (missing.length > 0) {
+      setValidationError(`Champs manquants ou à 0 : ${missing.join(', ')}. Renseignez-les avant de calculer.`);
+      return;
+    }
     const Q = data.flow_rate / 3600;
     const D = data.pipe_diameter / 1000;
     const L = data.pipe_length;
@@ -9190,6 +9309,9 @@ const WaterHammerCalculator = () => {
                 {Object.entries(materials).map(([k, v]) => <option key={k} value={k}>{v.name}</option>)}
               </select>
             </div>
+            {validationError && (
+              <ProAlert type="warning" title="Champs incomplets">{validationError}</ProAlert>
+            )}
             <button onClick={calculate}
               style={{ background: 'linear-gradient(135deg, #1e4d8c, #1e3a5f)', color: 'white', padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', marginTop: '8px' }}>
               🌊 Calculer le coup de bélier
@@ -11435,12 +11557,26 @@ const MotorCableCalculator = () => {
   const [data, setData] = useState({ Ph: 5, eta_pump: 75, eta_motor: 92, voltage: 400, pf: 0.85, cable_length: 50, cable_material: 'copper', delta_U_max: 3 });
   const [result, setResult] = useState(null);
   const [viewTab, setViewTab] = useState('config');
+  const [validationError, setValidationError] = useState(null);
   const set = (k, v) => setData(p => ({ ...p, [k]: v }));
 
   const cableSections = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
   const rho = { copper: 0.0172e-6, aluminum: 0.028e-6 };
 
   const calculate = () => {
+    setValidationError(null);
+    const missing = validateRequiredFields(data, [
+      { key: 'Ph', label: 'Puissance hydraulique Ph' },
+      { key: 'eta_pump', label: 'Rendement pompe' },
+      { key: 'eta_motor', label: 'Rendement moteur' },
+      { key: 'voltage', label: 'Tension réseau' },
+      { key: 'pf', label: 'Facteur de puissance cos φ' },
+      { key: 'cable_length', label: 'Longueur câble', min: -1 }, // 0 = pompe collée au tableau, valide
+    ]);
+    if (missing.length > 0) {
+      setValidationError(`Champs manquants ou à 0 : ${missing.join(', ')}. Renseignez-les avant de calculer.`);
+      return;
+    }
     const Pa = (data.Ph / (data.eta_pump / 100)) / (data.eta_motor / 100);
     const I = (Pa * 1000) / (Math.sqrt(3) * data.voltage * data.pf);
     const dU_target = data.voltage * data.delta_U_max / 100;
@@ -11489,6 +11625,9 @@ const MotorCableCalculator = () => {
             ))}
             <ProSelect label="Matériau câble" color="orange" value={data.cable_material} onChange={v => set('cable_material', v)}
               options={[{v:'copper',l:'Cuivre'},{v:'aluminum',l:'Aluminium'}]}/>
+            {validationError && (
+              <ProAlert type="warning" title="Champs incomplets">{validationError}</ProAlert>
+            )}
             <button onClick={calculate}
               style={{ background: 'linear-gradient(135deg, #7c2d12, #431407)', color: 'white', padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem' }}>
               ⚡ Calculer le câblage
