@@ -7026,8 +7026,8 @@ const ExpertInstallationSchema = ({ inputData, results, pipeMaterials, fluids })
   );
 
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="rounded-xl border border-slate-200"
-      style={{ fontFamily: DS.fontHead, background: '#f8fafc' }}>
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="rounded-xl border border-slate-200"
+      style={{ fontFamily: DS.fontHead, background: '#f8fafc', display: 'block' }}>
       <defs>
         <linearGradient id="eisWater" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#60a5fa" />
