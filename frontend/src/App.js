@@ -11368,8 +11368,16 @@ const AuthScreen = ({ onAuthenticated }) => {
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {mode === 'register' && (
               <>
-                <ProInput label="Nom complet" value={form.name} onChange={v => set('name', v)} icon="👤" />
-                <ProInput label="Société (optionnel)" value={form.company} onChange={v => set('company', v)} icon="🏢" />
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#475569', marginBottom: '4px', letterSpacing: '0.03em', textTransform: 'uppercase' }}>👤 Nom complet</label>
+                  <input type="text" required value={form.name} onChange={e => set('name', e.target.value)}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#475569', marginBottom: '4px', letterSpacing: '0.03em', textTransform: 'uppercase' }}>🏢 Société (optionnel)</label>
+                  <input type="text" value={form.company} onChange={e => set('company', e.target.value)}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.9rem', outline: 'none' }} />
+                </div>
               </>
             )}
             <div>
