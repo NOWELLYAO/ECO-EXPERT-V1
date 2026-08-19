@@ -11897,6 +11897,18 @@ function App() {
   const [showComparator, setShowComparator] = useState(false);
   const [collapsedProjects, setCollapsedProjects] = useState([]);
   const [dataLoadError, setDataLoadError] = useState(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const goOffline = () => setIsOffline(true);
+    const goOnline = () => setIsOffline(false);
+    window.addEventListener('offline', goOffline);
+    window.addEventListener('online', goOnline);
+    return () => {
+      window.removeEventListener('offline', goOffline);
+      window.removeEventListener('online', goOnline);
+    };
+  }, []);
 
   // ── Authentification ──
   const [authToken, setAuthToken] = useState(() => localStorage.getItem('eco_pump_token') || null);
@@ -12214,6 +12226,19 @@ function App() {
           </nav>
         </div>
       </header>
+      {isOffline && (
+        <div className="no-print" style={{
+          maxWidth: '1280px', margin: '12px auto 0', padding: '10px 20px',
+          background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '10px',
+          display: 'flex', alignItems: 'center', gap: '10px'
+        }}>
+          <span style={{ fontSize: '1.2rem' }}>📡</span>
+          <div>
+            <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.82rem' }}>Mode hors-ligne</div>
+            <div style={{ fontSize: '0.75rem', color: '#b45309' }}>L'application reste consultable, mais les calculs et la sauvegarde nécessitent une connexion internet.</div>
+          </div>
+        </div>
+      )}
       {dataLoadError && (
         <div className="no-print" style={{
           maxWidth: '1280px', margin: '12px auto 0', padding: '12px 20px',
