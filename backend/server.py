@@ -3458,10 +3458,18 @@ _allowed_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()
     "https://eco-expert-v1.vercel.app",
 ]
 
+# Les déploiements d'aperçu Vercel (une URL par branche / pull request) doivent
+# aussi pouvoir appeler l'API, sinon la connexion échoue sur les liens d'aperçu.
+_allowed_origin_regex = os.environ.get(
+    "CORS_ORIGIN_REGEX",
+    r"https://eco-expert-v1(-[a-z0-9-]+-nowell-s-projects)?\.vercel\.app",
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=False,
     allow_origins=_allowed_origins,
+    allow_origin_regex=_allowed_origin_regex,
     allow_methods=["*"],
     allow_headers=["*"],
 )

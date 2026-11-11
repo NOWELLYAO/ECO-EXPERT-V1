@@ -11779,7 +11779,9 @@ const AuthScreen = ({ onAuthenticated }) => {
       const res = await axios.post(`${API}/auth/${endpoint}`, payload);
       onAuthenticated(res.data.access_token, res.data.user);
     } catch (err) {
-      setError(err.response?.data?.detail || "Une erreur est survenue. Vérifiez votre connexion.");
+      setError(err.response
+        ? (err.response.data?.detail || `Erreur du serveur (${err.response.status}). Réessayez.`)
+        : "Serveur injoignable. Il se réveille peut-être (jusqu'à 1 minute) : réessayez dans quelques secondes.");
     } finally {
       setLoading(false);
     }
