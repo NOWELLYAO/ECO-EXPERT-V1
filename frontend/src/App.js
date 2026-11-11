@@ -3530,9 +3530,9 @@ const DiameterDNSelector = ({ label, value, onChange, material, color = 'blue', 
   }
 
   return (
-    <div style={{ background: 'white', borderRadius: '10px', borderLeft: `4px solid ${c.border}`, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <label style={{ fontSize: '0.84rem', fontWeight: 600, color: c.label }}>
+    <div className="pro-field" style={{ '--accent': c.border, '--accent-ink': c.label, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <label className="pro-field-label" style={{ marginBottom: 0 }}>
           {icon && <span style={{ marginRight: '5px' }}>{icon}</span>}{label}
         </label>
         {plastic && (
@@ -3558,7 +3558,7 @@ const DiameterDNSelector = ({ label, value, onChange, material, color = 'blue', 
           const opt = options.find(o => String(o.dn) === e.target.value);
           if (opt) onChange(Math.round(opt.id * 10) / 10);
         }}
-        style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: `2px solid ${c.border}40`, borderRadius: '8px', fontSize: '1rem', fontWeight: 600, color: '#1e293b', background: 'white', outline: 'none', cursor: 'pointer' }}>
+        className="pro-field-input pro-field-select">
         <option value="" disabled>Choisir un DN…</option>
         {options.map(o => (
           <option key={o.dn} value={o.dn}>DN{o.dn} {steel ? '' : `(Ø ext. ${o.dn}mm)`}</option>
@@ -3593,70 +3593,75 @@ const PRO_FIELD_COLORS = {
   slate:  { border:'#64748b', bg:'#f8fafc', label:'#334155' },
 };
 
+// Hook : vrai quand l'écran est assez large pour afficher formulaire et
+// résultats côte à côte (au lieu de les séparer dans deux onglets).
+const useWideLayout = (minWidth = 1180) => {
+  const query = `(min-width: ${minWidth}px)`;
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = () => setWide(mq.matches);
+    onChange();
+    mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange);
+    return () => { mq.removeEventListener ? mq.removeEventListener('change', onChange) : mq.removeListener(onChange); };
+  }, [query]);
+  return wide;
+};
+const SPLIT_COLS = 'minmax(0, 1.1fr) minmax(0, 1fr)';
+
 const ProInput = ({ label, value, onChange, unit, note, warn, icon, min, max, step=1, color='blue' }) => {
   const [raw, setRaw] = React.useState(value === null || value === undefined ? '' : String(value));
   React.useEffect(() => { setRaw(value === null || value === undefined ? '' : String(value)); }, [value]);
   const commit = str => {
-    const n = parseFloat(str);
+    const n = parseFloat(String(str).replace(',', '.'));
     if (!isNaN(n)) onChange(n);
     else setRaw(String(value ?? ''));
   };
   const c = PRO_FIELD_COLORS[color] || PRO_FIELD_COLORS.blue;
   const accent = warn ? '#f59e0b' : c.border;
-  const labelColor = warn ? '#b45309' : c.label;
   return (
-    <div style={{ background: 'white', borderRadius:'10px', borderLeft:`4px solid ${accent}`, padding:'14px 16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
-      <label style={{ display:'block', fontSize:'0.84rem', fontWeight:600, color:labelColor, marginBottom:'8px' }}>
-        {icon&&<span style={{marginRight:'5px'}}>{icon}</span>}{label}
-        {unit&&<span style={{ fontWeight:400, marginLeft:'4px', opacity:0.7 }}>({unit})</span>}
+    <div className={`pro-field ${warn ? 'is-warn' : ''}`} style={{ '--accent': accent, '--accent-ink': warn ? '#b45309' : c.label }}>
+      <label className="pro-field-label">
+        {icon && <span className="pro-field-icon">{icon}</span>}
+        <span>{label}</span>
       </label>
-      <div style={{ position:'relative' }}>
+      <div className="pro-field-control">
         <input
           type="text" inputMode="decimal"
           value={raw}
           onChange={e=>{
             const v = e.target.value;
             setRaw(v);
-            const n = parseFloat(v);
+            const n = parseFloat(v.replace(',', '.'));
             if (!isNaN(n)) onChange(n); // mise à jour en temps réel (ex: suggestion DN pendant la saisie)
           }}
           onBlur={e=>commit(e.target.value)}
           onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
           onFocus={e=>e.target.select()}
-          style={{
-            width:'100%', boxSizing:'border-box',
-            padding: unit ? '10px 44px 10px 12px' : '10px 12px',
-            border: `2px solid ${warn ? '#fde68a' : c.border+'40'}`,
-            borderRadius:'8px',
-            fontSize:'1.05rem', fontWeight:600, color:'#1e293b',
-            background: warn ? '#fffbeb' : 'white',
-            outline:'none',
-            transition:'border-color 0.15s, box-shadow 0.15s',
-          }}
-          onFocusCapture={e=>{ e.target.style.borderColor=accent; e.target.style.boxShadow=`0 0 0 3px ${accent}22`; }}
-          onBlurCapture={e=>{ e.target.style.borderColor=warn?'#fde68a':c.border+'40'; e.target.style.boxShadow='none'; }}
+          className="pro-field-input"
+          style={{ paddingRight: unit ? '58px' : undefined }}
+          aria-label={label}
         />
-        {unit&&<span style={{ position:'absolute', right:'12px', top:'50%', transform:'translateY(-50%)', fontSize:'0.75rem', color:'#94a3b8', fontWeight:600, pointerEvents:'none' }}>{unit}</span>}
+        {unit && <span className="pro-field-unit">{unit}</span>}
       </div>
-      {note&&<p style={{ fontSize:'0.72rem', color:labelColor, margin:'6px 0 0', fontWeight:500 }}>{note}</p>}
+      {note && <p className="pro-field-note">{note}</p>}
     </div>
   );
 };
 
-// Composant : Select stylé (même style "carte blanche + bordure colorée" que Solaire)
+// Composant : Select stylé, même apparence que ProInput
 const ProSelect = ({ label, value, onChange, options, icon, color='blue' }) => {
   const c = PRO_FIELD_COLORS[color] || PRO_FIELD_COLORS.blue;
   return (
-    <div style={{ background:'white', borderRadius:'10px', borderLeft:`4px solid ${c.border}`, padding:'14px 16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
-      <label style={{ display:'block', fontSize:'0.84rem', fontWeight:600, color:c.label, marginBottom:'8px' }}>
-        {icon&&<span style={{marginRight:'5px'}}>{icon}</span>}{label}
+    <div className="pro-field" style={{ '--accent': c.border, '--accent-ink': c.label }}>
+      <label className="pro-field-label">
+        {icon && <span className="pro-field-icon">{icon}</span>}
+        <span>{label}</span>
       </label>
-      <div style={{ position:'relative' }}>
-        <select value={value} onChange={e=>onChange(e.target.value)}
-          style={{ width:'100%', boxSizing:'border-box', padding:'10px 36px 10px 12px', border:`2px solid ${c.border}40`, borderRadius:'8px', fontSize:'1rem', fontWeight:600, color:'#1e293b', background:'white', appearance:'none', cursor:'pointer', outline:'none' }}>
+      <div className="pro-field-control">
+        <select value={value} onChange={e=>onChange(e.target.value)} className="pro-field-input pro-field-select" aria-label={label}>
           {options.map(o => <option key={o.v||o} value={o.v||o}>{o.l||o}</option>)}
         </select>
-        <span style={{ position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', color:c.border, pointerEvents:'none', fontSize:'10px' }}>▼</span>
       </div>
     </div>
   );
@@ -3761,7 +3766,7 @@ const ProAlert = ({ type='info', title, children, icon }) => {
     info:    { bg:'#eff6ff', border:'#93c5fd', title:'#1e3a8a', text:'#2563eb', icon: icon||'💡' },
   }[type];
   return (
-    <div style={{ background:cfg.bg, border:`1.5px solid ${cfg.border}`, borderRadius:'10px', padding:'12px 14px' }}>
+    <div className="pro-alert" style={{ background:cfg.bg, border:`1px solid ${cfg.border}`, borderLeft:`4px solid ${cfg.text}`, borderRadius:'12px', padding:'12px 14px' }}>
       <div style={{ display:'flex', alignItems:'flex-start', gap:'10px' }}>
         <span style={{ fontSize:'1.1rem', marginTop:'1px', flexShrink:0 }}>{cfg.icon}</span>
         <div>
@@ -3775,12 +3780,13 @@ const ProAlert = ({ type='info', title, children, icon }) => {
 
 // Composant : Carte de résultat KPI
 const KPICard = ({ label, value, unit, sub, color='#2563eb', bg='#eff6ff', icon, big }) => (
-  <div style={{ background:bg, borderRadius:'12px', padding: big?'16px 20px':'12px 16px', borderLeft:`4px solid ${color}`, display:'flex', flexDirection:'column', gap:'2px' }}>
-    {icon&&<span style={{ fontSize:'1.2rem', marginBottom:'2px' }}>{icon}</span>}
-    <div style={{ fontSize: big?'2rem':'1.5rem', fontWeight:800, color, fontFamily:DS.fontMono, lineHeight:1 }}>{value}</div>
-    <div style={{ fontSize:'0.7rem', fontWeight:600, color, opacity:0.8 }}>{unit}</div>
-    <div style={{ fontSize:'0.72rem', color:'#475569', fontWeight:500 }}>{label}</div>
-    {sub&&<div style={{ fontSize:'0.65rem', color:'#94a3b8', marginTop:'2px' }}>{sub}</div>}
+  <div className={`kpi ${big ? 'kpi-big' : ''}`} style={{ '--kpi': color, '--kpi-bg': bg }}>
+    <div className="kpi-head">
+      <span className="kpi-label">{label}</span>
+      {icon && <span className="kpi-icon">{icon}</span>}
+    </div>
+    <div className="kpi-value">{value ?? '—'}<span className="kpi-unit">{unit}</span></div>
+    {sub && <div className="kpi-sub">{sub}</div>}
   </div>
 );
 
@@ -3789,18 +3795,18 @@ const KPICard = ({ label, value, unit, sub, color='#2563eb', bg='#eff6ff', icon,
 // généralisé à toute l'app). Couleurs limitées à celles déjà utilisées statiquement
 // ailleurs dans le projet (blue, cyan, yellow, green, purple) pour garantir que
 // Tailwind génère bien les classes correspondantes.
-const SubTabNav = ({ tabs, active, onChange }) => (
-  <div className="flex flex-wrap gap-2">
+const SUBTAB_COLORS = { blue:'#2563eb', cyan:'#0891b2', yellow:'#d97706', green:'#059669', purple:'#7c3aed', orange:'#ea580c', red:'#dc2626', indigo:'#4f46e5', teal:'#0d9488', pink:'#db2777', gray:'#475569' };
+const SubTabNav = ({ tabs, active, onChange, hidden }) => hidden ? null : (
+  <div className="seg" role="tablist">
     {tabs.map(t => (
       <button
         key={t.id}
+        role="tab"
+        aria-selected={active === t.id}
         onClick={() => !t.disabled && onChange(t.id)}
         disabled={t.disabled}
-        className={`px-4 py-2 rounded-lg font-medium transition-all ${t.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${
-          active === t.id
-            ? `bg-${t.color}-500 text-white shadow-lg`
-            : `bg-${t.color}-100 text-${t.color}-700 hover:bg-${t.color}-200`
-        }`}
+        className={`seg-btn ${active === t.id ? 'active' : ''}`}
+        style={{ '--seg': SUBTAB_COLORS[t.color] || '#0f766e' }}
       >
         {t.label}
       </button>
@@ -3809,18 +3815,18 @@ const SubTabNav = ({ tabs, active, onChange }) => (
 );
 
 const SectionHead = ({ icon, title, color='#2563eb', sub }) => (
-  <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px', paddingBottom:'10px', borderBottom:`2px solid ${color}22` }}>
-    <span style={{ fontSize:'1.3rem' }}>{icon}</span>
+  <div className="section-head" style={{ '--sh': color }}>
+    <span className="section-head-icon">{icon}</span>
     <div>
-      <div style={{ fontSize:'0.9rem', fontWeight:700, color:'#1e293b' }}>{title}</div>
-      {sub&&<div style={{ fontSize:'0.7rem', color:'#94a3b8' }}>{sub}</div>}
+      <div className="section-head-title">{title}</div>
+      {sub && <div className="section-head-sub">{sub}</div>}
     </div>
   </div>
 );
 
 // Composant : Card conteneur pro
 const ProCard = ({ children, style={} }) => (
-  <div style={{ background:'white', borderRadius:'14px', boxShadow:'0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)', border:'1px solid #f1f5f9', padding:'20px 22px', ...style }}>
+  <div className="pro-card" style={style}>
     {children}
   </div>
 );
@@ -3853,6 +3859,7 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =>
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [viewTab, setViewTab] = useState('config');
+  const wide = useWideLayout();
   const [validationError, setValidationError] = useState(null);
   const [apiError, setApiError] = useState(null);
 
@@ -3888,6 +3895,17 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =>
   const vWarn = result && parseFloat(result.velocity) > 1.5;
   const cavRisk = result?.cavitation_risk;
 
+  // Écran large : une fois un premier calcul lancé, les résultats se mettent
+  // à jour automatiquement à chaque modification des paramètres.
+  const autoCalcRef = useRef(null);
+  autoCalcRef.current = calc;
+  useEffect(() => {
+    if (!wide || !result) return;
+    const t = setTimeout(() => autoCalcRef.current?.(), 700);
+    return () => clearTimeout(t);
+
+  }, [inputData]);
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:'16px', fontFamily:DS.fontHead }}>
 
@@ -3899,6 +3917,7 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =>
       </div>
 
       <SubTabNav
+        hidden={wide}
         active={viewTab}
         onChange={setViewTab}
         tabs={[
@@ -3907,10 +3926,10 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =>
         ]}
       />
 
-      <div style={{ display:'grid', gridTemplateColumns: '1fr', gap:'16px' }}>
+      <div className={wide ? 'calc-split' : undefined} style={{ display:'grid', gridTemplateColumns: wide ? SPLIT_COLS : '1fr', gap:'18px', alignItems:'start' }}>
 
         {/* ── Colonne gauche : formulaire ── */}
-        {viewTab === 'config' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {(wide || viewTab === 'config') && <div style={{ display:'flex', flexDirection:'column', gap:'14px', minWidth:0 }}>
 
           {/* Config aspiration */}
           <ProCard>
@@ -4015,7 +4034,7 @@ const NPSHdCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =>
         </div>}
 
         {/* ── Colonne droite : résultats ── */}
-        {viewTab === 'results' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {(wide || viewTab === 'results') && <div className={wide ? 'calc-results-sticky' : undefined} style={{ display:'flex', flexDirection:'column', gap:'14px', minWidth:0 }}>
 
           {/* Aperçu instantané */}
           <ProCard style={{ background:'linear-gradient(135deg,#f8fafc,#eff6ff)' }}>
@@ -4149,6 +4168,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [viewTab, setViewTab] = useState('config');
+  const wide = useWideLayout();
   const [validationError, setValidationError] = useState(null);
   const [apiError, setApiError] = useState(null);
 
@@ -4210,6 +4230,17 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
   const va = result?.velocity_suction; const vr = result?.velocity_discharge;
   const vaWarn = va && parseFloat(va) > 1.5; const vrWarn = vr && parseFloat(vr) > 3;
 
+  // Écran large : une fois un premier calcul lancé, les résultats se mettent
+  // à jour automatiquement à chaque modification des paramètres.
+  const autoCalcRef = useRef(null);
+  autoCalcRef.current = calc;
+  useEffect(() => {
+    if (!wide || !result) return;
+    const t = setTimeout(() => autoCalcRef.current?.(), 700);
+    return () => clearTimeout(t);
+
+  }, [inputData]);
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:'16px', fontFamily:DS.fontHead }}>
 
@@ -4221,6 +4252,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
       </div>
 
       <SubTabNav
+        hidden={wide}
         active={viewTab}
         onChange={setViewTab}
         tabs={[
@@ -4229,10 +4261,10 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
         ]}
       />
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:'16px' }}>
+      <div className={wide ? 'calc-split' : undefined} style={{ display:'grid', gridTemplateColumns: wide ? SPLIT_COLS : '1fr', gap:'18px', alignItems:'start' }}>
 
         {/* Gauche */}
-        {viewTab === 'config' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {(wide || viewTab === 'config') && <div style={{ display:'flex', flexDirection:'column', gap:'14px', minWidth:0 }}>
 
           {/* Installation */}
           <ProCard>
@@ -4324,7 +4356,7 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
         </div>}
 
         {/* Droite : résultats */}
-        {viewTab === 'results' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {(wide || viewTab === 'results') && <div className={wide ? 'calc-results-sticky' : undefined} style={{ display:'flex', flexDirection:'column', gap:'14px', minWidth:0 }}>
 
           {/* Aperçu data */}
           <ProCard style={{ background:'linear-gradient(135deg,#f8fafc,#f0fdf4)' }}>
@@ -4454,6 +4486,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials, onHistorySaved }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [viewTab, setViewTab] = useState('config');
+  const wide = useWideLayout();
   const [validationError, setValidationError] = useState(null);
   const [apiError, setApiError] = useState(null);
 
@@ -4488,6 +4521,17 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials, onHistorySaved }) => {
   const effWarn = inputData.pump_efficiency < 60;
   const effGood = inputData.pump_efficiency >= 75;
 
+  // Écran large : une fois un premier calcul lancé, les résultats se mettent
+  // à jour automatiquement à chaque modification des paramètres.
+  const autoCalcRef = useRef(null);
+  autoCalcRef.current = calc;
+  useEffect(() => {
+    if (!wide || !result) return;
+    const t = setTimeout(() => autoCalcRef.current?.(), 700);
+    return () => clearTimeout(t);
+
+  }, [inputData]);
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:'16px', fontFamily:DS.fontHead }}>
 
@@ -4499,6 +4543,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials, onHistorySaved }) => {
       </div>
 
       <SubTabNav
+        hidden={wide}
         active={viewTab}
         onChange={setViewTab}
         tabs={[
@@ -4507,10 +4552,10 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials, onHistorySaved }) => {
         ]}
       />
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:'16px' }}>
+      <div className={wide ? 'calc-split' : undefined} style={{ display:'grid', gridTemplateColumns: wide ? SPLIT_COLS : '1fr', gap:'18px', alignItems:'start' }}>
 
         {/* Gauche */}
-        {viewTab === 'config' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {(wide || viewTab === 'config') && <div style={{ display:'flex', flexDirection:'column', gap:'14px', minWidth:0 }}>
 
           {/* Hydraulique */}
           <ProCard>
@@ -4588,7 +4633,7 @@ const PerformanceAnalysis = ({ fluids, pipeMaterials, onHistorySaved }) => {
         </div>}
 
         {/* Droite */}
-        {viewTab === 'results' && <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+        {(wide || viewTab === 'results') && <div className={wide ? 'calc-results-sticky' : undefined} style={{ display:'flex', flexDirection:'column', gap:'14px', minWidth:0 }}>
 
           {/* Indicateur rendement en temps réel */}
           <ProCard>

@@ -905,27 +905,32 @@ select:focus-visible {
    sans toucher aux champs de Solaire qui ont déjà leurs propres
    couleurs (blue-700, cyan-700, etc.).
    ════════════════════════════════════════════════════════════════ */
-div:has(> label.block.text-sm.font-medium.text-gray-700) {
-  background: white;
-  border-left: 4px solid #3b82f6;
-  border-radius: 10px;
-  padding: 14px 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-}
+div:has(> label.block.text-sm.font-medium.text-gray-700) { min-width: 0; }
 label.block.text-sm.font-medium.text-gray-700 {
-  color: #1d4ed8 !important;
-  font-weight: 600 !important;
-  font-size: 0.84rem !important;
+  color: #334155 !important;
+  font-weight: 650 !important;
+  font-size: 0.78rem !important;
+  margin-bottom: 6px !important;
 }
 input.border-gray-300, select.border-gray-300, textarea.border-gray-300 {
-  border: 2px solid rgba(59,130,246,0.25) !important;
-  border-radius: 8px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 11px !important;
   font-weight: 600;
-  font-size: 1rem;
-  background: white;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  font-size: 0.95rem;
+  background: #f8fafc;
+  padding: 9px 12px !important;
+  min-height: 42px;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
+input.border-gray-300:hover, select.border-gray-300:hover, textarea.border-gray-300:hover { border-color: #cbd5e1 !important; background: white; }
 input.border-gray-300:focus, select.border-gray-300:focus, textarea.border-gray-300:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+  border-color: #14b8a6 !important;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(20,184,166,0.15) !important;
+  outline: none;
+}
+/* Cartes Tailwind des modules Expert / Audit : même rendu que .pro-card */
+.app-main .bg-white.rounded-lg.shadow-lg {
+  border: 1px solid #e2e8f0; border-radius: 16px !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 6px 20px rgba(15,23,42,.035) !important;
 }
