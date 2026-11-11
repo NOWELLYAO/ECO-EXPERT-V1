@@ -1,10 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import Chart from 'chart.js/auto';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 import './App.css';
+import './shell.css';
+import { MODULE_IDS, MODULE_GROUPS, getModule } from './modules';
+import notify from './lib/notify';
+import { readJSON, writeJSON } from './lib/storage';
+import Sidebar from './components/Sidebar';
+import CommandPalette from './components/CommandPalette';
+import Toaster from './components/Toaster';
+import DashboardHome from './components/Dashboard';
+import HistoryView from './components/HistoryView';
+import UnitConverter from './components/UnitConverter';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -880,7 +890,7 @@ const SolarExpertSystem = () => {
     const fetchRegions = async () => {
       try {
         const response = await axios.get(`${API}/solar-regions`);
-        setAvailableRegions(response.data.regions);
+        setAvailableRegions(Array.isArray(response.data?.regions) ? response.data.regions : []);
       } catch (error) {
         console.error('Erreur lors du chargement des régions:', error);
       }
@@ -3678,6 +3688,7 @@ const SaveCalculationButton = ({ calculationType, inputData, resultData, onSaved
       localStorage.setItem('eco_pump_last_client', clientName.trim());
       setSaved(true);
       setShowPrompt(false);
+      notify.success(`Calcul sauvegardé dans le projet « ${projectName.trim()} ».`);
       setTimeout(() => setSaved(false), 3000);
       if (onSaved) onSaved(); // rafraîchit l'historique côté App pour qu'il apparaisse immédiatement
     } catch (e) {
@@ -4983,7 +4994,7 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =
   // Fonction d'export PDF avec logo ECO PUMP AFRIK
   const exportToPDF = () => {
     if (!results) {
-      alert('Aucun résultat à exporter. Veuillez d\'abord effectuer un calcul.');
+      notify.warning('Aucun résultat à exporter. Veuillez d\'abord effectuer un calcul.');
       return;
     }
 
@@ -5414,7 +5425,7 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =
         pdf.save(filename);
       } catch (err) {
         console.error('Erreur génération PDF:', err);
-        alert("La génération du PDF a échoué. Réessayez, ou contactez le support si le problème persiste.");
+        notify.error("La génération du PDF a échoué. Réessayez, ou contactez le support si le problème persiste.");
       } finally {
         document.body.removeChild(iframe);
       }
@@ -5424,7 +5435,7 @@ const ExpertCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) =
   // Fonction d'export Excel
   const exportToExcel = () => {
     if (!results) {
-      alert('Aucun résultat à exporter. Veuillez d\'abord effectuer un calcul.');
+      notify.warning('Aucun résultat à exporter. Veuillez d\'abord effectuer un calcul.');
       return;
     }
 
@@ -8885,7 +8896,7 @@ const DrawingTool = () => {
       pdf.save(`ECO-PUMP-AFRIK-Schema-${(cfg.proj || 'Installation').replace(/\s+/g, '-')}.pdf`);
     } catch (err) {
       console.error('Erreur génération PDF du schéma:', err);
-      alert("La génération du PDF a échoué. Réessayez.");
+      notify.error("La génération du PDF a échoué. Réessayez.");
     }
   };
 
@@ -10849,7 +10860,7 @@ const PumpSelector = () => {
       .sort((a,b) => a[0]-b[0]);
     const cleanedQH = cleanPts(draftPts);
     const cleanedEta = cleanPts(draftEtaPts);
-    if (cleanedQH.length < 2) { alert('Il faut au moins 2 points valides sur la courbe Q/H.'); return; }
+    if (cleanedQH.length < 2) { notify.warning('Il faut au moins 2 points valides sur la courbe Q/H.'); return; }
     const nextCurves = { ...curveEdits, [pump.model]: cleanedQH };
     setCurveEdits(nextCurves);
     try { localStorage.setItem('ecopump_curve_edits', JSON.stringify(nextCurves)); } catch {}
@@ -10974,7 +10985,7 @@ const PumpSelector = () => {
   const exportAllCurveEdits = () => {
     const nCurves = Object.keys(curveEdits).length;
     const nEta = Object.keys(etaEdits).length;
-    if (nCurves === 0 && nEta === 0) { alert('Aucune correction enregistrée pour le moment.'); return; }
+    if (nCurves === 0 && nEta === 0) { notify.info('Aucune correction enregistrée pour le moment.'); return; }
     const blob = new Blob([JSON.stringify({ curves: curveEdits, eta: etaEdits }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -11001,8 +11012,8 @@ const PumpSelector = () => {
         setEtaEdits(nextEta);
         localStorage.setItem('ecopump_curve_edits', JSON.stringify(nextCurves));
         localStorage.setItem('ecopump_eta_edits', JSON.stringify(nextEta));
-        alert(`${Object.keys(importedCurves).length} courbe(s) Q/H et ${Object.keys(importedEta).length} courbe(s) η importée(s).`);
-      } catch { alert('Fichier invalide.'); }
+        notify.success(`${Object.keys(importedCurves).length} courbe(s) Q/H et ${Object.keys(importedEta).length} courbe(s) η importée(s).`);
+      } catch { notify.error('Fichier invalide.'); }
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -11698,77 +11709,6 @@ const MotorCableCalculator = () => {
   );
 };
 
-// ============================================================
-// DASHBOARD HOME (amélioré)
-// ============================================================
-const DashboardHome = ({ onNavigate }) => {
-  const modules = [
-    { id: 'npshd', icon: '🔷', title: 'Calcul NPSHd', desc: 'Net Positive Suction Head — prévention cavitation', cls: 'npshd', color: '#3b82f6' },
-    { id: 'hmt', icon: '🔶', title: 'Calcul HMT', desc: 'Hauteur Manométrique Totale et pertes de charge', cls: 'hmt', color: '#10b981' },
-    { id: 'performance', icon: '📊', title: 'Performance', desc: 'Courbes de performance et point optimal', cls: 'perf', color: '#f59e0b' },
-    { id: 'pump_selector', icon: '⚙️', title: 'Sélection Pompe', desc: 'Choisir la pompe adaptée à votre besoin', cls: 'chemical', color: '#14b8a6' },
-    { id: 'water_hammer', icon: '🌊', title: 'Coup de Bélier', desc: 'Analyse transitoire — surpressions Joukowsky', cls: 'audit', color: '#6366f1' },
-    { id: 'motor_cable', icon: '⚡', title: 'Moteur & Câblage', desc: 'Puissance absorbée et section de câble', cls: 'expert', color: '#f97316' },
-    { id: 'formulas', icon: '📚', title: 'Base de Formules', desc: 'Bibliothèque des formules hydrauliques', cls: 'formulas', color: '#8b5cf6' },
-    { id: 'chemical_compatibility', icon: '🧪', title: 'Compatibilité Chimique', desc: 'Compatibilité fluides / matériaux', cls: 'chemical', color: '#0891b2' },
-    { id: 'audit', icon: '🔧', title: 'Audit ISO 50001', desc: 'Audit hydraulique & énergétique complet', cls: 'audit', color: '#6366f1' },
-    { id: 'expert', icon: '🎯', title: 'Expert Pro', desc: 'Analyse experte avec rapport PDF', cls: 'expert', color: '#ec4899' },
-    { id: 'solar', icon: '☀️', title: 'Expert Solaire', desc: 'Dimensionnement pompage photovoltaïque', cls: 'solar', color: '#f97316' },
-  ];
-
-  return (
-    <div className="dashboard-home fade-in">
-      <div className="dashboard-hero">
-        <div className="dashboard-hero-title">Bienvenue sur <span>ECO-PUMP AFRIK</span></div>
-        <p className="dashboard-hero-desc">La plateforme de référence pour le calcul hydraulique professionnel. Dimensionnez, auditez et optimisez vos installations de pompage.</p>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary btn-lg" onClick={() => onNavigate('npshd')}>🚀 Commencer un calcul</button>
-          <button onClick={() => onNavigate('expert')} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '13px 28px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>🎯 Mode Expert</button>
-        </div>
-      </div>
-
-      <div className="dashboard-stats">
-        {[
-          { icon: '🔧', label: 'Modules disponibles', value: '11', color: '#3b82f6', bg: '#dbeafe' },
-          { icon: '📐', label: 'Formules hydrauliques', value: '60+', color: '#10b981', bg: '#d1fae5' },
-          { icon: '🧪', label: 'Fluides référencés', value: '15+', color: '#f59e0b', bg: '#fef3c7' },
-          { icon: '⚙️', label: 'Pompes en base', value: '12+', color: '#8b5cf6', bg: '#ede9fe' },
-        ].map((s, i) => (
-          <div key={i} className="stat-card">
-            <div className="stat-icon" style={{ background: s.bg }}><span style={{ fontSize: '18px' }}>{s.icon}</span></div>
-            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-            <div className="stat-label">{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--navy-900)', marginBottom: '4px' }}>Tous les modules</h2>
-        <p style={{ fontSize: '0.82rem', color: 'var(--slate-600)' }}>Cliquez sur un module pour commencer</p>
-      </div>
-      <div className="module-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        {modules.map(m => (
-          <div key={m.id} className={`module-card ${m.cls}`} onClick={() => onNavigate(m.id)} style={{ borderTop: `3px solid ${m.color}` }}>
-            <span className="module-icon">{m.icon}</span>
-            <div className="module-title">{m.title}</div>
-            <div className="module-desc">{m.desc}</div>
-            <div className="module-arrow" style={{ background: m.color + '18', color: m.color }}>→</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ background: 'white', borderRadius: 'var(--radius-lg)', padding: '20px 24px', border: '1px solid var(--slate-200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '8px' }}>
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-          {['✅ ISO 50001', '✅ IEC 60034', '✅ ASHRAE', '✅ Joukowsky', '✅ Darcy-Weisbach'].map(s => (
-            <span key={s} style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--slate-600)' }}>{s}</span>
-          ))}
-        </div>
-        <span style={{ fontSize: '0.72rem', color: 'var(--slate-400)', fontFamily: 'monospace' }}>v4.0 PRO</span>
-      </div>
-    </div>
-  );
-};
-
 // APP PRINCIPAL
 // ============================================================
 // ── Filet de sécurité : si un composant plante (erreur JS), on affiche un
@@ -11815,130 +11755,6 @@ const SlowLoadMessage = () => {
           Le serveur se réveille après une période d'inactivité — ça peut prendre jusqu'à 30-50 secondes. Merci de patienter.
         </div>
       )}
-    </div>
-  );
-};
-
-// ════════════════════════════════════════════════════════════════
-// COMPARATEUR — champs clés à afficher côte à côte, par type de calcul
-// ════════════════════════════════════════════════════════════════
-const COMPARISON_FIELDS = {
-  npshd: {
-    inputs: [
-      ['flow_rate', 'Débit', 'm³/h'], ['hasp', 'Hauteur asp.', 'm'],
-      ['pipe_diameter', 'Diamètre', 'mm'], ['pipe_length', 'Longueur', 'm'],
-      ['pipe_material', 'Matériau', ''], ['fluid_type', 'Fluide', ''],
-      ['temperature', 'Température', '°C'], ['npsh_required', 'NPSH requis', 'm'],
-    ],
-    results: [
-      ['npshd', 'NPSHd calculé', 'm'], ['npsh_margin', 'Marge sécurité', 'm'],
-      ['velocity', 'Vitesse', 'm/s'], ['reynolds_number', 'Reynolds', ''],
-      ['cavitation_risk', 'Risque cavitation', ''],
-    ],
-  },
-  hmt: {
-    inputs: [
-      ['flow_rate', 'Débit', 'm³/h'], ['hasp', 'Hasp', 'm'], ['discharge_height', 'H. refoulement', 'm'],
-      ['useful_pressure', 'P. utile', 'bar'], ['suction_pipe_diameter', 'Ø aspiration', 'mm'],
-      ['discharge_pipe_diameter', 'Ø refoulement', 'mm'], ['fluid_type', 'Fluide', ''],
-    ],
-    results: [
-      ['total_hmt', 'HMT totale', 'm'], ['absorbed_power', 'Puissance absorbée', 'kW'],
-      ['velocity_suction', 'Vitesse asp.', 'm/s'], ['velocity_discharge', 'Vitesse ref.', 'm/s'],
-    ],
-  },
-  performance: {
-    inputs: [
-      ['flow_rate', 'Débit', 'm³/h'], ['hmt', 'HMT', 'm'], ['pipe_diameter', 'Diamètre', 'mm'],
-      ['pump_efficiency', 'η pompe', '%'], ['motor_efficiency', 'η moteur', '%'], ['voltage', 'Tension', 'V'],
-    ],
-    results: [
-      ['overall_efficiency', 'Rendement global', '%'], ['nominal_current', 'Courant nominal', 'A'],
-      ['hydraulic_power', 'Puissance hydraulique', 'kW'], ['absorbed_power', 'Puissance absorbée', 'kW'],
-      ['cable_section', 'Section câble', 'mm²'], ['voltage_drop_percent', 'Chute tension', '%'],
-    ],
-  },
-  expert: {
-    inputs: [
-      ['flow_rate', 'Débit', 'm³/h'], ['fluid_type', 'Fluide', ''],
-      ['pump_efficiency', 'η pompe', '%'], ['motor_efficiency', 'η moteur', '%'],
-    ],
-    results: [
-      ['overall_efficiency', 'Rendement global', '%'], ['annual_energy_cost', 'Coût énergétique/an', 'FCFA'],
-    ],
-  },
-};
-
-const fmtCompVal = (v, unit) => {
-  if (v === undefined || v === null || v === '') return '—';
-  if (typeof v === 'boolean') return v ? 'Oui ⚠️' : 'Non ✓';
-  if (typeof v === 'number') return `${Number.isInteger(v) ? v : v.toFixed(2)}${unit ? ' ' + unit : ''}`;
-  return `${v}${unit ? ' ' + unit : ''}`;
-};
-
-// Composant : tableau de comparaison de 2-3 calculs sauvegardés du même type
-const ComparisonTable = ({ items, fluids, pipeMaterials, onClose }) => {
-  const type = items[0]?.calculation_type;
-  const fields = COMPARISON_FIELDS[type] || { inputs: [], results: [] };
-  const fluidName = id => fluids.find(f => f.id === id)?.name || id;
-  const materialName = id => pipeMaterials.find(m => m.id === id)?.name || id;
-
-  const resolveValue = (item, key) => {
-    let v = item.input_data?.[key] ?? item.result_data?.[key];
-    if (key === 'fluid_type' && v) return fluidName(v);
-    if ((key === 'pipe_material' || key.endsWith('_pipe_material')) && v) return materialName(v);
-    return v;
-  };
-
-  const Row = ({ label, unit, dataKey, section }) => {
-    const values = items.map(it => resolveValue(it, dataKey));
-    const allSame = values.every(v => String(v) === String(values[0]));
-    return (
-      <tr style={{ borderBottom: '1px solid var(--slate-100)' }}>
-        <td style={{ padding: '9px 12px', fontSize: '0.8rem', color: 'var(--slate-500)', fontWeight: 500 }}>{label}</td>
-        {values.map((v, i) => (
-          <td key={i} style={{
-            padding: '9px 12px', fontSize: '0.85rem', fontWeight: 700, textAlign: 'center',
-            color: allSame ? 'var(--navy-900)' : '#b45309',
-            background: allSame ? 'transparent' : '#fffbeb',
-          }}>
-            {fmtCompVal(v, unit)}
-          </td>
-        ))}
-      </tr>
-    );
-  };
-
-  const typeLabels = { npshd: '🔷 NPSHd', hmt: '🔶 HMT', performance: '📊 Performance', expert: '🎯 Expert' };
-
-  return (
-    <div className="card fade-in" style={{ marginBottom: '16px' }}>
-      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="card-title">⚖️ Comparaison — {typeLabels[type] || type}</div>
-        <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: '7px', padding: '6px 12px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', color: 'var(--slate-600)' }}>✕ Fermer</button>
-      </div>
-      <div className="card-body" style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '480px' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--slate-200)' }}>
-              <th style={{ padding: '9px 12px', textAlign: 'left', fontSize: '0.72rem', color: 'var(--slate-400)', textTransform: 'uppercase' }}>Paramètre</th>
-              {items.map((it, i) => (
-                <th key={i} style={{ padding: '9px 12px', textAlign: 'center', fontSize: '0.82rem', fontWeight: 800, color: 'var(--navy-900)' }}>
-                  {it.project_name}
-                  <div style={{ fontSize: '0.65rem', fontWeight: 500, color: 'var(--slate-400)', marginTop: '2px' }}>{new Date(it.timestamp).toLocaleDateString('fr-FR')}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td colSpan={items.length + 1} style={{ padding: '10px 12px 4px', fontSize: '0.68rem', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📝 Configuration</td></tr>
-            {fields.inputs.map(([key, label, unit]) => <Row key={key} dataKey={key} label={label} unit={unit} />)}
-            <tr><td colSpan={items.length + 1} style={{ padding: '14px 12px 4px', fontSize: '0.68rem', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📊 Résultats</td></tr>
-            {fields.results.map(([key, label, unit]) => <Row key={key} dataKey={key} label={label} unit={unit} />)}
-          </tbody>
-        </table>
-        <p style={{ fontSize: '0.72rem', color: 'var(--slate-400)', marginTop: '10px' }}>Les valeurs surlignées en orange diffèrent entre les calculs comparés.</p>
-      </div>
     </div>
   );
 };
@@ -12032,21 +11848,72 @@ const AuthScreen = ({ onAuthenticated }) => {
   );
 };
 
+// ── Routage par l'URL (#/module) : le bouton retour du navigateur, le
+// rafraîchissement de page et le partage de lien conservent l'onglet ouvert.
+const readHashTab = () => {
+  const id = (window.location.hash || '').replace(/^#\/?/, '').split('?')[0];
+  return MODULE_IDS.has(id) ? id : 'home';
+};
+
+const isTypingTarget = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+
 function App() {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTabState] = useState(readHashTab);
+  const [navParams, setNavParams] = useState({});
   const [fluids, setFluids] = useState([]);
   const [pipeMaterials, setPipeMaterials] = useState([]);
   const [fittings, setFittings] = useState([]);
   const [history, setHistory] = useState([]);
-  const [compareSelection, setCompareSelection] = useState([]);
-  const [showComparator, setShowComparator] = useState(false);
-  const [collapsedProjects, setCollapsedProjects] = useState([]);
   const [dataLoadError, setDataLoadError] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
+  // ── Préférences d'interface (persistées localement) ──
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readJSON('eco_sidebar_collapsed', false));
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [favorites, setFavorites] = useState(() => readJSON('eco_favorites', ['npshd', 'hmt', 'solar']));
+  const [recent, setRecent] = useState(() => readJSON('eco_recent_modules', []));
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showBackTop, setShowBackTop] = useState(false);
+  const userMenuRef = useRef(null);
+
+  useEffect(() => writeJSON('eco_sidebar_collapsed', sidebarCollapsed), [sidebarCollapsed]);
+  useEffect(() => writeJSON('eco_favorites', favorites), [favorites]);
+  useEffect(() => writeJSON('eco_recent_modules', recent), [recent]);
+
+  const navigate = useCallback((id, params = {}) => {
+    const target = MODULE_IDS.has(id) ? id : 'home';
+    setNavParams(params);
+    setActiveTabState(target);
+    setMobileNavOpen(false);
+    if (readHashTab() !== target || !window.location.hash) {
+      window.history.pushState(null, '', `#/${target}`);
+    }
+    if (target !== 'home') setRecent(r => [target, ...r.filter(x => x !== target)].slice(0, 6));
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
   useEffect(() => {
-    const goOffline = () => setIsOffline(true);
-    const goOnline = () => setIsOffline(false);
+    const onPop = () => { setNavParams({}); setActiveTabState(readHashTab()); };
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('hashchange', onPop);
+    return () => { window.removeEventListener('popstate', onPop); window.removeEventListener('hashchange', onPop); };
+  }, []);
+
+  // Titre de l'onglet du navigateur
+  useEffect(() => {
+    const m = getModule(activeTab);
+    document.title = activeTab === 'home' ? 'ECO-PUMP AFRIK — Calculateur hydraulique' : `${m.title} · ECO-PUMP AFRIK`;
+  }, [activeTab]);
+
+  const toggleFavorite = useCallback((id) => {
+    setFavorites(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
+  }, []);
+
+  useEffect(() => {
+    const goOffline = () => { setIsOffline(true); notify.warning('Connexion perdue — mode hors-ligne.'); };
+    const goOnline = () => { setIsOffline(false); notify.success('Connexion rétablie.'); };
     window.addEventListener('offline', goOffline);
     window.addEventListener('online', goOnline);
     return () => {
@@ -12054,6 +11921,33 @@ function App() {
       window.removeEventListener('online', goOnline);
     };
   }, []);
+
+  // ── Raccourcis clavier globaux ──
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setPaletteOpen(o => !o); return; }
+      if (isTypingTarget(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === '/') { e.preventDefault(); setPaletteOpen(true); }
+      else if (e.key === '?') { e.preventDefault(); setShortcutsOpen(o => !o); }
+      else if (e.key === 'Escape') { setShortcutsOpen(false); setUserMenuOpen(false); setMobileNavOpen(false); }
+      else if (e.key === '[') { setSidebarCollapsed(c => !c); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackTop(window.scrollY > 600);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onDown = (e) => { if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [userMenuOpen]);
 
   // ── Authentification ──
   const [authToken, setAuthToken] = useState(() => localStorage.getItem('eco_pump_token') || null);
@@ -12086,17 +11980,34 @@ function App() {
     })();
   }, [authToken]);
 
-  const logout = () => { setAuthToken(null); setCurrentUser(null); setHistory([]); };
+  const logout = () => {
+    setUserMenuOpen(false);
+    setAuthToken(null); setCurrentUser(null); setHistory([]);
+    notify.info('Vous êtes déconnecté.');
+  };
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/history`);
       setHistory(res.data);
     } catch (e) { console.error('Erreur chargement historique:', e); }
-  };
+  }, []);
+
+  const deleteHistoryEntry = useCallback(async (id) => {
+    if (!window.confirm('Supprimer ce calcul de l\'historique ?')) return false;
+    try {
+      await axios.delete(`${API}/history/${id}`);
+      setHistory(h => h.filter(x => x.id !== id));
+      notify.success('Calcul supprimé.');
+      return true;
+    } catch (e) {
+      notify.error('Impossible de supprimer : ' + (e.response?.data?.detail || e.message));
+      return false;
+    }
+  }, []);
 
   useEffect(() => { loadData(); }, []);
-  useEffect(() => { if (currentUser) loadHistory(); }, [currentUser]);
+  useEffect(() => { if (currentUser) loadHistory(); }, [currentUser, loadHistory]);
 
   const loadData = async () => {
     setDataLoadError(null);
@@ -12139,9 +12050,20 @@ function App() {
     }
   };
 
+  const paletteActions = useMemo(() => [
+    { id: 'collapse', icon: '↔️', label: sidebarCollapsed ? 'Déplier la barre latérale' : 'Replier la barre latérale', hint: 'Raccourci : [', run: () => setSidebarCollapsed(c => !c) },
+    { id: 'refresh', icon: '↻', label: "Actualiser l'historique", hint: 'Recharge les calculs sauvegardés', run: () => { loadHistory(); notify.info('Historique actualisé.'); } },
+    { id: 'shortcuts', icon: '⌨️', label: 'Raccourcis clavier', hint: 'Raccourci : ?', run: () => setShortcutsOpen(true) },
+    { id: 'print', icon: '🖨️', label: 'Imprimer la page', hint: 'Ctrl + P', run: () => setTimeout(() => window.print(), 150) },
+    { id: 'logout', icon: '⏻', label: 'Se déconnecter', run: () => logout() },
+  ], [sidebarCollapsed, loadHistory]);
+
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'home': return <DashboardHome onNavigate={setActiveTab} />;
+      case 'home': return (
+        <DashboardHome onNavigate={navigate} user={currentUser} history={history} favorites={favorites}
+          onToggleFavorite={toggleFavorite} recent={recent} onOpenPalette={() => setPaletteOpen(true)} />
+      );
       case 'npshd': return <NPSHdCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} onHistorySaved={loadHistory} />;
       case 'hmt': return <HMTCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} onHistorySaved={loadHistory} />;
       case 'performance': return <PerformanceAnalysis fluids={fluids} pipeMaterials={pipeMaterials} onHistorySaved={loadHistory} />;
@@ -12154,163 +12076,15 @@ function App() {
       case 'audit': return <AuditSystem />;
       case 'expert': return <ExpertCalculator fluids={fluids} pipeMaterials={pipeMaterials} fittings={fittings} onHistorySaved={loadHistory} />;
       case 'solar': return <SolarExpertSystem />;
-      case 'history': {
-        const typeLabels = { npshd: '🔷 NPSHd', hmt: '🔶 HMT', performance: '📊 Performance', expert: '🎯 Expert' };
-        const deleteEntry = async (id) => {
-          if (!window.confirm('Supprimer ce calcul de l\'historique ?')) return;
-          try {
-            await axios.delete(`${API}/history/${id}`);
-            setHistory(h => h.filter(x => x.id !== id));
-          } catch (e) { alert("Impossible de supprimer : " + (e.response?.data?.detail || e.message)); }
-        };
-        const selectedType = compareSelection.length > 0
-          ? history.find(h => h.id === compareSelection[0])?.calculation_type
-          : null;
-        const toggleSelect = (item) => {
-          setCompareSelection(sel => {
-            if (sel.includes(item.id)) return sel.filter(id => id !== item.id);
-            if (sel.length > 0 && item.calculation_type !== selectedType) return sel; // types différents non comparables
-            if (sel.length >= 3) return sel; // max 3
-            return [...sel, item.id];
-          });
-        };
-        const selectedItems = history.filter(h => compareSelection.includes(h.id));
-
-        // Regroupement par projet (gestion de projets/clients) — chaque projet peut
-        // contenir des calculs NPSHd + HMT + Performance + Expert mélangés.
-        const projectGroups = {};
-        history.forEach(item => {
-          const key = item.project_name || 'Sans nom';
-          if (!projectGroups[key]) projectGroups[key] = [];
-          projectGroups[key].push(item);
-        });
-        const projectNames = Object.keys(projectGroups).sort((a, b) => {
-          const latestA = Math.max(...projectGroups[a].map(i => new Date(i.timestamp).getTime()));
-          const latestB = Math.max(...projectGroups[b].map(i => new Date(i.timestamp).getTime()));
-          return latestB - latestA;
-        });
-        const toggleCollapse = (name) => {
-          setCollapsedProjects(s => s.includes(name) ? s.filter(n => n !== name) : [...s, name]);
-        };
-
-        return (
-          <div className="fade-in">
-            {showComparator && selectedItems.length >= 2 && (
-              <ComparisonTable items={selectedItems} fluids={fluids} pipeMaterials={pipeMaterials}
-                onClose={() => setShowComparator(false)} />
-            )}
-
-            {compareSelection.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginBottom: '12px' }}>
-                <span style={{ fontSize: '0.78rem', color: 'var(--slate-500)', fontWeight: 600 }}>{compareSelection.length} sélectionné(s) — {typeLabels[selectedType]}</span>
-                <button onClick={() => setCompareSelection([])}
-                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '7px', padding: '7px 12px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', color: 'var(--slate-600)' }}>
-                  Annuler
-                </button>
-                <button onClick={() => setShowComparator(true)} disabled={compareSelection.length < 2}
-                  style={{ background: compareSelection.length < 2 ? '#cbd5e1' : '#7c3aed', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '0.78rem', fontWeight: 700, cursor: compareSelection.length < 2 ? 'not-allowed' : 'pointer', color: 'white' }}>
-                  ⚖️ Comparer ({compareSelection.length})
-                </button>
-              </div>
-            )}
-
-            {history.length === 0 ? (
-              <div className="card">
-                <div className="card-body">
-                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--slate-500)' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📭</div>
-                    <div style={{ fontWeight: 600, marginBottom: '4px' }}>Aucun calcul sauvegardé</div>
-                    <div style={{ fontSize: '0.82rem' }}>Utilisez le bouton "💾 Sauvegarder ce calcul" après un calcul NPSHd, HMT, Performance ou Expert.</div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {projectNames.map(projectName => {
-                  const items = projectGroups[projectName].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                  const client = items.find(i => i.client_name)?.client_name;
-                  const collapsed = collapsedProjects.includes(projectName);
-                  const typesPresent = [...new Set(items.map(i => i.calculation_type))];
-                  return (
-                    <div key={projectName} className="card">
-                      <div className="card-header" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}
-                        onClick={() => toggleCollapse(projectName)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '0.9rem', color: 'var(--slate-400)', transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>▾</span>
-                          <div>
-                            <div className="card-title" style={{ marginBottom: '2px' }}>📁 {projectName}</div>
-                            {client && <div style={{ fontSize: '0.76rem', color: 'var(--slate-500)' }}>👤 {client}</div>}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                          {typesPresent.map(t => (
-                            <span key={t} style={{ background: '#ccfbf1', color: '#0f766e', padding: '3px 9px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 700 }}>{typeLabels[t] || t}</span>
-                          ))}
-                          <span style={{ background: '#f1f5f9', color: 'var(--slate-500)', padding: '3px 9px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 700 }}>{items.length} calcul{items.length > 1 ? 's' : ''}</span>
-                        </div>
-                      </div>
-                      {!collapsed && (
-                        <div className="card-body">
-                          {compareSelection.length > 0 && typesPresent.includes(selectedType) && (
-                            <p style={{ fontSize: '0.72rem', color: 'var(--slate-400)', margin: '0 0 10px' }}>
-                              Seuls les calculs {typeLabels[selectedType]} peuvent être ajoutés à la comparaison en cours.
-                            </p>
-                          )}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {items.map((item) => {
-                              const checked = compareSelection.includes(item.id);
-                              const disabled = compareSelection.length > 0 && !checked && (item.calculation_type !== selectedType || compareSelection.length >= 3);
-                              return (
-                                <div key={item.id} style={{ border: `1.5px solid ${checked ? '#a78bfa' : 'var(--slate-200)'}`, background: checked ? '#faf5ff' : 'var(--slate-50)', borderRadius: '10px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleSelect(item)}
-                                      style={{ width: '17px', height: '17px', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1 }}
-                                      title={disabled ? 'Type différent ou limite de 3 atteinte' : 'Sélectionner pour comparer'} />
-                                    <div>
-                                      <span style={{ background: '#ccfbf1', color: '#0f766e', padding: '2px 8px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 700, marginRight: '8px' }}>
-                                        {typeLabels[item.calculation_type] || item.calculation_type}
-                                      </span>
-                                      <span style={{ fontSize: '0.76rem', color: 'var(--slate-500)' }}>{new Date(item.timestamp).toLocaleString('fr-FR')}</span>
-                                    </div>
-                                  </div>
-                                  <button onClick={() => deleteEntry(item.id)} title="Supprimer"
-                                    style={{ background: '#fff1f2', border: '1px solid #fca5a5', color: '#dc2626', width: '28px', height: '28px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem' }}>
-                                    🗑️
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      }
+      case 'converter': return <UnitConverter />;
+      case 'history': return (
+        <HistoryView history={history} fluids={fluids} pipeMaterials={pipeMaterials}
+          onDelete={deleteHistoryEntry} onRefresh={() => { loadHistory(); notify.info('Historique actualisé.'); }}
+          initialProject={navParams.project} initialOpen={navParams.open} />
+      );
       default: return null;
     }
   };
-
-  const navItems = [
-    { id: 'home', icon: '🏠', label: 'Accueil' },
-    { id: 'npshd', icon: '🔷', label: 'NPSHd' },
-    { id: 'hmt', icon: '🔶', label: 'HMT' },
-    { id: 'performance', icon: '📊', label: 'Performance' },
-    { id: 'drawing', icon: '📐', label: 'Dessin' },
-    { id: 'pump_selector', icon: '⚙️', label: 'Sélection' },
-    { id: 'water_hammer', icon: '🌊', label: 'Bélier' },
-    { id: 'motor_cable', icon: '⚡', label: 'Moteur' },
-    { id: 'formulas', icon: '📚', label: 'Formules' },
-    { id: 'chemical_compatibility', icon: '🧪', label: 'Chimie' },
-    { id: 'audit', icon: '🔧', label: 'Audit' },
-    { id: 'expert', icon: '🎯', label: 'Expert' },
-    { id: 'solar', icon: '☀️', label: 'Solaire' },
-    { id: 'history', icon: '📋', label: 'Historique' },
-  ];
 
   // Tant qu'on n'a pas vérifié le jeton stocké, on affiche un écran de chargement
   // visible (spinner + message) — un écran totalement noir donnait l'impression
@@ -12328,82 +12102,127 @@ function App() {
 
   // Pas connecté : écran de connexion / inscription, l'app n'est pas accessible sans compte
   if (!currentUser) {
-    return <AuthScreen onAuthenticated={(token, user) => { setAuthToken(token); setCurrentUser(user); }} />;
+    return (
+      <>
+        <AuthScreen onAuthenticated={(token, user) => { setAuthToken(token); setCurrentUser(user); notify.success(`Bienvenue ${user?.name || ''} !`); }} />
+        <Toaster />
+      </>
+    );
   }
 
+  const current = getModule(activeTab);
+  const currentGroup = MODULE_GROUPS.find(g => g.id === current.group);
+  const isFav = favorites.includes(activeTab);
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--slate-100)' }}>
-      <header className="app-header no-print">
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0 10px' }}>
-            <div className="header-brand" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }}>
-              <div className="header-logo">💧</div>
-              <div>
-                <div className="header-title">ECO-PUMP AFRIK</div>
-                <div className="header-subtitle">Calculateur Hydraulique Professionnel</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div className="header-badge"><div className="header-badge-dot"></div><span className="header-badge-text">ACTIF</span></div>
-              <span className="header-version">v4.0 PRO</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '12px', borderLeft: '1px solid rgba(255,255,255,0.15)' }}>
-                <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(20,184,166,0.2)', color: 'var(--teal-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>
-                  {currentUser.name?.[0]?.toUpperCase() || '?'}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }} className="header-username">
-                  <span style={{ color: 'white', fontSize: '0.78rem', fontWeight: 600 }}>{currentUser.name}</span>
-                  {currentUser.company && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.66rem' }}>{currentUser.company}</span>}
-                </div>
-                <button onClick={logout} title="Se déconnecter"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '7px', color: 'rgba(255,255,255,0.7)', width: '28px', height: '28px', cursor: 'pointer', fontSize: '0.85rem', flexShrink: 0 }}>
-                  ⏻
-                </button>
-              </div>
-            </div>
+    <div className={`app-shell ${sidebarCollapsed ? 'sb-collapsed' : ''}`}>
+      <Sidebar active={activeTab} onNavigate={navigate} collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(c => !c)} mobileOpen={mobileNavOpen}
+        onCloseMobile={() => setMobileNavOpen(false)} favorites={favorites} historyCount={history.length} />
+
+      <div className="app-content">
+        <header className="topbar no-print">
+          <button className="icon-btn topbar-burger" onClick={() => setMobileNavOpen(true)} aria-label="Ouvrir le menu">☰</button>
+          <div className="topbar-crumbs">
+            {activeTab !== 'home' && <>
+              <span className="topbar-crumb-group">{currentGroup?.label}</span>
+              <span className="topbar-crumb-sep">/</span>
+            </>}
+            <span className="topbar-crumb-title">{current.icon} {current.title}</span>
+            {activeTab !== 'home' && (
+              <button className={`topbar-fav ${isFav ? 'on' : ''}`} onClick={() => toggleFavorite(activeTab)}
+                title={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'} aria-pressed={isFav}>{isFav ? '★' : '☆'}</button>
+            )}
           </div>
-          <nav className="app-nav">
-            {navItems.map(item => (
-              <button key={item.id} className={`nav-btn ${activeTab === item.id ? 'active' : ''}`} onClick={() => setActiveTab(item.id)}>
-                <span className="nav-icon">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-      </header>
-      {isOffline && (
-        <div className="no-print" style={{
-          maxWidth: '1280px', margin: '12px auto 0', padding: '10px 20px',
-          background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '10px',
-          display: 'flex', alignItems: 'center', gap: '10px'
-        }}>
-          <span style={{ fontSize: '1.2rem' }}>📡</span>
-          <div>
-            <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.82rem' }}>Mode hors-ligne</div>
-            <div style={{ fontSize: '0.75rem', color: '#b45309' }}>L'application reste consultable, mais les calculs et la sauvegarde nécessitent une connexion internet.</div>
+          <button className="topbar-search" onClick={() => setPaletteOpen(true)} aria-label="Recherche rapide">
+            <span>🔎</span><span className="topbar-search-label">Rechercher…</span><kbd className="kbd">Ctrl K</kbd>
+          </button>
+          <span className={`topbar-pill ${isOffline ? 'offline' : 'online'}`} title={isOffline ? 'Hors-ligne' : 'Connecté au serveur'}>
+            <span className="dot" /><span className="topbar-pill-text">{isOffline ? 'Hors-ligne' : 'En ligne'}</span>
+          </span>
+          <div className="user-menu" ref={userMenuRef}>
+            <button className="user-trigger" onClick={() => setUserMenuOpen(o => !o)} aria-haspopup="menu" aria-expanded={userMenuOpen}>
+              <span className="user-avatar">{currentUser.name?.[0]?.toUpperCase() || '?'}</span>
+              <span className="user-text">
+                <div className="user-name">{currentUser.name}</div>
+                {currentUser.company && <div className="user-company">{currentUser.company}</div>}
+              </span>
+            </button>
+            {userMenuOpen && (
+              <div className="user-dropdown" role="menu">
+                <div className="user-dropdown-head">
+                  <div className="user-name">{currentUser.name}</div>
+                  {currentUser.email && <div className="user-dropdown-email">{currentUser.email}</div>}
+                </div>
+                <button role="menuitem" onClick={() => { setUserMenuOpen(false); navigate('history'); }}>📋 Mes calculs ({history.length})</button>
+                <button role="menuitem" onClick={() => { setUserMenuOpen(false); setShortcutsOpen(true); }}>⌨️ Raccourcis clavier</button>
+                <button role="menuitem" className="danger" onClick={logout}>⏻ Se déconnecter</button>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-      {dataLoadError && (
-        <div className="no-print" style={{
-          maxWidth: '1280px', margin: '12px auto 0', padding: '12px 20px',
-          background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: '10px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.3rem' }}>⚠️</span>
+        </header>
+
+        {isOffline && (
+          <div className="no-print" style={{
+            maxWidth: '1320px', margin: '12px auto 0', padding: '10px 20px',
+            background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '10px',
+            display: 'flex', alignItems: 'center', gap: '10px'
+          }}>
+            <span style={{ fontSize: '1.2rem' }}>📡</span>
             <div>
-              <div style={{ fontWeight: 700, color: '#991b1b', fontSize: '0.85rem' }}>Connexion au serveur impossible</div>
-              <div style={{ fontSize: '0.78rem', color: '#b91c1c' }}>{dataLoadError}</div>
+              <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.82rem' }}>Mode hors-ligne</div>
+              <div style={{ fontSize: '0.75rem', color: '#b45309' }}>L'application reste consultable, mais les calculs et la sauvegarde nécessitent une connexion internet.</div>
             </div>
           </div>
-          <button onClick={loadData} style={{
-            padding: '8px 16px', background: '#dc2626', color: 'white', border: 'none',
-            borderRadius: '7px', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap'
-          }}>↺ Réessayer</button>
+        )}
+        {dataLoadError && (
+          <div className="no-print" style={{
+            maxWidth: '1320px', margin: '12px auto 0', padding: '12px 20px',
+            background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: '10px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '1.3rem' }}>⚠️</span>
+              <div>
+                <div style={{ fontWeight: 700, color: '#991b1b', fontSize: '0.85rem' }}>Connexion au serveur impossible</div>
+                <div style={{ fontSize: '0.78rem', color: '#b91c1c' }}>{dataLoadError}</div>
+              </div>
+            </div>
+            <button onClick={loadData} style={{
+              padding: '8px 16px', background: '#dc2626', color: 'white', border: 'none',
+              borderRadius: '7px', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap'
+            }}>↺ Réessayer</button>
+          </div>
+        )}
+        <main className="app-main"><ErrorBoundary key={activeTab}>{renderTabContent()}</ErrorBoundary></main>
+      </div>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onNavigate={navigate}
+        history={history} actions={paletteActions} />
+
+      {shortcutsOpen && (
+        <div className="cmdk-overlay" onMouseDown={() => setShortcutsOpen(false)}>
+          <div className="cmdk" onMouseDown={e => e.stopPropagation()} role="dialog" aria-label="Raccourcis clavier" style={{ maxWidth: 440 }}>
+            <div className="cmdk-input-row" style={{ justifyContent: 'space-between' }}>
+              <strong>⌨️ Raccourcis clavier</strong>
+              <button className="hv-icon-btn" onClick={() => setShortcutsOpen(false)} aria-label="Fermer">✕</button>
+            </div>
+            <dl className="shortcuts">
+              <dt><kbd className="kbd">Ctrl</kbd>+<kbd className="kbd">K</kbd> ou <kbd className="kbd">/</kbd></dt><dd>Recherche rapide</dd>
+              <dt><kbd className="kbd">[</kbd></dt><dd>Replier / déplier la barre latérale</dd>
+              <dt><kbd className="kbd">?</kbd></dt><dd>Afficher cette aide</dd>
+              <dt><kbd className="kbd">Échap</kbd></dt><dd>Fermer les fenêtres</dd>
+              <dt><kbd className="kbd">Alt</kbd>+<kbd className="kbd">←</kbd></dt><dd>Module précédent (historique navigateur)</dd>
+            </dl>
+          </div>
         </div>
       )}
-      <main className="app-main"><ErrorBoundary key={activeTab}>{renderTabContent()}</ErrorBoundary></main>
+
+      {showBackTop && (
+        <button className="back-top no-print" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Retour en haut" title="Retour en haut"
+          style={{ bottom: 18 }}>↑</button>
+      )}
+      <Toaster />
     </div>
   );
 }
