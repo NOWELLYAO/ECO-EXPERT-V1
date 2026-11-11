@@ -7358,7 +7358,7 @@ const DrawingTool = () => {
       {/* Steps */}
       <div style={{display:'flex',background:'white',borderRadius:'8px',border:'1px solid #e5e7eb',overflow:'hidden'}}>
         {['Type','Données','Accessoires','Schéma'].map((s,i)=>(
-          <div key={i} onClick={()=>setStep(i+1)} style={{flex:1,padding:'9px 6px',textAlign:'center',cursor:'pointer',borderRight:i<3?'1px solid #e5e7eb':'none',background:step===i+1?'#f0fdfa':'white',borderBottom:step===i+1?'3px solid #14b8a6':'3px solid transparent'}}>
+          <div key={i} onClick={()=>{ if(i===3) setStep4(true); setStep(i+1); }} style={{flex:1,padding:'9px 6px',textAlign:'center',cursor:'pointer',borderRight:i<3?'1px solid #e5e7eb':'none',background:step===i+1?'#f0fdfa':'white',borderBottom:step===i+1?'3px solid #14b8a6':'3px solid transparent'}}>
             <div style={{fontSize:'0.6rem',fontWeight:700,color:step===i+1?'#0f766e':'#9ca3af',textTransform:'uppercase'}}>{i+1}</div>
             <div style={{fontSize:'0.8rem',fontWeight:600,color:step===i+1?'#134e4a':'#6b7280'}}>{s}</div>
           </div>
