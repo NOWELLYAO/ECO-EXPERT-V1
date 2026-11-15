@@ -3059,8 +3059,8 @@ const HMTCalculator = ({ fluids, pipeMaterials, fittings, onHistorySaved }) => {
 
           {/* Alertes vitesse (avant calcul) */}
           {inputData.flow_rate > 0 && (() => {
-            const va = inputData.flow_rate / 3.6 / (Math.PI * (inputData.suction_pipe_diameter/1000/2)**2);
-            const vr = inputData.flow_rate / 3.6 / (Math.PI * (inputData.discharge_pipe_diameter/1000/2)**2);
+            const va = inputData.flow_rate / 3600 / (Math.PI * (inputData.suction_pipe_diameter/1000/2)**2);
+            const vr = inputData.flow_rate / 3600 / (Math.PI * (inputData.discharge_pipe_diameter/1000/2)**2);
             return <>
               {inputData.installation_type === 'surface' && va > 1.5 && <ProAlert type="warning" title="Vitesse aspiration élevée">Va ≈ {va.toFixed(2)} m/s &gt; 1.5 m/s recommandé. Augmentez le DN aspiration.</ProAlert>}
               {vr > 3.0 && <ProAlert type="warning" title="Vitesse refoulement élevée">Vr ≈ {vr.toFixed(2)} m/s &gt; 3.0 m/s recommandé. Augmentez le DN refoulement.</ProAlert>}
